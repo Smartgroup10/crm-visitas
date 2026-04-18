@@ -11,8 +11,6 @@ import {
   initialTasks,
 } from "./data/initialData";
 import { todayISO, getCalendarGrid } from "./utils/date";
-import { getClientName, peopleFromIds } from "./utils/id";
-import { statusSlug } from "./utils/status";
 import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
 import { migrateTasksToIds } from "./utils/migration";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -21,6 +19,7 @@ import { useUI } from "./hooks/useUI";
 import TaskModal from "./components/TaskModal";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
+import CounterModal from "./components/CounterModal";
 import ClientsView from "./components/views/ClientsView";
 import TechniciansView from "./components/views/TechniciansView";
 import InicioView from "./components/views/InicioView";
@@ -39,10 +38,7 @@ export default function App() {
     categoryFilter,
     setUi,
     counterModalOpen,
-    counterFilter,
-    counterSearch,
     setCounterModalOpen,
-    setCounterSearch,
   } = useUI();
 
   const [clients, setClients] = useLocalStorage(CLIENTS_STORAGE_KEY, DEFAULT_CLIENTS, {
@@ -133,45 +129,6 @@ export default function App() {
       done: tasks.filter((t) => t.status === "Listo").length,
     };
   }, [tasks]);
-
-  const counterTasks = useMemo(() => {
-    let filtered;
-
-    switch (counterFilter) {
-      case "No iniciado":
-        filtered = tasks.filter((task) => task.status === "No iniciado");
-        break;
-      case "En curso":
-        filtered = tasks.filter((task) => task.status === "En curso");
-        break;
-      case "Listo":
-        filtered = tasks.filter((task) => task.status === "Listo");
-        break;
-      default:
-        filtered = tasks;
-        break;
-    }
-
-    const searchText = counterSearch.trim().toLowerCase();
-
-    if (!searchText) return filtered;
-
-    return filtered.filter((task) => taskHaystack(task, clients, technicians).includes(searchText));
-  }, [tasks, clients, technicians, counterFilter, counterSearch]);
-
-  const groupedCounterTasks = useMemo(() => {
-    const grouped = {};
-
-    counterTasks
-      .slice()
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .forEach((task) => {
-        if (!grouped[task.date]) grouped[task.date] = [];
-        grouped[task.date].push(task);
-      });
-
-    return grouped;
-  }, [counterTasks]);
 
   function addClientFromModal() {
     const name = newClientName.trim();
@@ -335,92 +292,12 @@ export default function App() {
         addClient={addClientFromModal}
       />
 
-      {counterModalOpen && (
-        <div
-          className="modal-overlay"
-          onClick={() => setCounterModalOpen(false)}
-        >
-          <div
-            className="counter-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <div>
-                <h2>Tareas: {counterFilter}</h2>
-                <p>
-                  {counterFilter === "Total"
-                    ? "Listado completo de tareas"
-                    : `Listado de tareas en estado "${counterFilter}"`}
-                </p>
-              </div>
-
-              <button
-                className="icon-close"
-                onClick={() => setCounterModalOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="counter-modal-search">
-              <input
-                type="text"
-                value={counterSearch}
-                onChange={(e) => setCounterSearch(e.target.value)}
-                placeholder="Buscar dentro de este listado..."
-              />
-            </div>
-
-            <div className="counter-modal-list">
-              {counterTasks.length === 0 ? (
-                <div className="empty-state">
-                  No hay tareas para este contador.
-                </div>
-              ) : (
-                Object.entries(groupedCounterTasks).map(([date, tasksForDate]) => (
-                  <div key={date} className="counter-date-group">
-                    <div className="counter-date-heading">{date}</div>
-
-                    <div className="counter-date-items">
-                      {tasksForDate.map((task) => (
-                        <button
-                          key={task.id}
-                          type="button"
-                          className="counter-task-card"
-                          onClick={() => {
-                            setCounterModalOpen(false);
-                            editTask(task);
-                          }}
-                        >
-                          <div className="counter-task-top">
-                            <strong>{task.title}</strong>
-                            <span className={`mini-status ${statusSlug(task.status)}`}>
-                              {task.status}
-                            </span>
-                          </div>
-
-                          <div className="counter-task-meta">
-                            <strong>Cliente:</strong> {getClientName(task.clientId, clients) || "-"}
-                          </div>
-                          <div className="counter-task-meta">
-                            <strong>Técnicos:</strong> {peopleFromIds(task.technicianIds, technicians) || "-"}
-                          </div>
-                          <div className="counter-task-meta">
-                            <strong>Tipo:</strong> {task.category}
-                          </div>
-                          <div className="counter-task-meta">
-                            <strong>Prioridad:</strong> {task.priority}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <CounterModal
+        tasks={tasks}
+        clients={clients}
+        technicians={technicians}
+        onEditTask={editTask}
+      />
     </div>
   );
 }
