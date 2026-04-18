@@ -5,7 +5,6 @@ import {
   CLIENTS_STORAGE_KEY,
   UI_STORAGE_KEY,
   TECHNICIANS_STORAGE_KEY,
-  MIGRATION_FLAG_KEY,
   STATUS_OPTIONS,
   PRIORITY_OPTIONS,
   CATEGORY_OPTIONS,
@@ -16,118 +15,20 @@ import {
   DEFAULT_TECHNICIANS,
   initialTasks,
 } from "./data/initialData";
-import { toISO, todayISO, addDays } from "./utils/date";
-
-function migrateTasksToIds() {
-  if (typeof localStorage === "undefined") return;
-  if (localStorage.getItem(MIGRATION_FLAG_KEY) === "done") return;
-
-  try {
-    const rawTasks = localStorage.getItem(STORAGE_KEY);
-    const rawClients = localStorage.getItem(CLIENTS_STORAGE_KEY);
-    const rawTechnicians = localStorage.getItem(TECHNICIANS_STORAGE_KEY);
-
-    let tasks = rawTasks ? JSON.parse(rawTasks) : null;
-    let clients = rawClients ? JSON.parse(rawClients) : null;
-    const technicians = rawTechnicians ? JSON.parse(rawTechnicians) : null;
-
-    if (Array.isArray(clients)) {
-      clients = clients.map((c) =>
-        typeof c === "string" ? { id: crypto.randomUUID(), name: c } : c
-      );
-    }
-
-    if (!Array.isArray(clients)) clients = [];
-    const techList = Array.isArray(technicians) ? technicians : [];
-
-    if (!Array.isArray(tasks)) {
-      localStorage.setItem(MIGRATION_FLAG_KEY, "done");
-      return;
-    }
-
-    const migratedTasks = tasks.map((task) => {
-      const newTask = { ...task };
-
-      if (typeof newTask.client === "string" && newTask.client.trim()) {
-        const clientName = newTask.client;
-        let found = clients.find((c) => c.name === clientName);
-        if (!found) {
-          found = { id: crypto.randomUUID(), name: clientName };
-          clients.push(found);
-        }
-        newTask.clientId = found.id;
-      } else {
-        newTask.clientId = "";
-      }
-      delete newTask.client;
-
-      if (Array.isArray(newTask.people)) {
-        const ids = [];
-        for (const name of newTask.people) {
-          const tech = techList.find((t) => t.name === name);
-          if (tech) {
-            ids.push(tech.id);
-          } else {
-            console.warn("Técnico no encontrado en migración:", name);
-          }
-        }
-        newTask.technicianIds = ids;
-      } else {
-        newTask.technicianIds = [];
-      }
-      delete newTask.people;
-
-      return newTask;
-    });
-
-    clients.sort((a, b) => a.name.localeCompare(b.name, "es"));
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedTasks));
-    localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(clients));
-    localStorage.setItem(MIGRATION_FLAG_KEY, "done");
-  } catch (err) {
-    console.error("Error en migración a ids:", err);
-  }
-}
-
-function formatMonthYear(date) {
-  return new Intl.DateTimeFormat("es-ES", {
-    month: "long",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatShortDate(dateStr) {
-  if (!dateStr) return "";
-  const date = new Date(`${dateStr}T00:00:00`);
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-function getCalendarGrid(baseDate) {
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
-
-  const firstDay = new Date(year, month, 1);
-  const firstWeekDay = (firstDay.getDay() + 6) % 7;
-  const gridStart = new Date(year, month, 1 - firstWeekDay);
-
-  const cells = [];
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(gridStart);
-    d.setDate(gridStart.getDate() + i);
-    cells.push(d);
-  }
-  return cells;
-}
-
-function peopleFromIds(ids, technicians) {
-  if (!Array.isArray(ids)) return "";
-  return ids.map((id) => getTechnicianName(id, technicians)).filter(Boolean).join(", ");
-}
+import {
+  toISO,
+  todayISO,
+  addDays,
+  formatMonthYear,
+  formatShortDate,
+  getCalendarGrid,
+} from "./utils/date";
+import {
+  getClientName,
+  getTechnicianName,
+  peopleFromIds,
+} from "./utils/id";
+import { migrateTasksToIds } from "./utils/migration";
 
 function taskHaystack(task, clients, technicians) {
   return [
@@ -148,18 +49,6 @@ function taskHaystack(task, clients, technicians) {
 
 function statusSlug(status) {
   return status.toLowerCase().replaceAll(" ", "-");
-}
-
-function getClientName(clientId, clients) {
-  if (!clientId) return "";
-  const found = clients.find((c) => c.id === clientId);
-  return found ? found.name : "(cliente eliminado)";
-}
-
-function getTechnicianName(technicianId, technicians) {
-  if (!technicianId) return "";
-  const found = technicians.find((t) => t.id === technicianId);
-  return found ? found.name : "(técnico eliminado)";
 }
 
 function formatFileSize(size) {
