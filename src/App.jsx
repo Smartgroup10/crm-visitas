@@ -3,12 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   STORAGE_KEY,
   CLIENTS_STORAGE_KEY,
-  UI_STORAGE_KEY,
   TECHNICIANS_STORAGE_KEY,
-  STATUS_OPTIONS,
-  PRIORITY_OPTIONS,
-  CATEGORY_OPTIONS,
-  VALID_SECTIONS,
 } from "./data/constants";
 import {
   DEFAULT_CLIENTS,
@@ -22,26 +17,33 @@ import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
 import { migrateTasksToIds } from "./utils/migration";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useUI } from "./hooks/useUI";
 import TaskModal from "./components/TaskModal";
 import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
 import ClientsView from "./components/views/ClientsView";
 import TechniciansView from "./components/views/TechniciansView";
 import InicioView from "./components/views/InicioView";
 import MiTrabajoView from "./components/views/MiTrabajoView";
 import SeguimientoView from "./components/views/SeguimientoView";
 
-const DEFAULT_UI = {
-  section: "inicio",
-  activeView: "Calendario",
-  search: "",
-  personFilter: "Todos",
-  statusFilter: "Todos",
-  priorityFilter: "Todas",
-  categoryFilter: "Todas",
-};
-
 export default function App() {
   migrateTasksToIds();
+
+  const {
+    section,
+    search,
+    personFilter,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    setUi,
+    counterModalOpen,
+    counterFilter,
+    counterSearch,
+    setCounterModalOpen,
+    setCounterSearch,
+  } = useUI();
 
   const [clients, setClients] = useLocalStorage(CLIENTS_STORAGE_KEY, DEFAULT_CLIENTS, {
     parser: (parsed, fallback) => {
@@ -68,25 +70,6 @@ export default function App() {
     },
   });
 
-  const [ui, setUi] = useLocalStorage(UI_STORAGE_KEY, DEFAULT_UI, {
-    parser: (parsed, fallback) => {
-      if (!parsed || typeof parsed !== "object") return fallback;
-      const merged = { ...fallback, ...parsed };
-      if (!VALID_SECTIONS.includes(merged.section)) {
-        merged.section = fallback.section;
-      }
-      return merged;
-    },
-  });
-  const { section, activeView, search, personFilter, statusFilter, priorityFilter, categoryFilter } = ui;
-  const setSection = (v) => setUi((u) => ({ ...u, section: v }));
-  const setActiveView = (v) => setUi((u) => ({ ...u, activeView: v }));
-  const setSearch = (v) => setUi((u) => ({ ...u, search: v }));
-  const setPersonFilter = (v) => setUi((u) => ({ ...u, personFilter: v }));
-  const setStatusFilter = (v) => setUi((u) => ({ ...u, statusFilter: v }));
-  const setPriorityFilter = (v) => setUi((u) => ({ ...u, priorityFilter: v }));
-  const setCategoryFilter = (v) => setUi((u) => ({ ...u, categoryFilter: v }));
-
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -97,10 +80,6 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [newClientName, setNewClientName] = useState("");
-
-  const [counterModalOpen, setCounterModalOpen] = useState(false);
-  const [counterFilter, setCounterFilter] = useState("Total");
-  const [counterSearch, setCounterSearch] = useState("");
 
   useEffect(() => {
     if (personFilter !== "Todos" && !technicians.some((t) => t.id === personFilter)) {
@@ -154,12 +133,6 @@ export default function App() {
       done: tasks.filter((t) => t.status === "Listo").length,
     };
   }, [tasks]);
-
-  function openCounterModal(filterName) {
-    setCounterFilter(filterName);
-    setCounterSearch("");
-    setCounterModalOpen(true);
-  }
 
   const counterTasks = useMemo(() => {
     let filtered;
@@ -215,14 +188,6 @@ export default function App() {
     );
     setDraft({ ...draft, clientId: created.id });
     setNewClientName("");
-  }
-
-  function resetFilters() {
-    setSearch("");
-    setPersonFilter("Todos");
-    setStatusFilter("Todos");
-    setPriorityFilter("Todas");
-    setCategoryFilter("Todas");
   }
 
   function openNewTask() {
@@ -312,155 +277,14 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar section={section} setSection={setSection} />
+      <Sidebar />
 
       <div className="main-shell">
-        <header className="topbar compact-topbar">
-          <div className="top-title-row">
-            <div className="top-title-block">
-              <h1>
-                {section === "instalaciones" ? "Seguimiento de intervenciones"
-                  : section === "tecnicos"   ? "Técnicos"
-                  : section === "inicio"     ? "Inicio"
-                  : section === "mitrabajo"  ? "Mi trabajo"
-                  : "Clientes"}
-              </h1>
-              <p>
-                {section === "instalaciones" ? "Visitas · Instalaciones · Mantenimiento · Incidencias"
-                  : section === "tecnicos"   ? "Gestión del equipo técnico"
-                  : section === "inicio"     ? "Resumen operativo"
-                  : section === "mitrabajo"  ? "Gestión y atención prioritaria"
-                  : "Gestión del catálogo de clientes"}
-              </p>
-            </div>
-
-            {section === "instalaciones" && (
-              <div className="top-header-counters">
-                <button type="button" className="stat-pill stat-total" onClick={() => openCounterModal("Total")}>
-                  <span className="stat-dot"></span>
-                  <strong>{stats.total}</strong>
-                  <span className="stat-label">Total</span>
-                </button>
-                <button type="button" className="stat-pill stat-pending" onClick={() => openCounterModal("No iniciado")}>
-                  <span className="stat-dot"></span>
-                  <strong>{stats.pending}</strong>
-                  <span className="stat-label">Pendiente</span>
-                </button>
-                <button type="button" className="stat-pill stat-progress" onClick={() => openCounterModal("En curso")}>
-                  <span className="stat-dot"></span>
-                  <strong>{stats.progress}</strong>
-                  <span className="stat-label">En curso</span>
-                </button>
-                <button type="button" className="stat-pill stat-done" onClick={() => openCounterModal("Listo")}>
-                  <span className="stat-dot"></span>
-                  <strong>{stats.done}</strong>
-                  <span className="stat-label">Listo</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {section === "instalaciones" && (
-            <div className="toolbar toolbar-installations toolbar-top-row">
-              <div className="toolbar-left toolbar-search-tabs">
-                <div className="inline-view-tabs">
-                  <button
-                    className={`view-tab ${activeView === "Tabla principal" ? "active" : ""}`}
-                    onClick={() => setActiveView("Tabla principal")}
-                  >
-                    <svg className="view-tab-svg" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="1" y="3" width="14" height="2" rx="1" fill="currentColor"/>
-                      <rect x="1" y="7" width="14" height="2" rx="1" fill="currentColor" opacity=".7"/>
-                      <rect x="1" y="11" width="14" height="2" rx="1" fill="currentColor" opacity=".5"/>
-                    </svg>
-                    <span>Tabla</span>
-                  </button>
-                  <button
-                    className={`view-tab ${activeView === "Calendario" ? "active" : ""}`}
-                    onClick={() => setActiveView("Calendario")}
-                  >
-                    <svg className="view-tab-svg" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                      <path d="M1 6h14" stroke="currentColor" strokeWidth="1.5"/>
-                      <rect x="5" y="1" width="1.5" height="4" rx=".75" fill="currentColor"/>
-                      <rect x="9.5" y="1" width="1.5" height="4" rx=".75" fill="currentColor"/>
-                    </svg>
-                    <span>Calendario</span>
-                  </button>
-                </div>
-
-                <div className="search-wrapper">
-                  <input
-                    className="search-input"
-                    type="text"
-                    placeholder="Busca tarea, cliente, técnico, vehículo…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="toolbar-filters">
-                <select
-                  className="toolbar-filter-select"
-                  value={personFilter}
-                  onChange={(e) => setPersonFilter(e.target.value)}
-                >
-                  <option value="Todos">Técnico</option>
-                  {technicians.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <select
-                  className="toolbar-filter-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="Todos">Estado</option>
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <select
-                  className="toolbar-filter-select"
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                >
-                  <option value="Todas">Prioridad</option>
-                  {PRIORITY_OPTIONS.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-                <select
-                  className="toolbar-filter-select"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                >
-                  <option value="Todas">Tipo</option>
-                  {CATEGORY_OPTIONS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="toolbar-right quick-actions">
-                <button className="btn-secondary quick-btn" onClick={resetFilters}>
-                  Limpiar
-                </button>
-                <button className="btn-primary quick-btn" onClick={openNewTask}>
-                  + Nueva tarea
-                </button>
-              </div>
-            </div>
-          )}
-
-
-        </header>
+        <Topbar stats={stats} technicians={technicians} openNewTask={openNewTask} />
 
         <div className="content-grid integrated-layout">
           {section === "instalaciones" ? (
             <SeguimientoView
-              activeView={activeView}
               monthCells={monthCells}
               currentMonth={currentMonth}
               tasksByDate={tasksByDate}
