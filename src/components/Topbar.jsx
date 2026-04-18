@@ -1,0 +1,172 @@
+import {
+  STATUS_OPTIONS,
+  PRIORITY_OPTIONS,
+  CATEGORY_OPTIONS,
+} from "../data/constants";
+import { useUI } from "../hooks/useUI";
+
+const TITLES = {
+  inicio: "Inicio",
+  mitrabajo: "Mi trabajo",
+  instalaciones: "Seguimiento de intervenciones",
+  clientes: "Clientes",
+  tecnicos: "Técnicos",
+};
+
+const SUBTITLES = {
+  inicio: "Resumen operativo",
+  mitrabajo: "Gestión y atención prioritaria",
+  instalaciones: "Visitas · Instalaciones · Mantenimiento · Incidencias",
+  clientes: "Gestión del catálogo de clientes",
+  tecnicos: "Gestión del equipo técnico",
+};
+
+export default function Topbar({ stats, technicians, openNewTask }) {
+  const {
+    section,
+    activeView,
+    search,
+    personFilter,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    setActiveView,
+    setSearch,
+    setPersonFilter,
+    setStatusFilter,
+    setPriorityFilter,
+    setCategoryFilter,
+    resetFilters,
+    openCounterModal,
+  } = useUI();
+
+  return (
+    <header className="topbar compact-topbar">
+      <div className="top-title-row">
+        <div className="top-title-block">
+          <h1>{TITLES[section]}</h1>
+          <p>{SUBTITLES[section]}</p>
+        </div>
+
+        {section === "instalaciones" && (
+          <div className="top-header-counters">
+            <button type="button" className="stat-pill stat-total" onClick={() => openCounterModal("Total")}>
+              <span className="stat-dot"></span>
+              <strong>{stats.total}</strong>
+              <span className="stat-label">Total</span>
+            </button>
+            <button type="button" className="stat-pill stat-pending" onClick={() => openCounterModal("No iniciado")}>
+              <span className="stat-dot"></span>
+              <strong>{stats.pending}</strong>
+              <span className="stat-label">Pendiente</span>
+            </button>
+            <button type="button" className="stat-pill stat-progress" onClick={() => openCounterModal("En curso")}>
+              <span className="stat-dot"></span>
+              <strong>{stats.progress}</strong>
+              <span className="stat-label">En curso</span>
+            </button>
+            <button type="button" className="stat-pill stat-done" onClick={() => openCounterModal("Listo")}>
+              <span className="stat-dot"></span>
+              <strong>{stats.done}</strong>
+              <span className="stat-label">Listo</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {section === "instalaciones" && (
+        <div className="toolbar toolbar-installations toolbar-top-row">
+          <div className="toolbar-left toolbar-search-tabs">
+            <div className="inline-view-tabs">
+              <button
+                className={`view-tab ${activeView === "Tabla principal" ? "active" : ""}`}
+                onClick={() => setActiveView("Tabla principal")}
+              >
+                <svg className="view-tab-svg" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="3" width="14" height="2" rx="1" fill="currentColor"/>
+                  <rect x="1" y="7" width="14" height="2" rx="1" fill="currentColor" opacity=".7"/>
+                  <rect x="1" y="11" width="14" height="2" rx="1" fill="currentColor" opacity=".5"/>
+                </svg>
+                <span>Tabla</span>
+              </button>
+              <button
+                className={`view-tab ${activeView === "Calendario" ? "active" : ""}`}
+                onClick={() => setActiveView("Calendario")}
+              >
+                <svg className="view-tab-svg" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M1 6h14" stroke="currentColor" strokeWidth="1.5"/>
+                  <rect x="5" y="1" width="1.5" height="4" rx=".75" fill="currentColor"/>
+                  <rect x="9.5" y="1" width="1.5" height="4" rx=".75" fill="currentColor"/>
+                </svg>
+                <span>Calendario</span>
+              </button>
+            </div>
+
+            <div className="search-wrapper">
+              <input
+                className="search-input"
+                type="text"
+                placeholder="Busca tarea, cliente, técnico, vehículo…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="toolbar-filters">
+            <select
+              className="toolbar-filter-select"
+              value={personFilter}
+              onChange={(e) => setPersonFilter(e.target.value)}
+            >
+              <option value="Todos">Técnico</option>
+              {technicians.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <select
+              className="toolbar-filter-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="Todos">Estado</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              className="toolbar-filter-select"
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+            >
+              <option value="Todas">Prioridad</option>
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            <select
+              className="toolbar-filter-select"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="Todas">Tipo</option>
+              {CATEGORY_OPTIONS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="toolbar-right quick-actions">
+            <button className="btn-secondary quick-btn" onClick={resetFilters}>
+              Limpiar
+            </button>
+            <button className="btn-primary quick-btn" onClick={openNewTask}>
+              + Nueva tarea
+            </button>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}

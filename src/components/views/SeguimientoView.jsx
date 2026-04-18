@@ -1,9 +1,9 @@
 import { toISO, todayISO, formatMonthYear, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getStatusClass, getPriorityClass } from "../../utils/status";
+import { useUI } from "../../hooks/useUI";
 
 export default function SeguimientoView({
-  activeView,
   monthCells,
   currentMonth,
   tasksByDate,
@@ -19,6 +19,8 @@ export default function SeguimientoView({
   technicians,
   onEditTask,
 }) {
+  const { activeView } = useUI();
+
   return (
     <>
       <section className="main-panel top-aligned-panel">

@@ -1,4 +1,8 @@
-export default function Sidebar({ section, setSection }) {
+import { useUI } from "../hooks/useUI";
+
+export default function Sidebar() {
+  const { section, setSection } = useUI();
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
