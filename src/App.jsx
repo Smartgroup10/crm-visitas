@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   STORAGE_KEY,
@@ -101,6 +101,12 @@ export default function App() {
   const [counterModalOpen, setCounterModalOpen] = useState(false);
   const [counterFilter, setCounterFilter] = useState("Total");
   const [counterSearch, setCounterSearch] = useState("");
+
+  useEffect(() => {
+    if (personFilter !== "Todos" && !technicians.some((t) => t.id === personFilter)) {
+      setUi((u) => ({ ...u, personFilter: "Todos" }));
+    }
+  }, [technicians, personFilter, setUi]);
 
   const monthCells = useMemo(() => getCalendarGrid(currentMonth), [currentMonth]);
 
