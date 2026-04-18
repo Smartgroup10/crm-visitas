@@ -1,13 +1,13 @@
 import { getClientName, peopleFromIds } from "./id";
-import { defaultsForType } from "../data/taskTypes";
+import { defaultsForType, TASK_TYPES } from "../data/taskTypes";
 
-export function emptyTask(date) {
+export function emptyTask(date, type = "incidencia") {
   return {
     id: null,
     title: "",
     clientId: "",
     phone: "",
-    type: "incidencia",
+    type,
     date,
     technicianIds: [],
     status: "No iniciado",
@@ -17,7 +17,7 @@ export function emptyTask(date) {
     estimatedTime: "",
     vehicle: "",
     attachments: [],
-    ...defaultsForType("incidencia"),
+    ...defaultsForType(type),
   };
 }
 
@@ -30,12 +30,13 @@ export function normalizeTask(task) {
 }
 
 export function taskHaystack(task, clients, technicians) {
+  const typeLabel = TASK_TYPES[task.type]?.label || task.type || "";
   return [
     task.title,
     getClientName(task.clientId, clients),
     task.phone,
     peopleFromIds(task.technicianIds, technicians),
-    task.category,
+    typeLabel,
     task.notes,
     task.materials,
     task.estimatedTime,

@@ -13,6 +13,7 @@ import {
 import { todayISO, getCalendarGrid } from "./utils/date";
 import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
 import { migrateTasksToIds, migrateTasksToTypedSchema } from "./utils/migration";
+import { TASK_TYPE_KEYS } from "./data/taskTypes";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUI } from "./hooks/useUI";
@@ -84,6 +85,12 @@ export default function App() {
     }
   }, [technicians, personFilter, setUi]);
 
+  useEffect(() => {
+    if (categoryFilter !== "Todas" && !TASK_TYPE_KEYS.includes(categoryFilter)) {
+      setUi((u) => ({ ...u, categoryFilter: "Todas" }));
+    }
+  }, [categoryFilter, setUi]);
+
   const monthCells = useMemo(() => getCalendarGrid(currentMonth), [currentMonth]);
 
   const filteredTasks = useMemo(() => {
@@ -95,7 +102,7 @@ export default function App() {
       const matchesPriority =
         priorityFilter === "Todas" || task.priority === priorityFilter;
       const matchesCategory =
-        categoryFilter === "Todas" || task.category === categoryFilter;
+        categoryFilter === "Todas" || task.type === categoryFilter;
 
       return (
         matchesSearch &&
