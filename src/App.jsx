@@ -6,11 +6,11 @@ const UI_STORAGE_KEY = "smartgroup_ops_ui_v1";
 const TECHNICIANS_STORAGE_KEY = "smartgroup_ops_technicians_v1";
 
 const DEFAULT_CLIENTS = [
-  "Clínica Norte",
-  "Coworking 4 Caminos",
-  "Hotel Centro",
-  "Asesoría Delta",
-  "Oficinas Smartgroup",
+  { id: "c1", name: "Clínica Norte" },
+  { id: "c2", name: "Coworking 4 Caminos" },
+  { id: "c3", name: "Hotel Centro" },
+  { id: "c4", name: "Asesoría Delta" },
+  { id: "c5", name: "Oficinas Smartgroup" },
 ];
 
 const DEFAULT_TECHNICIANS = [
@@ -307,8 +307,8 @@ function TaskModal({
             >
               <option value="">Selecciona cliente</option>
               {clients.map((client) => (
-                <option key={client} value={client}>
-                  {client}
+                <option key={client.id} value={client.name}>
+                  {client.name}
                 </option>
               ))}
             </select>
@@ -515,44 +515,48 @@ function TaskModal({
 
 function ClientsView({ clients, setClients, tasks }) {
   const [newClient, setNewClient] = useState("");
-  const [editingClient, setEditingClient] = useState(null);
+  const [editingClientId, setEditingClientId] = useState(null);
   const [editingValue, setEditingValue] = useState("");
 
   function addClient() {
     const value = newClient.trim();
     if (!value) return;
-    if (clients.includes(value)) return;
-    setClients((prev) => [...prev, value].sort((a, b) => a.localeCompare(b, "es")));
+    if (clients.some((c) => c.name === value)) return;
+    setClients((prev) =>
+      [...prev, { id: crypto.randomUUID(), name: value }].sort((a, b) =>
+        a.name.localeCompare(b.name, "es")
+      )
+    );
     setNewClient("");
   }
 
   function startEdit(client) {
-    setEditingClient(client);
-    setEditingValue(client);
+    setEditingClientId(client.id);
+    setEditingValue(client.name);
   }
 
   function saveEdit() {
     const value = editingValue.trim();
     if (!value) return;
-    if (clients.includes(value) && value !== editingClient) return;
+    if (clients.some((c) => c.name === value && c.id !== editingClientId)) return;
 
     setClients((prev) =>
       prev
-        .map((client) => (client === editingClient ? value : client))
-        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((c) => (c.id === editingClientId ? { ...c, name: value } : c))
+        .sort((a, b) => a.name.localeCompare(b.name, "es"))
     );
 
-    setEditingClient(null);
+    setEditingClientId(null);
     setEditingValue("");
   }
 
-  function deleteClient(clientName) {
-    const isUsed = tasks.some((task) => task.client === clientName);
+  function deleteClient(client) {
+    const isUsed = tasks.some((task) => task.client === client.name);
     if (isUsed) {
       alert("No puedes borrar este cliente porque está asignado a una o más tareas.");
       return;
     }
-    setClients((prev) => prev.filter((client) => client !== clientName));
+    setClients((prev) => prev.filter((c) => c.id !== client.id));
   }
 
   return (
@@ -584,11 +588,11 @@ function ClientsView({ clients, setClients, tasks }) {
         ) : (
           <div className="clients-list">
             {clients.map((client) => {
-              const usageCount = tasks.filter((task) => task.client === client).length;
-              const isEditing = editingClient === client;
+              const usageCount = tasks.filter((task) => task.client === client.name).length;
+              const isEditing = editingClientId === client.id;
 
               return (
-                <div key={client} className="client-row">
+                <div key={client.id} className="client-row">
                   <div className="client-main">
                     {isEditing ? (
                       <input
@@ -598,7 +602,7 @@ function ClientsView({ clients, setClients, tasks }) {
                       />
                     ) : (
                       <div>
-                        <div className="client-name">{client}</div>
+                        <div className="client-name">{client.name}</div>
                         <div className="client-meta">
                           Tareas asociadas: {usageCount}
                         </div>
@@ -615,7 +619,7 @@ function ClientsView({ clients, setClients, tasks }) {
                         <button
                           className="btn-secondary small-btn"
                           onClick={() => {
-                            setEditingClient(null);
+                            setEditingClientId(null);
                             setEditingValue("");
                           }}
                         >
@@ -1120,7 +1124,10 @@ export default function App() {
     if (!saved) return DEFAULT_CLIENTS;
     try {
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_CLIENTS;
+      if (!Array.isArray(parsed) || !parsed.length) return DEFAULT_CLIENTS;
+      return parsed.map((c) =>
+        typeof c === "string" ? { id: crypto.randomUUID(), name: c } : c
+      );
     } catch {
       return DEFAULT_CLIENTS;
     }
@@ -1290,15 +1297,19 @@ export default function App() {
   }, [counterTasks]);
 
   function addClientFromModal() {
-    const client = newClientName.trim();
-    if (!client) return;
-    if (clients.includes(client)) {
-      setDraft({ ...draft, client });
+    const name = newClientName.trim();
+    if (!name) return;
+    if (clients.some((c) => c.name === name)) {
+      setDraft({ ...draft, client: name });
       setNewClientName("");
       return;
     }
-    setClients((prev) => [...prev, client].sort((a, b) => a.localeCompare(b, "es")));
-    setDraft({ ...draft, client });
+    setClients((prev) =>
+      [...prev, { id: crypto.randomUUID(), name }].sort((a, b) =>
+        a.name.localeCompare(b.name, "es")
+      )
+    );
+    setDraft({ ...draft, client: name });
     setNewClientName("");
   }
 
