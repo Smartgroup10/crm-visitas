@@ -150,16 +150,17 @@ function getCalendarGrid(baseDate) {
   return cells;
 }
 
-function peopleToText(people) {
-  return Array.isArray(people) ? people.join(", ") : "";
+function peopleFromIds(ids, technicians) {
+  if (!Array.isArray(ids)) return "";
+  return ids.map((id) => getTechnicianName(id, technicians)).filter(Boolean).join(", ");
 }
 
-function taskHaystack(task) {
+function taskHaystack(task, clients, technicians) {
   return [
     task.title,
-    task.client,
+    getClientName(task.clientId, clients),
     task.phone,
-    peopleToText(task.people),
+    peopleFromIds(task.technicianIds, technicians),
     task.category,
     task.notes,
     task.materials,
@@ -197,11 +198,11 @@ function emptyTask(date) {
   return {
     id: null,
     title: "",
-    client: "",
+    clientId: "",
     phone: "",
     category: "Visita",
     date,
-    people: [],
+    technicianIds: [],
     status: "No iniciado",
     priority: "Media",
     notes: "",
@@ -215,12 +216,7 @@ function emptyTask(date) {
 function normalizeTask(task) {
   return {
     ...task,
-    people: Array.isArray(task.people)
-      ? task.people
-      : String(task.people || "")
-          .split(",")
-          .map((x) => x.trim())
-          .filter(Boolean),
+    technicianIds: Array.isArray(task.technicianIds) ? task.technicianIds : [],
     attachments: Array.isArray(task.attachments) ? task.attachments : [],
   };
 }
@@ -255,11 +251,11 @@ const initialTasks = [
   {
     id: crypto.randomUUID(),
     title: "Instalación centralita VoIP",
-    client: "Clínica Norte",
+    clientId: "c1",
     phone: "912345678",
     category: "Instalación",
     date: todayISO(),
-    people: ["Carlos", "Marta"],
+    technicianIds: ["t1", "t2"],
     status: "No iniciado",
     priority: "Urgente",
     notes: "Comprobar extensiones, desvíos y llamadas entrantes.",
@@ -278,11 +274,11 @@ const initialTasks = [
   {
     id: crypto.randomUUID(),
     title: "Visita técnica de revisión",
-    client: "Coworking 4 Caminos",
+    clientId: "c2",
     phone: "911223344",
     category: "Visita",
     date: addDays(todayISO(), 1),
-    people: ["Fernando"],
+    technicianIds: ["t3"],
     status: "En curso",
     priority: "Alta",
     notes: "Analizar cableado y cobertura WiFi.",
@@ -294,11 +290,11 @@ const initialTasks = [
   {
     id: crypto.randomUUID(),
     title: "Mantenimiento preventivo",
-    client: "Hotel Centro",
+    clientId: "c3",
     phone: "917778899",
     category: "Mantenimiento",
     date: addDays(todayISO(), 2),
-    people: ["Laura", "Andrés"],
+    technicianIds: ["t4", "t5"],
     status: "Listo",
     priority: "Media",
     notes: "Revisión general de red y telefonía.",
@@ -318,7 +314,7 @@ function TaskModal({
   onDelete,
   isEditing,
   clients,
-  technicianNames,
+  technicians,
   newClientName,
   setNewClientName,
   addClient,
@@ -327,12 +323,12 @@ function TaskModal({
 
   if (!open) return null;
 
-  function toggleTechnician(name) {
-    const exists = draft.people.includes(name);
+  function toggleTechnician(techId) {
+    const exists = draft.technicianIds.includes(techId);
     if (exists) {
-      setDraft({ ...draft, people: draft.people.filter((p) => p !== name) });
+      setDraft({ ...draft, technicianIds: draft.technicianIds.filter((id) => id !== techId) });
     } else {
-      setDraft({ ...draft, people: [...draft.people, name] });
+      setDraft({ ...draft, technicianIds: [...draft.technicianIds, techId] });
     }
   }
 
@@ -387,12 +383,12 @@ function TaskModal({
           <div className="form-row">
             <label>Cliente</label>
             <select
-              value={draft.client}
-              onChange={(e) => setDraft({ ...draft, client: e.target.value })}
+              value={draft.clientId}
+              onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
             >
               <option value="">Selecciona cliente</option>
               {clients.map((client) => (
-                <option key={client.id} value={client.name}>
+                <option key={client.id} value={client.id}>
                   {client.name}
                 </option>
               ))}
@@ -450,14 +446,14 @@ function TaskModal({
           <div className="form-row full">
             <label>Técnicos</label>
             <div className="chips-wrap">
-              {technicianNames.map((tech) => (
+              {technicians.map((tech) => (
                 <button
                   type="button"
-                  key={tech}
-                  className={`chip ${draft.people.includes(tech) ? "chip-active" : ""}`}
-                  onClick={() => toggleTechnician(tech)}
+                  key={tech.id}
+                  className={`chip ${draft.technicianIds.includes(tech.id) ? "chip-active" : ""}`}
+                  onClick={() => toggleTechnician(tech.id)}
                 >
-                  {tech}
+                  {tech.name}
                 </button>
               ))}
             </div>
@@ -636,7 +632,7 @@ function ClientsView({ clients, setClients, tasks }) {
   }
 
   function deleteClient(client) {
-    const isUsed = tasks.some((task) => task.client === client.name);
+    const isUsed = tasks.some((task) => task.clientId === client.id);
     if (isUsed) {
       alert("No puedes borrar este cliente porque está asignado a una o más tareas.");
       return;
@@ -673,7 +669,7 @@ function ClientsView({ clients, setClients, tasks }) {
         ) : (
           <div className="clients-list">
             {clients.map((client) => {
-              const usageCount = tasks.filter((task) => task.client === client.name).length;
+              const usageCount = tasks.filter((task) => task.clientId === client.id).length;
               const isEditing = editingClientId === client.id;
 
               return (
@@ -740,7 +736,7 @@ function ClientsView({ clients, setClients, tasks }) {
 
 const TECH_AVATAR_COLORS = ["#0073ea","#e2445c","#00c875","#fdab3d","#a358d0","#037f4c","#0086c0","#d83a52"];
 
-function InicioView({ tasks, technicians, onEditTask }) {
+function InicioView({ tasks, clients, technicians, onEditTask }) {
   const today = todayISO();
   const tomorrow = addDays(today, 1);
   const in7 = addDays(today, 7);
@@ -772,7 +768,7 @@ function InicioView({ tasks, technicians, onEditTask }) {
     .slice(0, 6);
 
   const techLoad = technicians.map((tech) => {
-    const tt = tasks.filter((t) => t.people.includes(tech.name));
+    const tt = tasks.filter((t) => t.technicianIds.includes(tech.id));
     return {
       ...tech,
       active:  tt.filter((t) => t.status === "En curso").length,
@@ -828,10 +824,10 @@ function InicioView({ tasks, technicians, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
-                  <div className="day-task-meta">{task.client} · {formatShortDate(task.date)}</div>
+                  <div className="day-task-meta">{getClientName(task.clientId, clients)} · {formatShortDate(task.date)}</div>
                   <div className="day-task-meta">
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
-                    {" "}{peopleToText(task.people)}
+                    {" "}{peopleFromIds(task.technicianIds, technicians)}
                   </div>
                 </button>
               ))}
@@ -855,9 +851,9 @@ function InicioView({ tasks, technicians, onEditTask }) {
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
                   <div className="day-task-meta">
-                    {task.date === today ? "Hoy" : "Mañana"} · {task.client}
+                    {task.date === today ? "Hoy" : "Mañana"} · {getClientName(task.clientId, clients)}
                   </div>
-                  <div className="day-task-meta">{task.category} · {peopleToText(task.people)}</div>
+                  <div className="day-task-meta">{task.category} · {peopleFromIds(task.technicianIds, technicians)}</div>
                 </button>
               ))}
             </div>
@@ -904,8 +900,8 @@ function InicioView({ tasks, technicians, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
                   </div>
-                  <div className="day-task-meta">{formatShortDate(task.date)} · {task.client}</div>
-                  <div className="day-task-meta">{task.category} · {peopleToText(task.people)}</div>
+                  <div className="day-task-meta">{formatShortDate(task.date)} · {getClientName(task.clientId, clients)}</div>
+                  <div className="day-task-meta">{task.category} · {peopleFromIds(task.technicianIds, technicians)}</div>
                 </button>
               ))}
             </div>
@@ -916,7 +912,7 @@ function InicioView({ tasks, technicians, onEditTask }) {
   );
 }
 
-function MiTrabajoView({ tasks, onEditTask }) {
+function MiTrabajoView({ tasks, clients, technicians, onEditTask }) {
   const today = todayISO();
 
   const requiresAction = tasks
@@ -934,7 +930,7 @@ function MiTrabajoView({ tasks, onEditTask }) {
   const vehiclesOut = [...new Set(agendaHoy.map((t) => t.vehicle).filter(Boolean))];
 
   const incomplete = tasks
-    .filter((t) => t.people.length === 0 || !t.date)
+    .filter((t) => t.technicianIds.length === 0 || !t.date)
     .sort((a, b) => {
       if (!a.date && b.date) return 1;
       if (a.date && !b.date) return -1;
@@ -973,10 +969,10 @@ function MiTrabajoView({ tasks, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
-                  <div className="day-task-meta">{task.client} · {formatShortDate(task.date)}</div>
+                  <div className="day-task-meta">{getClientName(task.clientId, clients)} · {formatShortDate(task.date)}</div>
                   <div className="day-task-meta">
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
-                    {" "}{peopleToText(task.people) || <em>Sin técnico</em>}
+                    {" "}{peopleFromIds(task.technicianIds, technicians) || <em>Sin técnico</em>}
                   </div>
                 </button>
               ))}
@@ -1007,9 +1003,9 @@ function MiTrabajoView({ tasks, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
-                  <div className="day-task-meta">{task.category} · {task.client}</div>
+                  <div className="day-task-meta">{task.category} · {getClientName(task.clientId, clients)}</div>
                   <div className="day-task-meta">
-                    {peopleToText(task.people)}{task.vehicle ? ` · ${task.vehicle}` : ""}
+                    {peopleFromIds(task.technicianIds, technicians)}{task.vehicle ? ` · ${task.vehicle}` : ""}
                   </div>
                 </button>
               ))}
@@ -1033,10 +1029,10 @@ function MiTrabajoView({ tasks, onEditTask }) {
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
                   </div>
                   <div className="day-task-meta">
-                    {task.client || "—"} · {task.date ? formatShortDate(task.date) : "Sin fecha"}
+                    {getClientName(task.clientId, clients) || "—"} · {task.date ? formatShortDate(task.date) : "Sin fecha"}
                   </div>
                   <div className="day-task-meta" style={{ color: "var(--c-blocked)" }}>
-                    {task.people.length === 0 ? "⚠ Sin técnico asignado" : ""}
+                    {task.technicianIds.length === 0 ? "⚠ Sin técnico asignado" : ""}
                     {!task.date ? "⚠ Sin fecha" : ""}
                   </div>
                 </button>
@@ -1085,15 +1081,15 @@ function TechniciansView({ technicians, setTechnicians, tasks }) {
   }
 
   function deleteTechnician(tech) {
-    if (tasks.some((task) => task.people.includes(tech.name))) {
+    if (tasks.some((task) => task.technicianIds.includes(tech.id))) {
       alert("No puedes borrar este técnico porque está asignado a una o más tareas.");
       return;
     }
     setTechnicians((prev) => prev.filter((t) => t.id !== tech.id));
   }
 
-  function getTechStats(name) {
-    const tt = tasks.filter((t) => t.people.includes(name));
+  function getTechStats(techId) {
+    const tt = tasks.filter((t) => t.technicianIds.includes(techId));
     return {
       total: tt.length,
       progress: tt.filter((t) => t.status === "En curso").length,
@@ -1134,7 +1130,7 @@ function TechniciansView({ technicians, setTechnicians, tasks }) {
       ) : (
         <div className="tech-grid">
           {technicians.map((tech, i) => {
-            const stats = getTechStats(tech.name);
+            const stats = getTechStats(tech.id);
             const color = TECH_AVATAR_COLORS[i % TECH_AVATAR_COLORS.length];
             const isEditing = editingId === tech.id;
 
@@ -1231,8 +1227,6 @@ export default function App() {
     }
   });
 
-  const technicianNames = useMemo(() => technicians.map((t) => t.name), [technicians]);
-
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return initialTasks;
@@ -1295,9 +1289,9 @@ export default function App() {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const matchesSearch = taskHaystack(task).includes(search.toLowerCase());
+      const matchesSearch = taskHaystack(task, clients, technicians).includes(search.toLowerCase());
       const matchesPerson =
-        personFilter === "Todos" || task.people.includes(personFilter);
+        personFilter === "Todos" || task.technicianIds.includes(personFilter);
       const matchesStatus = statusFilter === "Todos" || task.status === statusFilter;
       const matchesPriority =
         priorityFilter === "Todas" || task.priority === priorityFilter;
@@ -1312,7 +1306,7 @@ export default function App() {
         matchesCategory
       );
     });
-  }, [tasks, search, personFilter, statusFilter, priorityFilter, categoryFilter]);
+  }, [tasks, clients, technicians, search, personFilter, statusFilter, priorityFilter, categoryFilter]);
 
   const tasksByDate = useMemo(() => {
     const grouped = {};
@@ -1366,8 +1360,8 @@ export default function App() {
 
     if (!searchText) return filtered;
 
-    return filtered.filter((task) => taskHaystack(task).includes(searchText));
-  }, [tasks, counterFilter, counterSearch]);
+    return filtered.filter((task) => taskHaystack(task, clients, technicians).includes(searchText));
+  }, [tasks, clients, technicians, counterFilter, counterSearch]);
 
   const groupedCounterTasks = useMemo(() => {
     const grouped = {};
@@ -1386,17 +1380,17 @@ export default function App() {
   function addClientFromModal() {
     const name = newClientName.trim();
     if (!name) return;
-    if (clients.some((c) => c.name === name)) {
-      setDraft({ ...draft, client: name });
+    const existing = clients.find((c) => c.name === name);
+    if (existing) {
+      setDraft({ ...draft, clientId: existing.id });
       setNewClientName("");
       return;
     }
+    const created = { id: crypto.randomUUID(), name };
     setClients((prev) =>
-      [...prev, { id: crypto.randomUUID(), name }].sort((a, b) =>
-        a.name.localeCompare(b.name, "es")
-      )
+      [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "es"))
     );
-    setDraft({ ...draft, client: name });
+    setDraft({ ...draft, clientId: created.id });
     setNewClientName("");
   }
 
@@ -1437,12 +1431,12 @@ export default function App() {
       return;
     }
 
-    if (!draft.client.trim()) {
+    if (!draft.clientId) {
       alert("El cliente es obligatorio.");
       return;
     }
 
-    if (!draft.people.length) {
+    if (!draft.technicianIds.length) {
       alert("Debes seleccionar al menos un técnico.");
       return;
     }
@@ -1671,8 +1665,8 @@ export default function App() {
                   onChange={(e) => setPersonFilter(e.target.value)}
                 >
                   <option value="Todos">Técnico</option>
-                  {technicianNames.map((person) => (
-                    <option key={person} value={person}>{person}</option>
+                  {technicians.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
                 <select
@@ -1798,9 +1792,9 @@ export default function App() {
 
                                   <div className="task-tooltip">
                                     <div><strong>{task.title}</strong></div>
-                                    <div><strong>Cliente:</strong> {task.client || "-"}</div>
+                                    <div><strong>Cliente:</strong> {getClientName(task.clientId, clients) || "-"}</div>
                                     <div><strong>Tipo:</strong> {task.category}</div>
-                                    <div><strong>Técnicos:</strong> {peopleToText(task.people) || "-"}</div>
+                                    <div><strong>Técnicos:</strong> {peopleFromIds(task.technicianIds, technicians) || "-"}</div>
                                     <div><strong>Estado:</strong> {task.status}</div>
                                     <div><strong>Prioridad:</strong> {task.priority}</div>
                                     <div><strong>Tiempo:</strong> {task.estimatedTime || "-"}</div>
@@ -1849,11 +1843,11 @@ export default function App() {
                             .map((task) => (
                               <tr key={task.id} onClick={() => editTask(task)}>
                                 <td>{task.title}</td>
-                                <td>{task.client}</td>
+                                <td>{getClientName(task.clientId, clients)}</td>
                                 <td>{task.phone || "-"}</td>
                                 <td>{task.category}</td>
                                 <td>{formatShortDate(task.date)}</td>
-                                <td>{peopleToText(task.people)}</td>
+                                <td>{peopleFromIds(task.technicianIds, technicians)}</td>
                                 <td>
                                   <span className={`mini-status ${statusSlug(task.status)}`}>
                                     {task.status}
@@ -1899,8 +1893,8 @@ export default function App() {
                               {task.status}
                             </span>
                           </div>
-                          <div className="day-task-meta">{task.client}</div>
-                          <div className="day-task-meta">{peopleToText(task.people)}</div>
+                          <div className="day-task-meta">{getClientName(task.clientId, clients)}</div>
+                          <div className="day-task-meta">{peopleFromIds(task.technicianIds, technicians)}</div>
                           <div className="day-task-meta">
                             {task.category} · {task.priority}
                           </div>
@@ -1920,11 +1914,11 @@ export default function App() {
             </section>
           ) : section === "inicio" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <InicioView tasks={tasks} technicians={technicians} onEditTask={editTask} />
+              <InicioView tasks={tasks} clients={clients} technicians={technicians} onEditTask={editTask} />
             </section>
           ) : section === "mitrabajo" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <MiTrabajoView tasks={tasks} onEditTask={editTask} />
+              <MiTrabajoView tasks={tasks} clients={clients} technicians={technicians} onEditTask={editTask} />
             </section>
           ) : (
             <section className="main-panel clients-main-panel full-width-panel">
@@ -1943,7 +1937,7 @@ export default function App() {
         onDelete={deleteTask}
         isEditing={Boolean(draft.id)}
         clients={clients}
-        technicianNames={technicianNames}
+        technicians={technicians}
         newClientName={newClientName}
         setNewClientName={setNewClientName}
         addClient={addClientFromModal}
@@ -2018,10 +2012,10 @@ export default function App() {
                           </div>
 
                           <div className="counter-task-meta">
-                            <strong>Cliente:</strong> {task.client || "-"}
+                            <strong>Cliente:</strong> {getClientName(task.clientId, clients) || "-"}
                           </div>
                           <div className="counter-task-meta">
-                            <strong>Técnicos:</strong> {peopleToText(task.people) || "-"}
+                            <strong>Técnicos:</strong> {peopleFromIds(task.technicianIds, technicians) || "-"}
                           </div>
                           <div className="counter-task-meta">
                             <strong>Tipo:</strong> {task.category}
