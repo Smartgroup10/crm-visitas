@@ -102,6 +102,18 @@ function statusSlug(status) {
   return status.toLowerCase().replaceAll(" ", "-");
 }
 
+function getClientName(clientId, clients) {
+  if (!clientId) return "";
+  const found = clients.find((c) => c.id === clientId);
+  return found ? found.name : "(cliente eliminado)";
+}
+
+function getTechnicianName(technicianId, technicians) {
+  if (!technicianId) return "";
+  const found = technicians.find((t) => t.id === technicianId);
+  return found ? found.name : "(técnico eliminado)";
+}
+
 function formatFileSize(size) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
