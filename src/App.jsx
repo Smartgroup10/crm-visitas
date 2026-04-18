@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import {
   STORAGE_KEY,
@@ -23,13 +23,10 @@ import {
   formatShortDate,
   getCalendarGrid,
 } from "./utils/date";
-import {
-  getClientName,
-  getTechnicianName,
-  peopleFromIds,
-} from "./utils/id";
+import { getClientName, peopleFromIds } from "./utils/id";
 import { migrateTasksToIds } from "./utils/migration";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
 const DEFAULT_UI = {
   activeView: "Calendario",
@@ -1247,35 +1244,19 @@ export default function App() {
     setSelectedDate(date);
   }
 
-  useEffect(() => {
-    function onKeyDown(e) {
-      const tag = e.target?.tagName;
-      const isTypingTarget =
-        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target?.isContentEditable;
-
-      if (e.key === "Escape" && (isModalOpen || counterModalOpen)) {
+  useKeyboardShortcuts({
+    onNew: openNewTask,
+    onSearchFocus: () => {
+      const searchEl = document.querySelector(".search-input");
+      if (searchEl) searchEl.focus();
+    },
+    onEscape: () => {
+      if (isModalOpen || counterModalOpen) {
         setIsModalOpen(false);
         setCounterModalOpen(false);
-        return;
       }
-
-      if (isTypingTarget) return;
-
-      if (e.key.toLowerCase() === "n") {
-        e.preventDefault();
-        openNewTask();
-      }
-
-      if (e.key === "/") {
-        e.preventDefault();
-        const searchEl = document.querySelector(".search-input");
-        if (searchEl) searchEl.focus();
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isModalOpen, counterModalOpen]);
+    },
+  });
 
   return (
     <div className="app-shell">
