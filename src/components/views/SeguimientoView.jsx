@@ -1,3 +1,4 @@
+import { TASK_TYPES } from "../../data/taskTypes";
 import { toISO, todayISO, formatMonthYear, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getStatusClass, getPriorityClass } from "../../utils/status";
@@ -81,7 +82,7 @@ export default function SeguimientoView({
                         <div
                           key={task.id}
                           className={`task-pill ${getStatusClass(task.status)} ${getPriorityClass(task.priority)}`}
-                          data-category={task.category}
+                          data-type={task.type}
                           draggable
                           onDragStart={() => setDraggedTaskId(task.id)}
                           onClick={(e) => {
@@ -98,7 +99,7 @@ export default function SeguimientoView({
                           <div className="task-tooltip">
                             <div><strong>{task.title}</strong></div>
                             <div><strong>Cliente:</strong> {getClientName(task.clientId, clients) || "-"}</div>
-                            <div><strong>Tipo:</strong> {task.category}</div>
+                            <div><strong>Tipo:</strong> {TASK_TYPES[task.type]?.label || "-"}</div>
                             <div><strong>Técnicos:</strong> {peopleFromIds(task.technicianIds, technicians) || "-"}</div>
                             <div><strong>Estado:</strong> {task.status}</div>
                             <div><strong>Prioridad:</strong> {task.priority}</div>
@@ -150,7 +151,7 @@ export default function SeguimientoView({
                         <td>{task.title}</td>
                         <td>{getClientName(task.clientId, clients)}</td>
                         <td>{task.phone || "-"}</td>
-                        <td>{task.category}</td>
+                        <td>{TASK_TYPES[task.type]?.label || task.type}</td>
                         <td>{formatShortDate(task.date)}</td>
                         <td>{peopleFromIds(task.technicianIds, technicians)}</td>
                         <td>
@@ -201,7 +202,7 @@ export default function SeguimientoView({
                   <div className="day-task-meta">{getClientName(task.clientId, clients)}</div>
                   <div className="day-task-meta">{peopleFromIds(task.technicianIds, technicians)}</div>
                   <div className="day-task-meta">
-                    {task.category} · {task.priority}
+                    {TASK_TYPES[task.type]?.label || task.type} · {task.priority}
                   </div>
                   <div className="day-task-meta">
                     Adjuntos: {task.attachments?.length || 0}

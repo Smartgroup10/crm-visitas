@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { getClientName, peopleFromIds } from "../utils/id";
 import { statusSlug } from "../utils/status";
 import { taskHaystack } from "../utils/task";
+import { TASK_TYPES } from "../data/taskTypes";
 import { useUI } from "../hooks/useUI";
 
 export default function CounterModal({ tasks, clients, technicians, onEditTask }) {
@@ -112,7 +113,7 @@ export default function CounterModal({ tasks, clients, technicians, onEditTask }
                         <strong>Técnicos:</strong> {peopleFromIds(task.technicianIds, technicians) || "-"}
                       </div>
                       <div className="counter-task-meta">
-                        <strong>Tipo:</strong> {task.category}
+                        <strong>Tipo:</strong> {TASK_TYPES[task.type]?.label || "-"}
                       </div>
                       <div className="counter-task-meta">
                         <strong>Prioridad:</strong> {task.priority}

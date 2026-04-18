@@ -1,3 +1,4 @@
+import { TASK_TYPES } from "../../data/taskTypes";
 import { todayISO, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
@@ -15,7 +16,11 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
 
   const agendaHoy = tasks
     .filter((t) => t.date === today)
-    .sort((a, b) => a.category.localeCompare(b.category, "es") || a.title.localeCompare(b.title, "es"));
+    .sort((a, b) => {
+      const la = TASK_TYPES[a.type]?.label || a.type || "";
+      const lb = TASK_TYPES[b.type]?.label || b.type || "";
+      return la.localeCompare(lb, "es") || a.title.localeCompare(b.title, "es");
+    });
 
   const vehiclesOut = [...new Set(agendaHoy.map((t) => t.vehicle).filter(Boolean))];
 
@@ -93,7 +98,7 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
                     <strong>{task.title}</strong>
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
-                  <div className="day-task-meta">{task.category} · {getClientName(task.clientId, clients)}</div>
+                  <div className="day-task-meta">{TASK_TYPES[task.type]?.label || task.type} · {getClientName(task.clientId, clients)}</div>
                   <div className="day-task-meta">
                     {peopleFromIds(task.technicianIds, technicians)}{task.vehicle ? ` · ${task.vehicle}` : ""}
                   </div>
