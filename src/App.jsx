@@ -17,6 +17,7 @@ import {
 } from "./data/initialData";
 import { todayISO, getCalendarGrid } from "./utils/date";
 import { getClientName, peopleFromIds } from "./utils/id";
+import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
 import { migrateTasksToIds } from "./utils/migration";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -37,50 +38,6 @@ const DEFAULT_UI = {
   priorityFilter: "Todas",
   categoryFilter: "Todas",
 };
-
-function taskHaystack(task, clients, technicians) {
-  return [
-    task.title,
-    getClientName(task.clientId, clients),
-    task.phone,
-    peopleFromIds(task.technicianIds, technicians),
-    task.category,
-    task.notes,
-    task.materials,
-    task.estimatedTime,
-    task.vehicle,
-    ...(task.attachments || []).map((f) => f.name),
-  ]
-    .join(" ")
-    .toLowerCase();
-}
-
-function emptyTask(date) {
-  return {
-    id: null,
-    title: "",
-    clientId: "",
-    phone: "",
-    category: "Visita",
-    date,
-    technicianIds: [],
-    status: "No iniciado",
-    priority: "Media",
-    notes: "",
-    materials: "",
-    estimatedTime: "",
-    vehicle: "",
-    attachments: [],
-  };
-}
-
-function normalizeTask(task) {
-  return {
-    ...task,
-    technicianIds: Array.isArray(task.technicianIds) ? task.technicianIds : [],
-    attachments: Array.isArray(task.attachments) ? task.attachments : [],
-  };
-}
 
 export default function App() {
   migrateTasksToIds();
