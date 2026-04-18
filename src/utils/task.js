@@ -1,4 +1,5 @@
 import { getClientName, peopleFromIds } from "./id";
+import { defaultsForType } from "../data/taskTypes";
 
 export function emptyTask(date) {
   return {
@@ -6,7 +7,7 @@ export function emptyTask(date) {
     title: "",
     clientId: "",
     phone: "",
-    category: "Visita",
+    type: "incidencia",
     date,
     technicianIds: [],
     status: "No iniciado",
@@ -16,6 +17,7 @@ export function emptyTask(date) {
     estimatedTime: "",
     vehicle: "",
     attachments: [],
+    ...defaultsForType("incidencia"),
   };
 }
 

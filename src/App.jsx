@@ -169,33 +169,16 @@ export default function App() {
     setDraft(emptyTask(selectedDate));
   }
 
-  function saveTask(e) {
-    e.preventDefault();
-
-    if (!draft.title.trim()) {
-      alert("El título es obligatorio.");
-      return;
-    }
-
-    if (!draft.clientId) {
-      alert("El cliente es obligatorio.");
-      return;
-    }
-
-    if (!draft.technicianIds.length) {
-      alert("Debes seleccionar al menos un técnico.");
-      return;
-    }
-
-    if (draft.id) {
-      setTasks((prev) => prev.map((task) => (task.id === draft.id ? draft : task)));
+  function saveTask(taskToSave) {
+    if (taskToSave.id) {
+      setTasks((prev) => prev.map((task) => (task.id === taskToSave.id ? taskToSave : task)));
     } else {
-      setTasks((prev) => [...prev, { ...draft, id: crypto.randomUUID() }]);
+      setTasks((prev) => [...prev, { ...taskToSave, id: crypto.randomUUID() }]);
     }
 
-    setSelectedDate(draft.date);
+    setSelectedDate(taskToSave.date);
     setIsModalOpen(false);
-    setDraft(emptyTask(draft.date));
+    setDraft(emptyTask(taskToSave.date));
   }
 
   function goToday() {
