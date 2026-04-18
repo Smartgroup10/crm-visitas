@@ -8,6 +8,8 @@ export const STATUS_OPTIONS = ["No iniciado", "En curso", "Listo", "Bloqueado"];
 export const PRIORITY_OPTIONS = ["Baja", "Media", "Alta", "Urgente"];
 export const CATEGORY_OPTIONS = ["Visita", "Instalación", "Mantenimiento", "Incidencia"];
 
+export const VALID_SECTIONS = ["inicio", "mitrabajo", "instalaciones", "clientes", "tecnicos"];
+
 export const TECH_AVATAR_COLORS = [
   "#0073ea",
   "#e2445c",

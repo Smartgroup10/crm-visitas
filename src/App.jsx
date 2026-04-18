@@ -8,6 +8,7 @@ import {
   STATUS_OPTIONS,
   PRIORITY_OPTIONS,
   CATEGORY_OPTIONS,
+  VALID_SECTIONS,
 } from "./data/constants";
 import {
   DEFAULT_CLIENTS,
@@ -28,6 +29,7 @@ import MiTrabajoView from "./components/views/MiTrabajoView";
 import SeguimientoView from "./components/views/SeguimientoView";
 
 const DEFAULT_UI = {
+  section: "inicio",
   activeView: "Calendario",
   search: "",
   personFilter: "Todos",
@@ -83,8 +85,6 @@ function normalizeTask(task) {
 export default function App() {
   migrateTasksToIds();
 
-  const [section, setSection] = useState("inicio");
-
   const [clients, setClients] = useLocalStorage(CLIENTS_STORAGE_KEY, DEFAULT_CLIENTS, {
     parser: (parsed, fallback) => {
       if (!Array.isArray(parsed) || !parsed.length) return fallback;
@@ -111,10 +111,17 @@ export default function App() {
   });
 
   const [ui, setUi] = useLocalStorage(UI_STORAGE_KEY, DEFAULT_UI, {
-    parser: (parsed, fallback) =>
-      parsed && typeof parsed === "object" ? { ...fallback, ...parsed } : fallback,
+    parser: (parsed, fallback) => {
+      if (!parsed || typeof parsed !== "object") return fallback;
+      const merged = { ...fallback, ...parsed };
+      if (!VALID_SECTIONS.includes(merged.section)) {
+        merged.section = fallback.section;
+      }
+      return merged;
+    },
   });
-  const { activeView, search, personFilter, statusFilter, priorityFilter, categoryFilter } = ui;
+  const { section, activeView, search, personFilter, statusFilter, priorityFilter, categoryFilter } = ui;
+  const setSection = (v) => setUi((u) => ({ ...u, section: v }));
   const setActiveView = (v) => setUi((u) => ({ ...u, activeView: v }));
   const setSearch = (v) => setUi((u) => ({ ...u, search: v }));
   const setPersonFilter = (v) => setUi((u) => ({ ...u, personFilter: v }));
