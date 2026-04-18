@@ -4,13 +4,86 @@ const STORAGE_KEY = "smartgroup_ops_v7";
 const CLIENTS_STORAGE_KEY = "smartgroup_ops_clients_v3";
 const UI_STORAGE_KEY = "smartgroup_ops_ui_v1";
 const TECHNICIANS_STORAGE_KEY = "smartgroup_ops_technicians_v1";
+const MIGRATION_FLAG_KEY = "smartgroup_ops_migration_v1";
+
+function migrateTasksToIds() {
+  if (typeof localStorage === "undefined") return;
+  if (localStorage.getItem(MIGRATION_FLAG_KEY) === "done") return;
+
+  try {
+    const rawTasks = localStorage.getItem(STORAGE_KEY);
+    const rawClients = localStorage.getItem(CLIENTS_STORAGE_KEY);
+    const rawTechnicians = localStorage.getItem(TECHNICIANS_STORAGE_KEY);
+
+    let tasks = rawTasks ? JSON.parse(rawTasks) : null;
+    let clients = rawClients ? JSON.parse(rawClients) : null;
+    const technicians = rawTechnicians ? JSON.parse(rawTechnicians) : null;
+
+    if (Array.isArray(clients)) {
+      clients = clients.map((c) =>
+        typeof c === "string" ? { id: crypto.randomUUID(), name: c } : c
+      );
+    }
+
+    if (!Array.isArray(clients)) clients = [];
+    const techList = Array.isArray(technicians) ? technicians : [];
+
+    if (!Array.isArray(tasks)) {
+      localStorage.setItem(MIGRATION_FLAG_KEY, "done");
+      return;
+    }
+
+    const migratedTasks = tasks.map((task) => {
+      const newTask = { ...task };
+
+      if (typeof newTask.client === "string" && newTask.client.trim()) {
+        const clientName = newTask.client;
+        let found = clients.find((c) => c.name === clientName);
+        if (!found) {
+          found = { id: crypto.randomUUID(), name: clientName };
+          clients.push(found);
+        }
+        newTask.clientId = found.id;
+      } else {
+        newTask.clientId = "";
+      }
+      delete newTask.client;
+
+      if (Array.isArray(newTask.people)) {
+        const ids = [];
+        for (const name of newTask.people) {
+          const tech = techList.find((t) => t.name === name);
+          if (tech) {
+            ids.push(tech.id);
+          } else {
+            console.warn("Técnico no encontrado en migración:", name);
+          }
+        }
+        newTask.technicianIds = ids;
+      } else {
+        newTask.technicianIds = [];
+      }
+      delete newTask.people;
+
+      return newTask;
+    });
+
+    clients.sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedTasks));
+    localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(clients));
+    localStorage.setItem(MIGRATION_FLAG_KEY, "done");
+  } catch (err) {
+    console.error("Error en migración a ids:", err);
+  }
+}
 
 const DEFAULT_CLIENTS = [
-  "Clínica Norte",
-  "Coworking 4 Caminos",
-  "Hotel Centro",
-  "Asesoría Delta",
-  "Oficinas Smartgroup",
+  { id: "c1", name: "Clínica Norte" },
+  { id: "c2", name: "Coworking 4 Caminos" },
+  { id: "c3", name: "Hotel Centro" },
+  { id: "c4", name: "Asesoría Delta" },
+  { id: "c5", name: "Oficinas Smartgroup" },
 ];
 
 const DEFAULT_TECHNICIANS = [
@@ -77,16 +150,17 @@ function getCalendarGrid(baseDate) {
   return cells;
 }
 
-function peopleToText(people) {
-  return Array.isArray(people) ? people.join(", ") : "";
+function peopleFromIds(ids, technicians) {
+  if (!Array.isArray(ids)) return "";
+  return ids.map((id) => getTechnicianName(id, technicians)).filter(Boolean).join(", ");
 }
 
-function taskHaystack(task) {
+function taskHaystack(task, clients, technicians) {
   return [
     task.title,
-    task.client,
+    getClientName(task.clientId, clients),
     task.phone,
-    peopleToText(task.people),
+    peopleFromIds(task.technicianIds, technicians),
     task.category,
     task.notes,
     task.materials,
@@ -102,6 +176,18 @@ function statusSlug(status) {
   return status.toLowerCase().replaceAll(" ", "-");
 }
 
+function getClientName(clientId, clients) {
+  if (!clientId) return "";
+  const found = clients.find((c) => c.id === clientId);
+  return found ? found.name : "(cliente eliminado)";
+}
+
+function getTechnicianName(technicianId, technicians) {
+  if (!technicianId) return "";
+  const found = technicians.find((t) => t.id === technicianId);
+  return found ? found.name : "(técnico eliminado)";
+}
+
 function formatFileSize(size) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
@@ -112,11 +198,11 @@ function emptyTask(date) {
   return {
     id: null,
     title: "",
-    client: "",
+    clientId: "",
     phone: "",
     category: "Visita",
     date,
-    people: [],
+    technicianIds: [],
     status: "No iniciado",
     priority: "Media",
     notes: "",
@@ -130,12 +216,7 @@ function emptyTask(date) {
 function normalizeTask(task) {
   return {
     ...task,
-    people: Array.isArray(task.people)
-      ? task.people
-      : String(task.people || "")
-          .split(",")
-          .map((x) => x.trim())
-          .filter(Boolean),
+    technicianIds: Array.isArray(task.technicianIds) ? task.technicianIds : [],
     attachments: Array.isArray(task.attachments) ? task.attachments : [],
   };
 }
@@ -170,11 +251,11 @@ const initialTasks = [
   {
     id: crypto.randomUUID(),
     title: "Instalación centralita VoIP",
-    client: "Clínica Norte",
+    clientId: "c1",
     phone: "912345678",
     category: "Instalación",
     date: todayISO(),
-    people: ["Carlos", "Marta"],
+    technicianIds: ["t1", "t2"],
     status: "No iniciado",
     priority: "Urgente",
     notes: "Comprobar extensiones, desvíos y llamadas entrantes.",
@@ -193,11 +274,11 @@ const initialTasks = [
   {
     id: crypto.randomUUID(),
     title: "Visita técnica de revisión",
-    client: "Coworking 4 Caminos",
+    clientId: "c2",
     phone: "911223344",
     category: "Visita",
     date: addDays(todayISO(), 1),
-    people: ["Fernando"],
+    technicianIds: ["t3"],
     status: "En curso",
     priority: "Alta",
     notes: "Analizar cableado y cobertura WiFi.",
@@ -209,11 +290,11 @@ const initialTasks = [
   {
     id: crypto.randomUUID(),
     title: "Mantenimiento preventivo",
-    client: "Hotel Centro",
+    clientId: "c3",
     phone: "917778899",
     category: "Mantenimiento",
     date: addDays(todayISO(), 2),
-    people: ["Laura", "Andrés"],
+    technicianIds: ["t4", "t5"],
     status: "Listo",
     priority: "Media",
     notes: "Revisión general de red y telefonía.",
@@ -233,7 +314,7 @@ function TaskModal({
   onDelete,
   isEditing,
   clients,
-  technicianNames,
+  technicians,
   newClientName,
   setNewClientName,
   addClient,
@@ -242,12 +323,12 @@ function TaskModal({
 
   if (!open) return null;
 
-  function toggleTechnician(name) {
-    const exists = draft.people.includes(name);
+  function toggleTechnician(techId) {
+    const exists = draft.technicianIds.includes(techId);
     if (exists) {
-      setDraft({ ...draft, people: draft.people.filter((p) => p !== name) });
+      setDraft({ ...draft, technicianIds: draft.technicianIds.filter((id) => id !== techId) });
     } else {
-      setDraft({ ...draft, people: [...draft.people, name] });
+      setDraft({ ...draft, technicianIds: [...draft.technicianIds, techId] });
     }
   }
 
@@ -302,13 +383,13 @@ function TaskModal({
           <div className="form-row">
             <label>Cliente</label>
             <select
-              value={draft.client}
-              onChange={(e) => setDraft({ ...draft, client: e.target.value })}
+              value={draft.clientId}
+              onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
             >
               <option value="">Selecciona cliente</option>
               {clients.map((client) => (
-                <option key={client} value={client}>
-                  {client}
+                <option key={client.id} value={client.id}>
+                  {client.name}
                 </option>
               ))}
             </select>
@@ -365,14 +446,14 @@ function TaskModal({
           <div className="form-row full">
             <label>Técnicos</label>
             <div className="chips-wrap">
-              {technicianNames.map((tech) => (
+              {technicians.map((tech) => (
                 <button
                   type="button"
-                  key={tech}
-                  className={`chip ${draft.people.includes(tech) ? "chip-active" : ""}`}
-                  onClick={() => toggleTechnician(tech)}
+                  key={tech.id}
+                  className={`chip ${draft.technicianIds.includes(tech.id) ? "chip-active" : ""}`}
+                  onClick={() => toggleTechnician(tech.id)}
                 >
-                  {tech}
+                  {tech.name}
                 </button>
               ))}
             </div>
@@ -515,44 +596,48 @@ function TaskModal({
 
 function ClientsView({ clients, setClients, tasks }) {
   const [newClient, setNewClient] = useState("");
-  const [editingClient, setEditingClient] = useState(null);
+  const [editingClientId, setEditingClientId] = useState(null);
   const [editingValue, setEditingValue] = useState("");
 
   function addClient() {
     const value = newClient.trim();
     if (!value) return;
-    if (clients.includes(value)) return;
-    setClients((prev) => [...prev, value].sort((a, b) => a.localeCompare(b, "es")));
+    if (clients.some((c) => c.name === value)) return;
+    setClients((prev) =>
+      [...prev, { id: crypto.randomUUID(), name: value }].sort((a, b) =>
+        a.name.localeCompare(b.name, "es")
+      )
+    );
     setNewClient("");
   }
 
   function startEdit(client) {
-    setEditingClient(client);
-    setEditingValue(client);
+    setEditingClientId(client.id);
+    setEditingValue(client.name);
   }
 
   function saveEdit() {
     const value = editingValue.trim();
     if (!value) return;
-    if (clients.includes(value) && value !== editingClient) return;
+    if (clients.some((c) => c.name === value && c.id !== editingClientId)) return;
 
     setClients((prev) =>
       prev
-        .map((client) => (client === editingClient ? value : client))
-        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((c) => (c.id === editingClientId ? { ...c, name: value } : c))
+        .sort((a, b) => a.name.localeCompare(b.name, "es"))
     );
 
-    setEditingClient(null);
+    setEditingClientId(null);
     setEditingValue("");
   }
 
-  function deleteClient(clientName) {
-    const isUsed = tasks.some((task) => task.client === clientName);
+  function deleteClient(client) {
+    const isUsed = tasks.some((task) => task.clientId === client.id);
     if (isUsed) {
       alert("No puedes borrar este cliente porque está asignado a una o más tareas.");
       return;
     }
-    setClients((prev) => prev.filter((client) => client !== clientName));
+    setClients((prev) => prev.filter((c) => c.id !== client.id));
   }
 
   return (
@@ -584,11 +669,11 @@ function ClientsView({ clients, setClients, tasks }) {
         ) : (
           <div className="clients-list">
             {clients.map((client) => {
-              const usageCount = tasks.filter((task) => task.client === client).length;
-              const isEditing = editingClient === client;
+              const usageCount = tasks.filter((task) => task.clientId === client.id).length;
+              const isEditing = editingClientId === client.id;
 
               return (
-                <div key={client} className="client-row">
+                <div key={client.id} className="client-row">
                   <div className="client-main">
                     {isEditing ? (
                       <input
@@ -598,7 +683,7 @@ function ClientsView({ clients, setClients, tasks }) {
                       />
                     ) : (
                       <div>
-                        <div className="client-name">{client}</div>
+                        <div className="client-name">{client.name}</div>
                         <div className="client-meta">
                           Tareas asociadas: {usageCount}
                         </div>
@@ -615,7 +700,7 @@ function ClientsView({ clients, setClients, tasks }) {
                         <button
                           className="btn-secondary small-btn"
                           onClick={() => {
-                            setEditingClient(null);
+                            setEditingClientId(null);
                             setEditingValue("");
                           }}
                         >
@@ -651,7 +736,7 @@ function ClientsView({ clients, setClients, tasks }) {
 
 const TECH_AVATAR_COLORS = ["#0073ea","#e2445c","#00c875","#fdab3d","#a358d0","#037f4c","#0086c0","#d83a52"];
 
-function InicioView({ tasks, technicians, onEditTask }) {
+function InicioView({ tasks, clients, technicians, onEditTask }) {
   const today = todayISO();
   const tomorrow = addDays(today, 1);
   const in7 = addDays(today, 7);
@@ -683,7 +768,7 @@ function InicioView({ tasks, technicians, onEditTask }) {
     .slice(0, 6);
 
   const techLoad = technicians.map((tech) => {
-    const tt = tasks.filter((t) => t.people.includes(tech.name));
+    const tt = tasks.filter((t) => t.technicianIds.includes(tech.id));
     return {
       ...tech,
       active:  tt.filter((t) => t.status === "En curso").length,
@@ -739,10 +824,10 @@ function InicioView({ tasks, technicians, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
-                  <div className="day-task-meta">{task.client} · {formatShortDate(task.date)}</div>
+                  <div className="day-task-meta">{getClientName(task.clientId, clients)} · {formatShortDate(task.date)}</div>
                   <div className="day-task-meta">
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
-                    {" "}{peopleToText(task.people)}
+                    {" "}{peopleFromIds(task.technicianIds, technicians)}
                   </div>
                 </button>
               ))}
@@ -766,9 +851,9 @@ function InicioView({ tasks, technicians, onEditTask }) {
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
                   <div className="day-task-meta">
-                    {task.date === today ? "Hoy" : "Mañana"} · {task.client}
+                    {task.date === today ? "Hoy" : "Mañana"} · {getClientName(task.clientId, clients)}
                   </div>
-                  <div className="day-task-meta">{task.category} · {peopleToText(task.people)}</div>
+                  <div className="day-task-meta">{task.category} · {peopleFromIds(task.technicianIds, technicians)}</div>
                 </button>
               ))}
             </div>
@@ -815,8 +900,8 @@ function InicioView({ tasks, technicians, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
                   </div>
-                  <div className="day-task-meta">{formatShortDate(task.date)} · {task.client}</div>
-                  <div className="day-task-meta">{task.category} · {peopleToText(task.people)}</div>
+                  <div className="day-task-meta">{formatShortDate(task.date)} · {getClientName(task.clientId, clients)}</div>
+                  <div className="day-task-meta">{task.category} · {peopleFromIds(task.technicianIds, technicians)}</div>
                 </button>
               ))}
             </div>
@@ -827,7 +912,7 @@ function InicioView({ tasks, technicians, onEditTask }) {
   );
 }
 
-function MiTrabajoView({ tasks, onEditTask }) {
+function MiTrabajoView({ tasks, clients, technicians, onEditTask }) {
   const today = todayISO();
 
   const requiresAction = tasks
@@ -845,7 +930,7 @@ function MiTrabajoView({ tasks, onEditTask }) {
   const vehiclesOut = [...new Set(agendaHoy.map((t) => t.vehicle).filter(Boolean))];
 
   const incomplete = tasks
-    .filter((t) => t.people.length === 0 || !t.date)
+    .filter((t) => t.technicianIds.length === 0 || !t.date)
     .sort((a, b) => {
       if (!a.date && b.date) return 1;
       if (a.date && !b.date) return -1;
@@ -884,10 +969,10 @@ function MiTrabajoView({ tasks, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
-                  <div className="day-task-meta">{task.client} · {formatShortDate(task.date)}</div>
+                  <div className="day-task-meta">{getClientName(task.clientId, clients)} · {formatShortDate(task.date)}</div>
                   <div className="day-task-meta">
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
-                    {" "}{peopleToText(task.people) || <em>Sin técnico</em>}
+                    {" "}{peopleFromIds(task.technicianIds, technicians) || <em>Sin técnico</em>}
                   </div>
                 </button>
               ))}
@@ -918,9 +1003,9 @@ function MiTrabajoView({ tasks, onEditTask }) {
                     <strong>{task.title}</strong>
                     <span className={`mini-status ${statusSlug(task.status)}`}>{task.status}</span>
                   </div>
-                  <div className="day-task-meta">{task.category} · {task.client}</div>
+                  <div className="day-task-meta">{task.category} · {getClientName(task.clientId, clients)}</div>
                   <div className="day-task-meta">
-                    {peopleToText(task.people)}{task.vehicle ? ` · ${task.vehicle}` : ""}
+                    {peopleFromIds(task.technicianIds, technicians)}{task.vehicle ? ` · ${task.vehicle}` : ""}
                   </div>
                 </button>
               ))}
@@ -944,10 +1029,10 @@ function MiTrabajoView({ tasks, onEditTask }) {
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
                   </div>
                   <div className="day-task-meta">
-                    {task.client || "—"} · {task.date ? formatShortDate(task.date) : "Sin fecha"}
+                    {getClientName(task.clientId, clients) || "—"} · {task.date ? formatShortDate(task.date) : "Sin fecha"}
                   </div>
                   <div className="day-task-meta" style={{ color: "var(--c-blocked)" }}>
-                    {task.people.length === 0 ? "⚠ Sin técnico asignado" : ""}
+                    {task.technicianIds.length === 0 ? "⚠ Sin técnico asignado" : ""}
                     {!task.date ? "⚠ Sin fecha" : ""}
                   </div>
                 </button>
@@ -996,15 +1081,15 @@ function TechniciansView({ technicians, setTechnicians, tasks }) {
   }
 
   function deleteTechnician(tech) {
-    if (tasks.some((task) => task.people.includes(tech.name))) {
+    if (tasks.some((task) => task.technicianIds.includes(tech.id))) {
       alert("No puedes borrar este técnico porque está asignado a una o más tareas.");
       return;
     }
     setTechnicians((prev) => prev.filter((t) => t.id !== tech.id));
   }
 
-  function getTechStats(name) {
-    const tt = tasks.filter((t) => t.people.includes(name));
+  function getTechStats(techId) {
+    const tt = tasks.filter((t) => t.technicianIds.includes(techId));
     return {
       total: tt.length,
       progress: tt.filter((t) => t.status === "En curso").length,
@@ -1045,7 +1130,7 @@ function TechniciansView({ technicians, setTechnicians, tasks }) {
       ) : (
         <div className="tech-grid">
           {technicians.map((tech, i) => {
-            const stats = getTechStats(tech.name);
+            const stats = getTechStats(tech.id);
             const color = TECH_AVATAR_COLORS[i % TECH_AVATAR_COLORS.length];
             const isEditing = editingId === tech.id;
 
@@ -1104,6 +1189,8 @@ function TechniciansView({ technicians, setTechnicians, tasks }) {
 }
 
 export default function App() {
+  migrateTasksToIds();
+
   const savedUi = useMemo(() => {
     try {
       const raw = localStorage.getItem(UI_STORAGE_KEY);
@@ -1120,7 +1207,10 @@ export default function App() {
     if (!saved) return DEFAULT_CLIENTS;
     try {
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_CLIENTS;
+      if (!Array.isArray(parsed) || !parsed.length) return DEFAULT_CLIENTS;
+      return parsed.map((c) =>
+        typeof c === "string" ? { id: crypto.randomUUID(), name: c } : c
+      );
     } catch {
       return DEFAULT_CLIENTS;
     }
@@ -1136,8 +1226,6 @@ export default function App() {
       return DEFAULT_TECHNICIANS;
     }
   });
-
-  const technicianNames = useMemo(() => technicians.map((t) => t.name), [technicians]);
 
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -1201,9 +1289,9 @@ export default function App() {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const matchesSearch = taskHaystack(task).includes(search.toLowerCase());
+      const matchesSearch = taskHaystack(task, clients, technicians).includes(search.toLowerCase());
       const matchesPerson =
-        personFilter === "Todos" || task.people.includes(personFilter);
+        personFilter === "Todos" || task.technicianIds.includes(personFilter);
       const matchesStatus = statusFilter === "Todos" || task.status === statusFilter;
       const matchesPriority =
         priorityFilter === "Todas" || task.priority === priorityFilter;
@@ -1218,7 +1306,7 @@ export default function App() {
         matchesCategory
       );
     });
-  }, [tasks, search, personFilter, statusFilter, priorityFilter, categoryFilter]);
+  }, [tasks, clients, technicians, search, personFilter, statusFilter, priorityFilter, categoryFilter]);
 
   const tasksByDate = useMemo(() => {
     const grouped = {};
@@ -1272,8 +1360,8 @@ export default function App() {
 
     if (!searchText) return filtered;
 
-    return filtered.filter((task) => taskHaystack(task).includes(searchText));
-  }, [tasks, counterFilter, counterSearch]);
+    return filtered.filter((task) => taskHaystack(task, clients, technicians).includes(searchText));
+  }, [tasks, clients, technicians, counterFilter, counterSearch]);
 
   const groupedCounterTasks = useMemo(() => {
     const grouped = {};
@@ -1290,15 +1378,19 @@ export default function App() {
   }, [counterTasks]);
 
   function addClientFromModal() {
-    const client = newClientName.trim();
-    if (!client) return;
-    if (clients.includes(client)) {
-      setDraft({ ...draft, client });
+    const name = newClientName.trim();
+    if (!name) return;
+    const existing = clients.find((c) => c.name === name);
+    if (existing) {
+      setDraft({ ...draft, clientId: existing.id });
       setNewClientName("");
       return;
     }
-    setClients((prev) => [...prev, client].sort((a, b) => a.localeCompare(b, "es")));
-    setDraft({ ...draft, client });
+    const created = { id: crypto.randomUUID(), name };
+    setClients((prev) =>
+      [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "es"))
+    );
+    setDraft({ ...draft, clientId: created.id });
     setNewClientName("");
   }
 
@@ -1339,12 +1431,12 @@ export default function App() {
       return;
     }
 
-    if (!draft.client.trim()) {
+    if (!draft.clientId) {
       alert("El cliente es obligatorio.");
       return;
     }
 
-    if (!draft.people.length) {
+    if (!draft.technicianIds.length) {
       alert("Debes seleccionar al menos un técnico.");
       return;
     }
@@ -1573,8 +1665,8 @@ export default function App() {
                   onChange={(e) => setPersonFilter(e.target.value)}
                 >
                   <option value="Todos">Técnico</option>
-                  {technicianNames.map((person) => (
-                    <option key={person} value={person}>{person}</option>
+                  {technicians.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
                 <select
@@ -1700,9 +1792,9 @@ export default function App() {
 
                                   <div className="task-tooltip">
                                     <div><strong>{task.title}</strong></div>
-                                    <div><strong>Cliente:</strong> {task.client || "-"}</div>
+                                    <div><strong>Cliente:</strong> {getClientName(task.clientId, clients) || "-"}</div>
                                     <div><strong>Tipo:</strong> {task.category}</div>
-                                    <div><strong>Técnicos:</strong> {peopleToText(task.people) || "-"}</div>
+                                    <div><strong>Técnicos:</strong> {peopleFromIds(task.technicianIds, technicians) || "-"}</div>
                                     <div><strong>Estado:</strong> {task.status}</div>
                                     <div><strong>Prioridad:</strong> {task.priority}</div>
                                     <div><strong>Tiempo:</strong> {task.estimatedTime || "-"}</div>
@@ -1751,11 +1843,11 @@ export default function App() {
                             .map((task) => (
                               <tr key={task.id} onClick={() => editTask(task)}>
                                 <td>{task.title}</td>
-                                <td>{task.client}</td>
+                                <td>{getClientName(task.clientId, clients)}</td>
                                 <td>{task.phone || "-"}</td>
                                 <td>{task.category}</td>
                                 <td>{formatShortDate(task.date)}</td>
-                                <td>{peopleToText(task.people)}</td>
+                                <td>{peopleFromIds(task.technicianIds, technicians)}</td>
                                 <td>
                                   <span className={`mini-status ${statusSlug(task.status)}`}>
                                     {task.status}
@@ -1801,8 +1893,8 @@ export default function App() {
                               {task.status}
                             </span>
                           </div>
-                          <div className="day-task-meta">{task.client}</div>
-                          <div className="day-task-meta">{peopleToText(task.people)}</div>
+                          <div className="day-task-meta">{getClientName(task.clientId, clients)}</div>
+                          <div className="day-task-meta">{peopleFromIds(task.technicianIds, technicians)}</div>
                           <div className="day-task-meta">
                             {task.category} · {task.priority}
                           </div>
@@ -1822,11 +1914,11 @@ export default function App() {
             </section>
           ) : section === "inicio" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <InicioView tasks={tasks} technicians={technicians} onEditTask={editTask} />
+              <InicioView tasks={tasks} clients={clients} technicians={technicians} onEditTask={editTask} />
             </section>
           ) : section === "mitrabajo" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <MiTrabajoView tasks={tasks} onEditTask={editTask} />
+              <MiTrabajoView tasks={tasks} clients={clients} technicians={technicians} onEditTask={editTask} />
             </section>
           ) : (
             <section className="main-panel clients-main-panel full-width-panel">
@@ -1845,7 +1937,7 @@ export default function App() {
         onDelete={deleteTask}
         isEditing={Boolean(draft.id)}
         clients={clients}
-        technicianNames={technicianNames}
+        technicians={technicians}
         newClientName={newClientName}
         setNewClientName={setNewClientName}
         addClient={addClientFromModal}
@@ -1920,10 +2012,10 @@ export default function App() {
                           </div>
 
                           <div className="counter-task-meta">
-                            <strong>Cliente:</strong> {task.client || "-"}
+                            <strong>Cliente:</strong> {getClientName(task.clientId, clients) || "-"}
                           </div>
                           <div className="counter-task-meta">
-                            <strong>Técnicos:</strong> {peopleToText(task.people) || "-"}
+                            <strong>Técnicos:</strong> {peopleFromIds(task.technicianIds, technicians) || "-"}
                           </div>
                           <div className="counter-task-meta">
                             <strong>Tipo:</strong> {task.category}
