@@ -29,6 +29,16 @@ import {
   peopleFromIds,
 } from "./utils/id";
 import { migrateTasksToIds } from "./utils/migration";
+import { useLocalStorage } from "./hooks/useLocalStorage";
+
+const DEFAULT_UI = {
+  activeView: "Calendario",
+  search: "",
+  personFilter: "Todos",
+  statusFilter: "Todos",
+  priorityFilter: "Todas",
+  categoryFilter: "Todas",
+};
 
 function taskHaystack(task, clients, technicians) {
   return [
@@ -995,66 +1005,52 @@ function TechniciansView({ technicians, setTechnicians, tasks }) {
 export default function App() {
   migrateTasksToIds();
 
-  const savedUi = useMemo(() => {
-    try {
-      const raw = localStorage.getItem(UI_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }, []);
-
   const [section, setSection] = useState("inicio");
 
-  const [clients, setClients] = useState(() => {
-    const saved = localStorage.getItem(CLIENTS_STORAGE_KEY);
-    if (!saved) return DEFAULT_CLIENTS;
-    try {
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || !parsed.length) return DEFAULT_CLIENTS;
+  const [clients, setClients] = useLocalStorage(CLIENTS_STORAGE_KEY, DEFAULT_CLIENTS, {
+    parser: (parsed, fallback) => {
+      if (!Array.isArray(parsed) || !parsed.length) return fallback;
       return parsed.map((c) =>
         typeof c === "string" ? { id: crypto.randomUUID(), name: c } : c
       );
-    } catch {
-      return DEFAULT_CLIENTS;
-    }
+    },
   });
 
-  const [technicians, setTechnicians] = useState(() => {
-    const saved = localStorage.getItem(TECHNICIANS_STORAGE_KEY);
-    if (!saved) return DEFAULT_TECHNICIANS;
-    try {
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_TECHNICIANS;
-    } catch {
-      return DEFAULT_TECHNICIANS;
+  const [technicians, setTechnicians] = useLocalStorage(
+    TECHNICIANS_STORAGE_KEY,
+    DEFAULT_TECHNICIANS,
+    {
+      parser: (parsed, fallback) =>
+        Array.isArray(parsed) && parsed.length ? parsed : fallback,
     }
+  );
+
+  const [tasks, setTasks] = useLocalStorage(STORAGE_KEY, initialTasks, {
+    parser: (parsed, fallback) => {
+      if (!Array.isArray(parsed) || !parsed.length) return fallback;
+      return parsed.map(normalizeTask);
+    },
   });
 
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return initialTasks;
-    try {
-      const parsed = JSON.parse(saved).map(normalizeTask);
-      return Array.isArray(parsed) && parsed.length ? parsed : initialTasks;
-    } catch {
-      return initialTasks;
-    }
+  const [ui, setUi] = useLocalStorage(UI_STORAGE_KEY, DEFAULT_UI, {
+    parser: (parsed, fallback) =>
+      parsed && typeof parsed === "object" ? { ...fallback, ...parsed } : fallback,
   });
+  const { activeView, search, personFilter, statusFilter, priorityFilter, categoryFilter } = ui;
+  const setActiveView = (v) => setUi((u) => ({ ...u, activeView: v }));
+  const setSearch = (v) => setUi((u) => ({ ...u, search: v }));
+  const setPersonFilter = (v) => setUi((u) => ({ ...u, personFilter: v }));
+  const setStatusFilter = (v) => setUi((u) => ({ ...u, statusFilter: v }));
+  const setPriorityFilter = (v) => setUi((u) => ({ ...u, priorityFilter: v }));
+  const setCategoryFilter = (v) => setUi((u) => ({ ...u, categoryFilter: v }));
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const [activeView, setActiveView] = useState(savedUi?.activeView || "Calendario");
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [draft, setDraft] = useState(emptyTask(todayISO()));
-  const [search, setSearch] = useState(savedUi?.search || "");
-  const [personFilter, setPersonFilter] = useState(savedUi?.personFilter || "Todos");
-  const [statusFilter, setStatusFilter] = useState(savedUi?.statusFilter || "Todos");
-  const [priorityFilter, setPriorityFilter] = useState(savedUi?.priorityFilter || "Todas");
-  const [categoryFilter, setCategoryFilter] = useState(savedUi?.categoryFilter || "Todas");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [newClientName, setNewClientName] = useState("");
@@ -1062,32 +1058,6 @@ export default function App() {
   const [counterModalOpen, setCounterModalOpen] = useState(false);
   const [counterFilter, setCounterFilter] = useState("Total");
   const [counterSearch, setCounterSearch] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(clients));
-  }, [clients]);
-
-  useEffect(() => {
-    localStorage.setItem(TECHNICIANS_STORAGE_KEY, JSON.stringify(technicians));
-  }, [technicians]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      UI_STORAGE_KEY,
-      JSON.stringify({
-        activeView,
-        search,
-        personFilter,
-        statusFilter,
-        priorityFilter,
-        categoryFilter,
-      })
-    );
-  }, [activeView, search, personFilter, statusFilter, priorityFilter, categoryFilter]);
 
   const monthCells = useMemo(() => getCalendarGrid(currentMonth), [currentMonth]);
 
