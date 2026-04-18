@@ -17,6 +17,7 @@ import {
 } from "./data/initialData";
 import { todayISO, getCalendarGrid } from "./utils/date";
 import { getClientName, peopleFromIds } from "./utils/id";
+import { statusSlug } from "./utils/status";
 import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
 import { migrateTasksToIds } from "./utils/migration";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -563,11 +564,7 @@ export default function App() {
                         >
                           <div className="counter-task-top">
                             <strong>{task.title}</strong>
-                            <span
-                              className={`mini-status ${task.status
-                                .toLowerCase()
-                                .replaceAll(" ", "-")}`}
-                            >
+                            <span className={`mini-status ${statusSlug(task.status)}`}>
                               {task.status}
                             </span>
                           </div>
