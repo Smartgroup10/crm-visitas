@@ -12,7 +12,7 @@ import {
 } from "./data/initialData";
 import { todayISO, getCalendarGrid } from "./utils/date";
 import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
-import { migrateTasksToIds } from "./utils/migration";
+import { migrateTasksToIds, migrateTasksToTypedSchema } from "./utils/migration";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUI } from "./hooks/useUI";
@@ -28,6 +28,7 @@ import SeguimientoView from "./components/views/SeguimientoView";
 
 export default function App() {
   migrateTasksToIds();
+  migrateTasksToTypedSchema();
 
   const {
     section,

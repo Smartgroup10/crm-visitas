@@ -3,6 +3,7 @@ export const CLIENTS_STORAGE_KEY = "smartgroup_ops_clients_v3";
 export const UI_STORAGE_KEY = "smartgroup_ops_ui_v1";
 export const TECHNICIANS_STORAGE_KEY = "smartgroup_ops_technicians_v1";
 export const MIGRATION_FLAG_KEY = "smartgroup_ops_migration_v1";
+export const MIGRATION_V2_FLAG_KEY = "smartgroup_ops_migration_v2";
 
 export const STATUS_OPTIONS = ["No iniciado", "En curso", "Listo", "Bloqueado"];
 export const PRIORITY_OPTIONS = ["Baja", "Media", "Alta", "Urgente"];
