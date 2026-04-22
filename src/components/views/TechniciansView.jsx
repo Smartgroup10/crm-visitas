@@ -1,24 +1,19 @@
 import { useState } from "react";
-import { generateId } from "../../utils/id";
-
 import { TECH_AVATAR_COLORS } from "../../data/constants";
 
-export default function TechniciansView({ technicians, setTechnicians, tasks }) {
-  const [newName, setNewName] = useState("");
+export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, onDelete }) {
+  const [newName, setNewName]   = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
 
-  function addTechnician() {
+  async function addTechnician() {
     const name = newName.trim();
     if (!name) return;
     if (technicians.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
       alert(`El técnico "${name}" ya existe.`);
       return;
     }
-    setTechnicians((prev) =>
-      [...prev, { id: generateId(), name, phone: "", specialty: "" }]
-        .sort((a, b) => a.name.localeCompare(b.name, "es"))
-    );
+    await onAdd(name);
     setNewName("");
   }
 
@@ -27,31 +22,27 @@ export default function TechniciansView({ technicians, setTechnicians, tasks }) 
     setEditName(tech.name);
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     const name = editName.trim();
     if (!name) return;
-    setTechnicians((prev) =>
-      prev
-        .map((t) => t.id === editingId ? { ...t, name } : t)
-        .sort((a, b) => a.name.localeCompare(b.name, "es"))
-    );
+    await onUpdate(editingId, name);
     setEditingId(null);
   }
 
-  function deleteTechnician(tech) {
+  async function deleteTechnician(tech) {
     if (tasks.some((task) => task.technicianIds.includes(tech.id))) {
       alert("No puedes borrar este técnico porque está asignado a una o más tareas.");
       return;
     }
-    setTechnicians((prev) => prev.filter((t) => t.id !== tech.id));
+    await onDelete(tech.id);
   }
 
   function getTechStats(techId) {
     const tt = tasks.filter((t) => t.technicianIds.includes(techId));
     return {
-      total: tt.length,
+      total:    tt.length,
       progress: tt.filter((t) => t.status === "En curso").length,
-      done: tt.filter((t) => t.status === "Listo").length,
+      done:     tt.filter((t) => t.status === "Listo").length,
     };
   }
 
@@ -88,8 +79,8 @@ export default function TechniciansView({ technicians, setTechnicians, tasks }) 
       ) : (
         <div className="tech-grid">
           {technicians.map((tech, i) => {
-            const stats = getTechStats(tech.id);
-            const color = TECH_AVATAR_COLORS[i % TECH_AVATAR_COLORS.length];
+            const stats    = getTechStats(tech.id);
+            const color    = TECH_AVATAR_COLORS[i % TECH_AVATAR_COLORS.length];
             const isEditing = editingId === tech.id;
 
             return (
@@ -100,7 +91,14 @@ export default function TechniciansView({ technicians, setTechnicians, tasks }) 
                   </div>
                   {isEditing ? (
                     <div className="tech-edit-fields">
-                      <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nombre" onKeyDown={(e) => e.key === "Enter" && saveEdit()} />
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Nombre"
+                        onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                        autoFocus
+                      />
                     </div>
                   ) : (
                     <div className="tech-info">
@@ -115,11 +113,15 @@ export default function TechniciansView({ technicians, setTechnicians, tasks }) 
                     <span className="tech-stat-label">Tareas</span>
                   </div>
                   <div className="tech-stat">
-                    <span className="tech-stat-num" style={{ color: "var(--c-progress)" }}>{stats.progress}</span>
+                    <span className="tech-stat-num" style={{ color: "var(--c-progress)" }}>
+                      {stats.progress}
+                    </span>
                     <span className="tech-stat-label">En curso</span>
                   </div>
                   <div className="tech-stat">
-                    <span className="tech-stat-num" style={{ color: "var(--c-done)" }}>{stats.done}</span>
+                    <span className="tech-stat-num" style={{ color: "var(--c-done)" }}>
+                      {stats.done}
+                    </span>
                     <span className="tech-stat-label">Listas</span>
                   </div>
                 </div>
@@ -127,13 +129,21 @@ export default function TechniciansView({ technicians, setTechnicians, tasks }) 
                 <div className="tech-card-actions">
                   {isEditing ? (
                     <>
-                      <button className="btn-primary small-btn" onClick={saveEdit}>Guardar</button>
-                      <button className="btn-secondary small-btn" onClick={() => setEditingId(null)}>Cancelar</button>
+                      <button className="btn-primary small-btn" onClick={saveEdit}>
+                        Guardar
+                      </button>
+                      <button className="btn-secondary small-btn" onClick={() => setEditingId(null)}>
+                        Cancelar
+                      </button>
                     </>
                   ) : (
                     <>
-                      <button className="btn-secondary small-btn" onClick={() => startEdit(tech)}>Editar</button>
-                      <button className="btn-danger small-btn" onClick={() => deleteTechnician(tech)}>Borrar</button>
+                      <button className="btn-secondary small-btn" onClick={() => startEdit(tech)}>
+                        Editar
+                      </button>
+                      <button className="btn-danger small-btn" onClick={() => deleteTechnician(tech)}>
+                        Borrar
+                      </button>
                     </>
                   )}
                 </div>

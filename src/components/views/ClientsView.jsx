@@ -1,20 +1,15 @@
 import { useState } from "react";
-import { generateId } from "../../utils/id";
 
-export default function ClientsView({ clients, setClients, tasks }) {
-  const [newClient, setNewClient] = useState("");
+export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete }) {
+  const [newClient, setNewClient]         = useState("");
   const [editingClientId, setEditingClientId] = useState(null);
-  const [editingValue, setEditingValue] = useState("");
+  const [editingValue, setEditingValue]   = useState("");
 
-  function addClient() {
+  async function addClient() {
     const value = newClient.trim();
     if (!value) return;
     if (clients.some((c) => c.name === value)) return;
-    setClients((prev) =>
-      [...prev, { id: generateId(), name: value }].sort((a, b) =>
-        a.name.localeCompare(b.name, "es")
-      )
-    );
+    await onAdd(value);
     setNewClient("");
   }
 
@@ -23,28 +18,22 @@ export default function ClientsView({ clients, setClients, tasks }) {
     setEditingValue(client.name);
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     const value = editingValue.trim();
     if (!value) return;
     if (clients.some((c) => c.name === value && c.id !== editingClientId)) return;
-
-    setClients((prev) =>
-      prev
-        .map((c) => (c.id === editingClientId ? { ...c, name: value } : c))
-        .sort((a, b) => a.name.localeCompare(b.name, "es"))
-    );
-
+    await onUpdate(editingClientId, value);
     setEditingClientId(null);
     setEditingValue("");
   }
 
-  function deleteClient(client) {
+  async function deleteClient(client) {
     const isUsed = tasks.some((task) => task.clientId === client.id);
     if (isUsed) {
       alert("No puedes borrar este cliente porque está asignado a una o más tareas.");
       return;
     }
-    setClients((prev) => prev.filter((c) => c.id !== client.id));
+    await onDelete(client.id);
   }
 
   return (
@@ -62,6 +51,7 @@ export default function ClientsView({ clients, setClients, tasks }) {
             type="text"
             value={newClient}
             onChange={(e) => setNewClient(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addClient()}
             placeholder="Nombre del cliente"
           />
           <button className="btn-primary" onClick={addClient}>
@@ -77,7 +67,7 @@ export default function ClientsView({ clients, setClients, tasks }) {
           <div className="clients-list">
             {clients.map((client) => {
               const usageCount = tasks.filter((task) => task.clientId === client.id).length;
-              const isEditing = editingClientId === client.id;
+              const isEditing  = editingClientId === client.id;
 
               return (
                 <div key={client.id} className="client-row">
@@ -87,6 +77,8 @@ export default function ClientsView({ clients, setClients, tasks }) {
                         type="text"
                         value={editingValue}
                         onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                        autoFocus
                       />
                     ) : (
                       <div>

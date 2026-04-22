@@ -1,21 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
-import {
-  STORAGE_KEY,
-  CLIENTS_STORAGE_KEY,
-  TECHNICIANS_STORAGE_KEY,
-} from "./data/constants";
-import {
-  DEFAULT_CLIENTS,
-  DEFAULT_TECHNICIANS,
-  initialTasks,
-} from "./data/initialData";
+import { supabase } from "./lib/supabase";
+import { useAuth } from "./hooks/useAuth";
+import { taskFromDb, taskToDb } from "./utils/taskMapper";
 import { todayISO, getCalendarGrid } from "./utils/date";
 import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
-import { migrateTasksToIds, migrateTasksToTypedSchema } from "./utils/migration";
 import { TASK_TYPE_KEYS } from "./data/taskTypes";
-import { generateId } from "./utils/id";
-import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUI } from "./hooks/useUI";
 import TaskModal from "./components/TaskModal";
@@ -29,8 +19,7 @@ import MiTrabajoView from "./components/views/MiTrabajoView";
 import SeguimientoView from "./components/views/SeguimientoView";
 
 export default function App() {
-  migrateTasksToIds();
-  migrateTasksToTypedSchema();
+  const { user } = useAuth();
 
   const {
     section,
@@ -44,42 +33,67 @@ export default function App() {
     setCounterModalOpen,
   } = useUI();
 
-  const [clients, setClients] = useLocalStorage(CLIENTS_STORAGE_KEY, DEFAULT_CLIENTS, {
-    parser: (parsed, fallback) => {
-      if (!Array.isArray(parsed) || !parsed.length) return fallback;
-      return parsed.map((c) =>
-        typeof c === "string" ? { id: generateId(), name: c } : c
-      );
-    },
-  });
+  // ── Estado de datos ───────────────────────────────────────
+  const [clients, setClients]         = useState([]);
+  const [technicians, setTechnicians] = useState([]);
+  const [tasks, setTasks]             = useState([]);
+  const [loading, setLoading]         = useState(true);
 
-  const [technicians, setTechnicians] = useLocalStorage(
-    TECHNICIANS_STORAGE_KEY,
-    DEFAULT_TECHNICIANS,
-    {
-      parser: (parsed, fallback) =>
-        Array.isArray(parsed) && parsed.length ? parsed : fallback,
-    }
-  );
-
-  const [tasks, setTasks] = useLocalStorage(STORAGE_KEY, initialTasks, {
-    parser: (parsed, fallback) => {
-      if (!Array.isArray(parsed) || !parsed.length) return fallback;
-      return parsed.map(normalizeTask);
-    },
-  });
-
+  // ── Estado de UI ─────────────────────────────────────────
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-
   const [selectedDate, setSelectedDate] = useState(todayISO());
-  const [draft, setDraft] = useState(emptyTask(todayISO()));
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [draft, setDraft]               = useState(emptyTask(todayISO()));
+  const [isModalOpen, setIsModalOpen]   = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [newClientName, setNewClientName] = useState("");
 
+  // ── Carga de datos desde Supabase ────────────────────────
+  const loadTasks = useCallback(async () => {
+    const { data } = await supabase
+      .from("tasks")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (data) setTasks(data.map(taskFromDb));
+  }, []);
+
+  const loadClients = useCallback(async () => {
+    const { data } = await supabase
+      .from("clients")
+      .select("*")
+      .order("name", { ascending: true });
+    if (data) setClients(data);
+  }, []);
+
+  const loadTechnicians = useCallback(async () => {
+    const { data } = await supabase
+      .from("technicians")
+      .select("*")
+      .order("name", { ascending: true });
+    if (data) setTechnicians(data);
+  }, []);
+
+  useEffect(() => {
+    async function init() {
+      await Promise.all([loadTasks(), loadClients(), loadTechnicians()]);
+      setLoading(false);
+    }
+    init();
+
+    // Suscripciones en tiempo real — cualquier cambio recarga la tabla afectada
+    const channel = supabase
+      .channel("crm-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" },        loadTasks)
+      .on("postgres_changes", { event: "*", schema: "public", table: "clients" },      loadClients)
+      .on("postgres_changes", { event: "*", schema: "public", table: "technicians" },  loadTechnicians)
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [loadTasks, loadClients, loadTechnicians]);
+
+  // ── Sincronización de filtros ────────────────────────────
   useEffect(() => {
     if (personFilter !== "Todos" && !technicians.some((t) => t.id === personFilter)) {
       setUi((u) => ({ ...u, personFilter: "Todos" }));
@@ -92,26 +106,17 @@ export default function App() {
     }
   }, [categoryFilter, setUi]);
 
+  // ── Datos derivados ──────────────────────────────────────
   const monthCells = useMemo(() => getCalendarGrid(currentMonth), [currentMonth]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const matchesSearch = taskHaystack(task, clients, technicians).includes(search.toLowerCase());
-      const matchesPerson =
-        personFilter === "Todos" || task.technicianIds.includes(personFilter);
-      const matchesStatus = statusFilter === "Todos" || task.status === statusFilter;
-      const matchesPriority =
-        priorityFilter === "Todas" || task.priority === priorityFilter;
-      const matchesCategory =
-        categoryFilter === "Todas" || task.type === categoryFilter;
-
-      return (
-        matchesSearch &&
-        matchesPerson &&
-        matchesStatus &&
-        matchesPriority &&
-        matchesCategory
-      );
+      const matchesSearch   = taskHaystack(task, clients, technicians).includes(search.toLowerCase());
+      const matchesPerson   = personFilter === "Todos" || task.technicianIds.includes(personFilter);
+      const matchesStatus   = statusFilter === "Todos" || task.status === statusFilter;
+      const matchesPriority = priorityFilter === "Todas" || task.priority === priorityFilter;
+      const matchesCategory = categoryFilter === "Todas" || task.type === categoryFilter;
+      return matchesSearch && matchesPerson && matchesStatus && matchesPriority && matchesCategory;
     });
   }, [tasks, clients, technicians, search, personFilter, statusFilter, priorityFilter, categoryFilter]);
 
@@ -125,21 +130,49 @@ export default function App() {
   }, [filteredTasks]);
 
   const selectedTasks = useMemo(() => {
-    return (tasksByDate[selectedDate] || []).slice().sort((a, b) => {
-      return a.title.localeCompare(b.title, "es");
-    });
+    return (tasksByDate[selectedDate] || []).slice().sort((a, b) =>
+      a.title.localeCompare(b.title, "es")
+    );
   }, [tasksByDate, selectedDate]);
 
-  const stats = useMemo(() => {
-    return {
-      total: tasks.length,
-      pending: tasks.filter((t) => t.status === "No iniciado").length,
-      progress: tasks.filter((t) => t.status === "En curso").length,
-      done: tasks.filter((t) => t.status === "Listo").length,
-    };
-  }, [tasks]);
+  const stats = useMemo(() => ({
+    total:   tasks.length,
+    pending: tasks.filter((t) => t.status === "No iniciado").length,
+    progress:tasks.filter((t) => t.status === "En curso").length,
+    done:    tasks.filter((t) => t.status === "Listo").length,
+  }), [tasks]);
 
-  function addClientFromModal() {
+  // ── CRUD — Tareas ────────────────────────────────────────
+  async function saveTask(taskToSave) {
+    const row = taskToDb(taskToSave, user.id);
+    if (taskToSave.id) {
+      await supabase.from("tasks").update(row).eq("id", taskToSave.id);
+    } else {
+      await supabase.from("tasks").insert({ ...row, created_by: user.id });
+    }
+    setSelectedDate(taskToSave.date);
+    setIsModalOpen(false);
+    setDraft(emptyTask(taskToSave.date));
+  }
+
+  async function deleteTask() {
+    if (!draft.id) return;
+    await supabase.from("tasks").delete().eq("id", draft.id);
+    setIsModalOpen(false);
+    setDraft(emptyTask(selectedDate));
+  }
+
+  async function handleDropOnDate(date) {
+    if (!draggedTaskId) return;
+    await supabase.from("tasks")
+      .update({ date, updated_by: user.id })
+      .eq("id", draggedTaskId);
+    setDraggedTaskId(null);
+    setSelectedDate(date);
+  }
+
+  // ── CRUD — Clientes ──────────────────────────────────────
+  async function addClientFromModal() {
     const name = newClientName.trim();
     if (!name) return;
     const existing = clients.find((c) => c.name === name);
@@ -148,14 +181,41 @@ export default function App() {
       setNewClientName("");
       return;
     }
-    const created = { id: generateId(), name };
-    setClients((prev) =>
-      [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "es"))
-    );
-    setDraft({ ...draft, clientId: created.id });
+    const { data } = await supabase
+      .from("clients")
+      .insert({ name, created_by: user.id })
+      .select()
+      .single();
+    if (data) setDraft({ ...draft, clientId: data.id });
     setNewClientName("");
   }
 
+  async function handleAddClient(name) {
+    await supabase.from("clients").insert({ name, created_by: user.id });
+  }
+
+  async function handleUpdateClient(id, name) {
+    await supabase.from("clients").update({ name }).eq("id", id);
+  }
+
+  async function handleDeleteClient(id) {
+    await supabase.from("clients").delete().eq("id", id);
+  }
+
+  // ── CRUD — Técnicos ──────────────────────────────────────
+  async function handleAddTechnician(name) {
+    await supabase.from("technicians").insert({ name, phone: "", specialty: "" });
+  }
+
+  async function handleUpdateTechnician(id, name) {
+    await supabase.from("technicians").update({ name }).eq("id", id);
+  }
+
+  async function handleDeleteTechnician(id) {
+    await supabase.from("technicians").delete().eq("id", id);
+  }
+
+  // ── Modal ────────────────────────────────────────────────
   function openNewTask() {
     setDraft(emptyTask(selectedDate));
     setIsModalOpen(true);
@@ -170,25 +230,7 @@ export default function App() {
     setIsModalOpen(false);
   }
 
-  function deleteTask() {
-    if (!draft.id) return;
-    setTasks((prev) => prev.filter((task) => task.id !== draft.id));
-    setIsModalOpen(false);
-    setDraft(emptyTask(selectedDate));
-  }
-
-  function saveTask(taskToSave) {
-    if (taskToSave.id) {
-      setTasks((prev) => prev.map((task) => (task.id === taskToSave.id ? taskToSave : task)));
-    } else {
-      setTasks((prev) => [...prev, { ...taskToSave, id: generateId() }]);
-    }
-
-    setSelectedDate(taskToSave.date);
-    setIsModalOpen(false);
-    setDraft(emptyTask(taskToSave.date));
-  }
-
+  // ── Calendario ───────────────────────────────────────────
   function goToday() {
     const now = new Date();
     setCurrentMonth(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -199,17 +241,7 @@ export default function App() {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   }
 
-  function handleDropOnDate(date) {
-    if (!draggedTaskId) return;
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === draggedTaskId ? { ...task, date } : task
-      )
-    );
-    setDraggedTaskId(null);
-    setSelectedDate(date);
-  }
-
+  // ── Atajos de teclado ─────────────────────────────────────
   useKeyboardShortcuts({
     onNew: openNewTask,
     onSearchFocus: () => {
@@ -224,6 +256,17 @@ export default function App() {
     },
   });
 
+  // ── Loading ──────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="loading-spinner" />
+        <p>Cargando datos…</p>
+      </div>
+    );
+  }
+
+  // ── Render ───────────────────────────────────────────────
   return (
     <div className="app-shell">
       <Sidebar />
@@ -251,19 +294,41 @@ export default function App() {
             />
           ) : section === "tecnicos" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <TechniciansView technicians={technicians} setTechnicians={setTechnicians} tasks={tasks} />
+              <TechniciansView
+                technicians={technicians}
+                tasks={tasks}
+                onAdd={handleAddTechnician}
+                onUpdate={handleUpdateTechnician}
+                onDelete={handleDeleteTechnician}
+              />
             </section>
           ) : section === "inicio" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <InicioView tasks={tasks} clients={clients} technicians={technicians} onEditTask={editTask} />
+              <InicioView
+                tasks={tasks}
+                clients={clients}
+                technicians={technicians}
+                onEditTask={editTask}
+              />
             </section>
           ) : section === "mitrabajo" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <MiTrabajoView tasks={tasks} clients={clients} technicians={technicians} onEditTask={editTask} />
+              <MiTrabajoView
+                tasks={tasks}
+                clients={clients}
+                technicians={technicians}
+                onEditTask={editTask}
+              />
             </section>
           ) : (
             <section className="main-panel clients-main-panel full-width-panel">
-              <ClientsView clients={clients} setClients={setClients} tasks={tasks} />
+              <ClientsView
+                clients={clients}
+                tasks={tasks}
+                onAdd={handleAddClient}
+                onUpdate={handleUpdateClient}
+                onDelete={handleDeleteClient}
+              />
             </section>
           )}
         </div>

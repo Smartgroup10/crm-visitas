@@ -1,7 +1,20 @@
 import { useUI } from "../hooks/useUI";
+import { useAuth } from "../hooks/useAuth";
+
+function getInitials(name) {
+  if (!name) return "??";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export default function Sidebar() {
   const { section, setSection } = useUI();
+  const { profile, logout }     = useAuth();
+
+  const displayName = profile?.name || "Usuario";
+  const initials    = getInitials(displayName);
+  const roleLabel   = profile?.role === "admin" ? "Administrador" : "Técnico";
 
   return (
     <aside className="sidebar">
@@ -62,12 +75,19 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="sidebar-user">
-          <div className="user-avatar">JV</div>
+          <div className="user-avatar">{initials}</div>
           <div className="user-info">
-            <div className="user-name">Jaime Vallejo</div>
-            <div className="user-role">Administrador</div>
+            <div className="user-name">{displayName}</div>
+            <div className="user-role">{roleLabel}</div>
           </div>
         </div>
+        <button
+          className="logout-btn"
+          onClick={logout}
+          title="Cerrar sesión"
+        >
+          ↪
+        </button>
       </div>
     </aside>
   );
