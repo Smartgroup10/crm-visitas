@@ -1,4 +1,5 @@
 import { todayISO, addDays } from "../utils/date";
+import { generateId } from "../utils/id";
 
 export const DEFAULT_CLIENTS = [
   { id: "c1", name: "Clínica Norte" },
@@ -19,7 +20,7 @@ export const DEFAULT_TECHNICIANS = [
 
 export const initialTasks = [
   {
-    id: crypto.randomUUID(),
+    id: generateId(),
     title: "Instalación centralita VoIP",
     clientId: "c1",
     phone: "912345678",
@@ -34,7 +35,7 @@ export const initialTasks = [
     vehicle: "Furgón 1",
     attachments: [
       {
-        id: crypto.randomUUID(),
+        id: generateId(),
         name: "checklist_voip.pdf",
         size: 182340,
         type: "application/pdf",
@@ -42,7 +43,7 @@ export const initialTasks = [
     ],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateId(),
     title: "Visita técnica de revisión",
     clientId: "c2",
     phone: "911223344",
@@ -58,7 +59,7 @@ export const initialTasks = [
     attachments: [],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateId(),
     title: "Mantenimiento preventivo",
     clientId: "c3",
     phone: "917778899",

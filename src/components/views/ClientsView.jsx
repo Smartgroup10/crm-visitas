@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { generateId } from "../../utils/id";
 
 export default function ClientsView({ clients, setClients, tasks }) {
   const [newClient, setNewClient] = useState("");
@@ -10,7 +11,7 @@ export default function ClientsView({ clients, setClients, tasks }) {
     if (!value) return;
     if (clients.some((c) => c.name === value)) return;
     setClients((prev) =>
-      [...prev, { id: crypto.randomUUID(), name: value }].sort((a, b) =>
+      [...prev, { id: generateId(), name: value }].sort((a, b) =>
         a.name.localeCompare(b.name, "es")
       )
     );

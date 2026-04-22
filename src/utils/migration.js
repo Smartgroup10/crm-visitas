@@ -5,6 +5,7 @@ import {
   MIGRATION_FLAG_KEY,
   MIGRATION_V2_FLAG_KEY,
 } from "../data/constants";
+import { generateId } from "./id";
 import { defaultsForType, TASK_TYPES } from "../data/taskTypes";
 
 const CATEGORY_TO_TYPE = {
@@ -29,7 +30,7 @@ export function migrateTasksToIds() {
 
     if (Array.isArray(clients)) {
       clients = clients.map((c) =>
-        typeof c === "string" ? { id: crypto.randomUUID(), name: c } : c
+        typeof c === "string" ? { id: generateId(), name: c } : c
       );
     }
 
@@ -48,7 +49,7 @@ export function migrateTasksToIds() {
         const clientName = newTask.client;
         let found = clients.find((c) => c.name === clientName);
         if (!found) {
-          found = { id: crypto.randomUUID(), name: clientName };
+          found = { id: generateId(), name: clientName };
           clients.push(found);
         }
         newTask.clientId = found.id;

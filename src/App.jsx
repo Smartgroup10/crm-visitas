@@ -14,6 +14,7 @@ import { todayISO, getCalendarGrid } from "./utils/date";
 import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
 import { migrateTasksToIds, migrateTasksToTypedSchema } from "./utils/migration";
 import { TASK_TYPE_KEYS } from "./data/taskTypes";
+import { generateId } from "./utils/id";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUI } from "./hooks/useUI";
@@ -47,7 +48,7 @@ export default function App() {
     parser: (parsed, fallback) => {
       if (!Array.isArray(parsed) || !parsed.length) return fallback;
       return parsed.map((c) =>
-        typeof c === "string" ? { id: crypto.randomUUID(), name: c } : c
+        typeof c === "string" ? { id: generateId(), name: c } : c
       );
     },
   });
@@ -147,7 +148,7 @@ export default function App() {
       setNewClientName("");
       return;
     }
-    const created = { id: crypto.randomUUID(), name };
+    const created = { id: generateId(), name };
     setClients((prev) =>
       [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "es"))
     );
@@ -180,7 +181,7 @@ export default function App() {
     if (taskToSave.id) {
       setTasks((prev) => prev.map((task) => (task.id === taskToSave.id ? taskToSave : task)));
     } else {
-      setTasks((prev) => [...prev, { ...taskToSave, id: crypto.randomUUID() }]);
+      setTasks((prev) => [...prev, { ...taskToSave, id: generateId() }]);
     }
 
     setSelectedDate(taskToSave.date);

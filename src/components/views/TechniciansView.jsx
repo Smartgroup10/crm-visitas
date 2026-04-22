@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { generateId } from "../../utils/id";
 
 import { TECH_AVATAR_COLORS } from "../../data/constants";
 
@@ -15,7 +16,7 @@ export default function TechniciansView({ technicians, setTechnicians, tasks }) 
       return;
     }
     setTechnicians((prev) =>
-      [...prev, { id: crypto.randomUUID(), name, phone: "", specialty: "" }]
+      [...prev, { id: generateId(), name, phone: "", specialty: "" }]
         .sort((a, b) => a.name.localeCompare(b.name, "es"))
     );
     setNewName("");

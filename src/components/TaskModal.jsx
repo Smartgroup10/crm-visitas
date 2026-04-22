@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { generateId } from "../utils/id";
 
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../data/constants";
 import {
@@ -152,7 +153,7 @@ export default function TaskModal({
   function handleFilesSelected(e) {
     const files = Array.from(e.target.files || []);
     const normalized = files.map((file) => ({
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: file.name,
       size: file.size,
       type: file.type || "desconocido",
