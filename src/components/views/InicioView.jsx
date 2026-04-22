@@ -1,4 +1,5 @@
 import { TECH_AVATAR_COLORS } from "../../data/constants";
+import { TASK_TYPES } from "../../data/taskTypes";
 import { todayISO, addDays, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
@@ -120,7 +121,7 @@ export default function InicioView({ tasks, clients, technicians, onEditTask }) 
                   <div className="day-task-meta">
                     {task.date === today ? "Hoy" : "Mañana"} · {getClientName(task.clientId, clients)}
                   </div>
-                  <div className="day-task-meta">{task.category} · {peopleFromIds(task.technicianIds, technicians)}</div>
+                  <div className="day-task-meta">{TASK_TYPES[task.type]?.label || task.type} · {peopleFromIds(task.technicianIds, technicians)}</div>
                 </button>
               ))}
             </div>
@@ -168,7 +169,7 @@ export default function InicioView({ tasks, clients, technicians, onEditTask }) 
                     <span className={`mini-priority ${getPriorityClass(task.priority)}`}>{task.priority}</span>
                   </div>
                   <div className="day-task-meta">{formatShortDate(task.date)} · {getClientName(task.clientId, clients)}</div>
-                  <div className="day-task-meta">{task.category} · {peopleFromIds(task.technicianIds, technicians)}</div>
+                  <div className="day-task-meta">{TASK_TYPES[task.type]?.label || task.type} · {peopleFromIds(task.technicianIds, technicians)}</div>
                 </button>
               ))}
             </div>

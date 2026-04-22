@@ -3,7 +3,16 @@ import {
   CLIENTS_STORAGE_KEY,
   TECHNICIANS_STORAGE_KEY,
   MIGRATION_FLAG_KEY,
+  MIGRATION_V2_FLAG_KEY,
 } from "../data/constants";
+import { defaultsForType, TASK_TYPES } from "../data/taskTypes";
+
+const CATEGORY_TO_TYPE = {
+  "Visita": "incidencia",
+  "Instalación": "instalacion-proyecto",
+  "Mantenimiento": "mantenimiento-preventivo",
+  "Incidencia": "incidencia",
+};
 
 export function migrateTasksToIds() {
   if (typeof localStorage === "undefined") return;
@@ -74,5 +83,51 @@ export function migrateTasksToIds() {
     localStorage.setItem(MIGRATION_FLAG_KEY, "done");
   } catch (err) {
     console.error("Error en migración a ids:", err);
+  }
+}
+
+export function migrateTasksToTypedSchema() {
+  if (typeof localStorage === "undefined") return;
+  if (localStorage.getItem(MIGRATION_V2_FLAG_KEY) === "done") return;
+
+  try {
+    const rawTasks = localStorage.getItem(STORAGE_KEY);
+    const tasks = rawTasks ? JSON.parse(rawTasks) : null;
+
+    if (!Array.isArray(tasks)) {
+      localStorage.setItem(MIGRATION_V2_FLAG_KEY, "done");
+      return;
+    }
+
+    const migrated = tasks.map((task) => {
+      const newTask = { ...task };
+
+      if (typeof newTask.category !== "undefined") {
+        let type = CATEGORY_TO_TYPE[newTask.category];
+        if (!type) {
+          console.warn("Categoría no reconocida en migración v2, usando 'incidencia':", newTask.category);
+          type = "incidencia";
+        }
+        newTask.type = type;
+        delete newTask.category;
+      } else if (!newTask.type || !TASK_TYPES[newTask.type]) {
+        if (newTask.type) {
+          console.warn("Tipo no reconocido en migración v2, usando 'incidencia':", newTask.type);
+        }
+        newTask.type = "incidencia";
+      }
+
+      const defaults = defaultsForType(newTask.type);
+      for (const [k, v] of Object.entries(defaults)) {
+        if (!(k in newTask)) newTask[k] = v;
+      }
+
+      return newTask;
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    localStorage.setItem(MIGRATION_V2_FLAG_KEY, "done");
+  } catch (err) {
+    console.error("Error en migración v2 (category a type):", err);
   }
 }

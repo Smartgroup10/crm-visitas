@@ -1,15 +1,97 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
+import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../data/constants";
 import {
-  STATUS_OPTIONS,
-  PRIORITY_OPTIONS,
-  CATEGORY_OPTIONS,
-} from "../data/constants";
+  TASK_TYPES,
+  TASK_TYPE_KEYS,
+  COMMON_TASK_FIELDS,
+  defaultsForType,
+  defaultValueForField,
+} from "../data/taskTypes";
+import { validateTask } from "../utils/validation";
 
 function formatFileSize(size) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function sanitizeForType(draft) {
+  const out = {};
+  for (const k of COMMON_TASK_FIELDS) {
+    if (k in draft) out[k] = draft[k];
+  }
+  const fields = TASK_TYPES[draft.type]?.specificFields || [];
+  for (const f of fields) {
+    out[f.name] = f.name in draft ? draft[f.name] : defaultValueForField(f);
+  }
+  return out;
+}
+
+function renderSpecificField(f, draft, setDraft) {
+  const val = draft[f.name];
+
+  if (f.type === "text") {
+    return (
+      <input
+        type="text"
+        value={val ?? ""}
+        onChange={(e) => setDraft({ ...draft, [f.name]: e.target.value })}
+      />
+    );
+  }
+
+  if (f.type === "textarea") {
+    return (
+      <textarea
+        rows="3"
+        value={val ?? ""}
+        onChange={(e) => setDraft({ ...draft, [f.name]: e.target.value })}
+      />
+    );
+  }
+
+  if (f.type === "boolean") {
+    return (
+      <label className="chip-checkbox">
+        <input
+          type="checkbox"
+          checked={Boolean(val)}
+          onChange={(e) => setDraft({ ...draft, [f.name]: e.target.checked })}
+        />
+        {" "}
+        {f.label}
+      </label>
+    );
+  }
+
+  if (f.type === "select") {
+    return (
+      <select
+        value={val ?? ""}
+        onChange={(e) => setDraft({ ...draft, [f.name]: e.target.value })}
+      >
+        {!f.required && <option value="">—</option>}
+        {f.options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (f.type === "date") {
+    return (
+      <input
+        type="date"
+        value={val ?? ""}
+        onChange={(e) => setDraft({ ...draft, [f.name]: e.target.value })}
+      />
+    );
+  }
+
+  return null;
 }
 
 export default function TaskModal({
@@ -27,6 +109,7 @@ export default function TaskModal({
   addClient,
 }) {
   const fileInputRef = useRef(null);
+  const [errors, setErrors] = useState({});
 
   if (!open) return null;
 
@@ -37,6 +120,33 @@ export default function TaskModal({
     } else {
       setDraft({ ...draft, technicianIds: [...draft.technicianIds, techId] });
     }
+  }
+
+  function handleTypeChange(newType) {
+    if (newType === draft.type) return;
+
+    const oldFields = TASK_TYPES[draft.type]?.specificFields || [];
+    const hasData = oldFields.some((f) => {
+      const val = draft[f.name];
+      const def = defaultValueForField(f);
+      if (val === undefined || val === null || val === "") return false;
+      return val !== def;
+    });
+
+    if (hasData) {
+      const ok = window.confirm(
+        "Cambiar el tipo borrará los datos específicos del tipo anterior. ¿Continuar?"
+      );
+      if (!ok) return;
+    }
+
+    const newDraft = { ...draft, type: newType };
+    for (const f of oldFields) {
+      delete newDraft[f.name];
+    }
+    Object.assign(newDraft, defaultsForType(newType));
+    setDraft(newDraft);
+    setErrors({});
   }
 
   function handleFilesSelected(e) {
@@ -63,6 +173,20 @@ export default function TaskModal({
     });
   }
 
+  function handleSubmit(e) {
+    e.preventDefault();
+    const sanitized = sanitizeForType(draft);
+    const result = validateTask(sanitized);
+    if (!result.valid) {
+      setErrors(result.errors);
+      return;
+    }
+    setErrors({});
+    onSave(sanitized);
+  }
+
+  const specificFields = TASK_TYPES[draft.type]?.specificFields || [];
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="task-modal" onClick={(e) => e.stopPropagation()}>
@@ -76,7 +200,7 @@ export default function TaskModal({
           </button>
         </div>
 
-        <form className="task-form" onSubmit={onSave}>
+        <form className="task-form" onSubmit={handleSubmit}>
           <div className="form-row full">
             <label>Título</label>
             <input
@@ -85,6 +209,19 @@ export default function TaskModal({
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
               placeholder="Ej.: Instalación centralita"
             />
+            {errors.title && <div className="field-error">{errors.title}</div>}
+          </div>
+
+          <div className="form-row">
+            <label>Tipo</label>
+            <select value={draft.type} onChange={(e) => handleTypeChange(e.target.value)}>
+              {TASK_TYPE_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {TASK_TYPES[key].label}
+                </option>
+              ))}
+            </select>
+            {errors.type && <div className="field-error">{errors.type}</div>}
           </div>
 
           <div className="form-row">
@@ -100,6 +237,7 @@ export default function TaskModal({
                 </option>
               ))}
             </select>
+            {errors.clientId && <div className="field-error">{errors.clientId}</div>}
           </div>
 
           <div className="form-row">
@@ -128,20 +266,6 @@ export default function TaskModal({
           </div>
 
           <div className="form-row">
-            <label>Tipo de trabajo</label>
-            <select
-              value={draft.category}
-              onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-            >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-row">
             <label>Fecha</label>
             <input
               type="date"
@@ -164,6 +288,7 @@ export default function TaskModal({
                 </button>
               ))}
             </div>
+            {errors.technicianIds && <div className="field-error">{errors.technicianIds}</div>}
           </div>
 
           <div className="form-row">
@@ -199,9 +324,7 @@ export default function TaskModal({
             <input
               type="text"
               value={draft.estimatedTime}
-              onChange={(e) =>
-                setDraft({ ...draft, estimatedTime: e.target.value })
-              }
+              onChange={(e) => setDraft({ ...draft, estimatedTime: e.target.value })}
               placeholder="Ej.: 2 horas"
             />
           </div>
@@ -225,6 +348,27 @@ export default function TaskModal({
               placeholder="Ej.: teléfonos IP, switch, tester..."
             />
           </div>
+
+          <div className="form-row full">
+            <label>Detalles del tipo</label>
+          </div>
+          {specificFields.map((f) => (
+            <div
+              key={f.name}
+              className={
+                f.type === "textarea" || f.type === "boolean" ? "form-row full" : "form-row"
+              }
+            >
+              {f.type !== "boolean" && (
+                <label>
+                  {f.label}
+                  {f.required ? " *" : ""}
+                </label>
+              )}
+              {renderSpecificField(f, draft, setDraft)}
+              {errors[f.name] && <div className="field-error">{errors[f.name]}</div>}
+            </div>
+          ))}
 
           <div className="form-row full">
             <label>Adjuntos</label>

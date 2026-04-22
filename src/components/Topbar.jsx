@@ -1,8 +1,5 @@
-import {
-  STATUS_OPTIONS,
-  PRIORITY_OPTIONS,
-  CATEGORY_OPTIONS,
-} from "../data/constants";
+import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../data/constants";
+import { TASK_TYPES, TASK_TYPE_KEYS } from "../data/taskTypes";
 import { useUI } from "../hooks/useUI";
 
 const TITLES = {
@@ -151,8 +148,8 @@ export default function Topbar({ stats, technicians, openNewTask }) {
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
               <option value="Todas">Tipo</option>
-              {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
+              {TASK_TYPE_KEYS.map((k) => (
+                <option key={k} value={k}>{TASK_TYPES[k].label}</option>
               ))}
             </select>
           </div>
