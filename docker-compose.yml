@@ -26,8 +26,10 @@ services:
     environment:
       DATABASE_URL:    postgres://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-crm}
       JWT_SECRET:      ${JWT_SECRET:?JWT_SECRET requerida en .env}
-      ADMIN_EMAIL:     ${ADMIN_EMAIL:-admin@smartgroup.es}
-      ADMIN_PASSWORD:  ${ADMIN_PASSWORD:-cambiar-en-produccion}
+      # Si ADMIN_EMAIL/ADMIN_PASSWORD están vacíos el backend NO siembra
+      # un admin — nunca se crea un usuario con contraseña por defecto.
+      ADMIN_EMAIL:     ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD:  ${ADMIN_PASSWORD:-}
       ADMIN_NAME:      ${ADMIN_NAME:-Administrador}
       CORS_ORIGIN:     ${CORS_ORIGIN:-*}
       PORT:            3001

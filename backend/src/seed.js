@@ -33,9 +33,19 @@ export async function seedAdmin() {
     const { rows } = await query("select count(*)::int as n from users");
     if (rows[0].n > 0) return;
 
-    const email    = process.env.ADMIN_EMAIL    || "admin@smartgroup.es";
-    const password = process.env.ADMIN_PASSWORD || "admin";
-    const name     = process.env.ADMIN_NAME     || "Administrador";
+    const email    = process.env.ADMIN_EMAIL;
+    const password = process.env.ADMIN_PASSWORD;
+    const name     = process.env.ADMIN_NAME || "Administrador";
+
+    // Sin credenciales explícitas NO sembramos un admin: evitamos crear
+    // un usuario con contraseña conocida/adivinable en producción.
+    if (!email || !password) {
+      console.warn(
+        "[seed] ADMIN_EMAIL y/o ADMIN_PASSWORD no definidos: no se crea usuario admin. " +
+        "Define ambas variables en .env para sembrar el admin inicial."
+      );
+      return;
+    }
 
     const hash = await bcrypt.hash(password, 10);
     await query(
