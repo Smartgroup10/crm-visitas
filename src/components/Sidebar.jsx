@@ -14,7 +14,12 @@ export default function Sidebar() {
 
   const displayName = profile?.name || "Usuario";
   const initials    = getInitials(displayName);
-  const roleLabel   = profile?.role === "admin" ? "Administrador" : "Técnico";
+  const isAdmin     = profile?.role === "admin";
+  const roleLabel =
+    profile?.role === "admin"      ? "Administrador" :
+    profile?.role === "supervisor" ? "Supervisor"    :
+    profile?.role === "tecnico"    ? "Técnico"       :
+    "Usuario";
 
   return (
     <aside className="sidebar">
@@ -71,6 +76,19 @@ export default function Sidebar() {
           <span className="nav-icon">📊</span>
           <span className="nav-label">Informes</span>
         </button>
+
+        {isAdmin && (
+          <>
+            <div className="nav-section-label">Administración</div>
+            <button
+              className={`nav-item ${section === "usuarios" ? "active" : ""}`}
+              onClick={() => setSection("usuarios")}
+            >
+              <span className="nav-icon">🔑</span>
+              <span className="nav-label">Usuarios</span>
+            </button>
+          </>
+        )}
       </nav>
 
       <div className="sidebar-footer">

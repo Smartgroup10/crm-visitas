@@ -26,3 +26,17 @@ export function authMiddleware(req, res, next) {
     res.status(401).json({ error: "Sesión inválida o caducada" });
   }
 }
+
+/**
+ * Middleware de autorización por rol. Usar SIEMPRE después de authMiddleware.
+ *   app.use('/api/users', authMiddleware, requireRole('admin'), usersRouter);
+ */
+export function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: "Sin sesión" });
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Permiso insuficiente" });
+    }
+    next();
+  };
+}

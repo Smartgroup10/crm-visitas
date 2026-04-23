@@ -18,6 +18,7 @@ import TechniciansView from "./components/views/TechniciansView";
 import InicioView from "./components/views/InicioView";
 import MiTrabajoView from "./components/views/MiTrabajoView";
 import SeguimientoView from "./components/views/SeguimientoView";
+import UsersView from "./components/views/UsersView";
 
 export default function App() {
   const { user } = useAuth();
@@ -34,10 +35,13 @@ export default function App() {
     setCounterModalOpen,
   } = useUI();
 
+  const isAdmin = user?.role === "admin";
+
   // ── Estado de datos ───────────────────────────────────────
   const [clients, setClients]         = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [tasks, setTasks]             = useState([]);
+  const [users, setUsers]             = useState([]);
   const [loading, setLoading]         = useState(true);
 
   // ── Estado de UI ─────────────────────────────────────────
@@ -67,13 +71,24 @@ export default function App() {
     setTechnicians(rows || []);
   }, []);
 
+  // Solo el admin puede listar usuarios; a los demás el backend les devolvería 403.
+  const loadUsers = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const rows = await api.get("/users");
+      setUsers(rows || []);
+    } catch (err) {
+      console.error("Error cargando usuarios:", err);
+    }
+  }, [isAdmin]);
+
   // ── Arranque: carga inicial + conexión de socket ────────
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
       try {
-        await Promise.all([loadTasks(), loadClients(), loadTechnicians()]);
+        await Promise.all([loadTasks(), loadClients(), loadTechnicians(), loadUsers()]);
       } catch (err) {
         console.error("Error cargando datos iniciales:", err);
       } finally {
@@ -89,19 +104,22 @@ export default function App() {
     const onTasks       = () => loadTasks();
     const onClients     = () => loadClients();
     const onTechnicians = () => loadTechnicians();
+    const onUsers       = () => loadUsers();
 
     socket.on("tasks:change",       onTasks);
     socket.on("clients:change",     onClients);
     socket.on("technicians:change", onTechnicians);
+    socket.on("users:change",       onUsers);
 
     return () => {
       cancelled = true;
       socket.off("tasks:change",       onTasks);
       socket.off("clients:change",     onClients);
       socket.off("technicians:change", onTechnicians);
+      socket.off("users:change",       onUsers);
       disconnectSocket();
     };
-  }, [loadTasks, loadClients, loadTechnicians]);
+  }, [loadTasks, loadClients, loadTechnicians, loadUsers]);
 
   // ── Sincronización de filtros ────────────────────────────
   useEffect(() => {
@@ -219,6 +237,23 @@ export default function App() {
     await api.delete(`/technicians/${id}`);
   }
 
+  // ── CRUD — Usuarios (solo admin) ─────────────────────────
+  async function handleCreateUser(payload) {
+    await api.post("/users", payload);
+  }
+
+  async function handleUpdateUser(id, payload) {
+    await api.put(`/users/${id}`, payload);
+  }
+
+  async function handleResetUserPassword(id, password) {
+    await api.patch(`/users/${id}/password`, { password });
+  }
+
+  async function handleDeleteUser(id) {
+    await api.delete(`/users/${id}`);
+  }
+
   // ── Modal ────────────────────────────────────────────────
   function openNewTask() {
     setDraft(emptyTask(selectedDate));
@@ -322,6 +357,17 @@ export default function App() {
                 clients={clients}
                 technicians={technicians}
                 onEditTask={editTask}
+              />
+            </section>
+          ) : section === "usuarios" && isAdmin ? (
+            <section className="main-panel clients-main-panel full-width-panel">
+              <UsersView
+                users={users}
+                currentUserId={user?.id}
+                onCreate={handleCreateUser}
+                onUpdate={handleUpdateUser}
+                onResetPassword={handleResetUserPassword}
+                onDelete={handleDeleteUser}
               />
             </section>
           ) : (

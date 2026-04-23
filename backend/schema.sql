@@ -14,9 +14,18 @@ create table if not exists users (
   email         text unique not null,
   password_hash text not null,
   name          text not null default '',
-  role          text not null default 'user',
+  role          text not null default 'tecnico',
   created_at    timestamptz not null default now()
 );
+
+-- Migraciones idempotentes para datos/constraints que pueden haber cambiado
+-- entre versiones (schema.sql se re-ejecuta en cada arranque del backend).
+update users set role = 'tecnico'
+  where role not in ('admin','supervisor','tecnico');
+
+alter table users drop constraint if exists users_role_check;
+alter table users
+  add constraint users_role_check check (role in ('admin','supervisor','tecnico'));
 
 -- ─── CLIENTES ─────────────────────────────────────────────
 create table if not exists clients (
