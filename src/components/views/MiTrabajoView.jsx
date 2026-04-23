@@ -2,6 +2,7 @@ import { TASK_TYPES } from "../../data/taskTypes";
 import { todayISO, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
+import { IconAlert } from "../Icon";
 
 export default function MiTrabajoView({ tasks, clients, technicians, onEditTask }) {
   const today = todayISO();
@@ -41,7 +42,7 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
 
       {requiresAction.length > 0 && (
         <div className="mt-alert-banner">
-          <span className="mt-alert-icon">⚠</span>
+          <span className="mt-alert-icon"><IconAlert /></span>
           <span>
             {requiresAction.length} {requiresAction.length === 1 ? "tarea requiere" : "tareas requieren"} atención inmediata
           </span>
@@ -126,9 +127,13 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
                   <div className="day-task-meta">
                     {getClientName(task.clientId, clients) || "—"} · {task.date ? formatShortDate(task.date) : "Sin fecha"}
                   </div>
-                  <div className="day-task-meta" style={{ color: "var(--c-blocked)" }}>
-                    {task.technicianIds.length === 0 ? "⚠ Sin técnico asignado" : ""}
-                    {!task.date ? "⚠ Sin fecha" : ""}
+                  <div className="day-task-meta day-task-warn">
+                    {task.technicianIds.length === 0 && (
+                      <span className="warn-chip"><IconAlert /> Sin técnico asignado</span>
+                    )}
+                    {!task.date && (
+                      <span className="warn-chip"><IconAlert /> Sin fecha</span>
+                    )}
                   </div>
                 </button>
               ))}

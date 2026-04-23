@@ -1,11 +1,29 @@
 import { useUI } from "../hooks/useUI";
 import { useAuth } from "../hooks/useAuth";
+import {
+  IconHome, IconCheckSquare, IconClipboard, IconUsers,
+  IconWrench, IconBarChart, IconKey, IconLogOut,
+} from "./Icon";
 
 function getInitials(name) {
   if (!name) return "??";
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
+}
+
+function NavItem({ icon: Icon, label, active, onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`nav-item ${active ? "active" : ""} ${disabled ? "nav-soon" : ""}`}
+    >
+      <span className="nav-icon"><Icon /></span>
+      <span className="nav-label">{label}</span>
+    </button>
+  );
 }
 
 export default function Sidebar() {
@@ -33,60 +51,21 @@ export default function Sidebar() {
 
       <nav className="sidebar-nav">
         <div className="nav-section-label">Principal</div>
-        <button
-          className={`nav-item ${section === "inicio" ? "active" : ""}`}
-          onClick={() => setSection("inicio")}
-        >
-          <span className="nav-icon">🏠</span>
-          <span className="nav-label">Inicio</span>
-        </button>
-        <button
-          className={`nav-item ${section === "mitrabajo" ? "active" : ""}`}
-          onClick={() => setSection("mitrabajo")}
-        >
-          <span className="nav-icon">✔</span>
-          <span className="nav-label">Mi trabajo</span>
-        </button>
+        <NavItem icon={IconHome}        label="Inicio"       active={section === "inicio"}        onClick={() => setSection("inicio")} />
+        <NavItem icon={IconCheckSquare} label="Mi trabajo"   active={section === "mitrabajo"}     onClick={() => setSection("mitrabajo")} />
 
         <div className="nav-section-label">Operaciones</div>
-        <button
-          className={`nav-item ${section === "instalaciones" ? "active" : ""}`}
-          onClick={() => setSection("instalaciones")}
-        >
-          <span className="nav-icon">📋</span>
-          <span className="nav-label">Seguimiento</span>
-        </button>
-        <button
-          className={`nav-item ${section === "clientes" ? "active" : ""}`}
-          onClick={() => setSection("clientes")}
-        >
-          <span className="nav-icon">👥</span>
-          <span className="nav-label">Clientes</span>
-        </button>
-        <button
-          className={`nav-item ${section === "tecnicos" ? "active" : ""}`}
-          onClick={() => setSection("tecnicos")}
-        >
-          <span className="nav-icon">🔧</span>
-          <span className="nav-label">Técnicos</span>
-        </button>
+        <NavItem icon={IconClipboard} label="Seguimiento" active={section === "instalaciones"} onClick={() => setSection("instalaciones")} />
+        <NavItem icon={IconUsers}     label="Clientes"    active={section === "clientes"}      onClick={() => setSection("clientes")} />
+        <NavItem icon={IconWrench}    label="Técnicos"    active={section === "tecnicos"}      onClick={() => setSection("tecnicos")} />
 
         <div className="nav-section-label">Análisis</div>
-        <button className="nav-item nav-soon">
-          <span className="nav-icon">📊</span>
-          <span className="nav-label">Informes</span>
-        </button>
+        <NavItem icon={IconBarChart} label="Informes" disabled />
 
         {isAdmin && (
           <>
             <div className="nav-section-label">Administración</div>
-            <button
-              className={`nav-item ${section === "usuarios" ? "active" : ""}`}
-              onClick={() => setSection("usuarios")}
-            >
-              <span className="nav-icon">🔑</span>
-              <span className="nav-label">Usuarios</span>
-            </button>
+            <NavItem icon={IconKey} label="Usuarios" active={section === "usuarios"} onClick={() => setSection("usuarios")} />
           </>
         )}
       </nav>
@@ -98,14 +77,15 @@ export default function Sidebar() {
             <div className="user-name">{displayName}</div>
             <div className="user-role">{roleLabel}</div>
           </div>
+          <button
+            className="logout-btn"
+            onClick={logout}
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+          >
+            <IconLogOut />
+          </button>
         </div>
-        <button
-          className="logout-btn"
-          onClick={logout}
-          title="Cerrar sesión"
-        >
-          ↪
-        </button>
       </div>
     </aside>
   );
