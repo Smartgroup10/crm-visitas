@@ -3,6 +3,7 @@ import { toISO, todayISO, formatMonthYear, formatShortDate } from "../../utils/d
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getStatusClass, getPriorityClass } from "../../utils/status";
 import { useUI } from "../../hooks/useUI";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function SeguimientoView({
   monthCells,
@@ -21,6 +22,7 @@ export default function SeguimientoView({
   onEditTask,
 }) {
   const { activeView } = useUI();
+  const { canManage } = usePermissions();
 
   return (
     <>
@@ -68,8 +70,8 @@ export default function SeguimientoView({
                       isSelected ? "selected" : ""
                     }`}
                     onClick={() => setSelectedDate(iso)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleDropOnDate(iso)}
+                    onDragOver={canManage ? (e) => e.preventDefault() : undefined}
+                    onDrop={canManage ? () => handleDropOnDate(iso) : undefined}
                   >
                     <div className="cell-header">
                       <span className={`cell-day ${isToday ? "today" : ""}`}>
@@ -83,8 +85,8 @@ export default function SeguimientoView({
                           key={task.id}
                           className={`task-pill ${getStatusClass(task.status)} ${getPriorityClass(task.priority)}`}
                           data-type={task.type}
-                          draggable
-                          onDragStart={() => setDraggedTaskId(task.id)}
+                          draggable={canManage}
+                          onDragStart={canManage ? () => setDraggedTaskId(task.id) : undefined}
                           onClick={(e) => {
                             e.stopPropagation();
                             onEditTask(task);

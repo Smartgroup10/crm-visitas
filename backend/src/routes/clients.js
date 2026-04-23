@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
+import { requireRole } from "../auth.js";
 
 export const clientsRouter = Router();
+
+const canManage = requireRole("admin", "supervisor");
 
 // ─── GET /api/clients ────────────────────────────────────
 clientsRouter.get("/", async (_req, res) => {
@@ -16,7 +19,7 @@ clientsRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/clients ───────────────────────────────────
-clientsRouter.post("/", async (req, res) => {
+clientsRouter.post("/", canManage, async (req, res) => {
   try {
     const name = (req.body?.name || "").trim();
     if (!name) return res.status(400).json({ error: "Nombre requerido" });
@@ -34,7 +37,7 @@ clientsRouter.post("/", async (req, res) => {
 });
 
 // ─── PUT /api/clients/:id ────────────────────────────────
-clientsRouter.put("/:id", async (req, res) => {
+clientsRouter.put("/:id", canManage, async (req, res) => {
   try {
     const name = (req.body?.name || "").trim();
     if (!name) return res.status(400).json({ error: "Nombre requerido" });
@@ -53,7 +56,7 @@ clientsRouter.put("/:id", async (req, res) => {
 });
 
 // ─── DELETE /api/clients/:id ─────────────────────────────
-clientsRouter.delete("/:id", async (req, res) => {
+clientsRouter.delete("/:id", canManage, async (req, res) => {
   try {
     await query("delete from clients where id = $1", [req.params.id]);
     emit("clients:change", { type: "delete", id: req.params.id });

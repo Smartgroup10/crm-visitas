@@ -10,6 +10,7 @@ import {
   defaultValueForField,
 } from "../data/taskTypes";
 import { validateTask } from "../utils/validation";
+import { usePermissions } from "../hooks/usePermissions";
 
 function formatFileSize(size) {
   if (size < 1024) return `${size} B`;
@@ -111,6 +112,8 @@ export default function TaskModal({
 }) {
   const fileInputRef = useRef(null);
   const [errors, setErrors] = useState({});
+  const { canManage } = usePermissions();
+  const readOnly = !canManage;
 
   if (!open) return null;
 
@@ -193,8 +196,12 @@ export default function TaskModal({
       <div className="task-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h2>{isEditing ? "Editar tarea" : "Nueva tarea"}</h2>
-            <p>Gestiona la intervención con formato tipo panel.</p>
+            <h2>{isEditing ? (readOnly ? "Detalle de la tarea" : "Editar tarea") : "Nueva tarea"}</h2>
+            <p>
+              {readOnly
+                ? "Vista de solo lectura. Para cambios, contacta con un supervisor o administrador."
+                : "Gestiona la intervención con formato tipo panel."}
+            </p>
           </div>
           <button className="icon-close" onClick={onClose}>
             ×
@@ -202,6 +209,7 @@ export default function TaskModal({
         </div>
 
         <form className="task-form" onSubmit={handleSubmit}>
+          <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, display: "contents" }}>
           <div className="form-row full">
             <label>Título</label>
             <input
@@ -427,14 +435,20 @@ export default function TaskModal({
             />
           </div>
 
+          </fieldset>
+
           <div className="form-actions">
-            <button type="submit" className="btn-primary">
-              Guardar tarea
-            </button>
-            {isEditing && (
-              <button type="button" className="btn-danger" onClick={onDelete}>
-                Eliminar
-              </button>
+            {!readOnly && (
+              <>
+                <button type="submit" className="btn-primary">
+                  Guardar tarea
+                </button>
+                {isEditing && (
+                  <button type="button" className="btn-danger" onClick={onDelete}>
+                    Eliminar
+                  </button>
+                )}
+              </>
             )}
             <button type="button" className="btn-secondary" onClick={onClose}>
               Cerrar

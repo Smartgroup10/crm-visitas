@@ -1,6 +1,7 @@
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../data/constants";
 import { TASK_TYPES, TASK_TYPE_KEYS } from "../data/taskTypes";
 import { useUI } from "../hooks/useUI";
+import { usePermissions } from "../hooks/usePermissions";
 
 const TITLES = {
   inicio: "Inicio",
@@ -19,6 +20,7 @@ const SUBTITLES = {
 };
 
 export default function Topbar({ stats, technicians, openNewTask }) {
+  const { canManage } = usePermissions();
   const {
     section,
     activeView,
@@ -158,9 +160,11 @@ export default function Topbar({ stats, technicians, openNewTask }) {
             <button className="btn-secondary quick-btn" onClick={resetFilters}>
               Limpiar
             </button>
-            <button className="btn-primary quick-btn" onClick={openNewTask}>
-              + Nueva tarea
-            </button>
+            {canManage && (
+              <button className="btn-primary quick-btn" onClick={openNewTask}>
+                + Nueva tarea
+              </button>
+            )}
           </div>
         </div>
       )}

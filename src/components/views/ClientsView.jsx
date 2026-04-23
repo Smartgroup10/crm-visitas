@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete }) {
+  const { canManage } = usePermissions();
   const [newClient, setNewClient]         = useState("");
   const [editingClientId, setEditingClientId] = useState(null);
   const [editingValue, setEditingValue]   = useState("");
@@ -41,24 +43,30 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
       <div className="clients-header">
         <div>
           <h2>Clientes</h2>
-          <p>Gestiona el listado de clientes disponibles para asignar a tareas.</p>
+          <p>
+            {canManage
+              ? "Gestiona el listado de clientes disponibles para asignar a tareas."
+              : "Listado de clientes. Solo lectura."}
+          </p>
         </div>
       </div>
 
-      <div className="clients-create-card">
-        <div className="inline-action">
-          <input
-            type="text"
-            value={newClient}
-            onChange={(e) => setNewClient(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addClient()}
-            placeholder="Nombre del cliente"
-          />
-          <button className="btn-primary" onClick={addClient}>
-            Crear cliente
-          </button>
+      {canManage && (
+        <div className="clients-create-card">
+          <div className="inline-action">
+            <input
+              type="text"
+              value={newClient}
+              onChange={(e) => setNewClient(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addClient()}
+              placeholder="Nombre del cliente"
+            />
+            <button className="btn-primary" onClick={addClient}>
+              Crear cliente
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="clients-list-card">
         {clients.length === 0 ? (
@@ -90,39 +98,41 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                     )}
                   </div>
 
-                  <div className="client-actions">
-                    {isEditing ? (
-                      <>
-                        <button className="btn-primary small-btn" onClick={saveEdit}>
-                          Guardar
-                        </button>
-                        <button
-                          className="btn-secondary small-btn"
-                          onClick={() => {
-                            setEditingClientId(null);
-                            setEditingValue("");
-                          }}
-                        >
-                          Cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className="btn-secondary small-btn"
-                          onClick={() => startEdit(client)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          className="btn-danger small-btn"
-                          onClick={() => deleteClient(client)}
-                        >
-                          Borrar
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  {canManage && (
+                    <div className="client-actions">
+                      {isEditing ? (
+                        <>
+                          <button className="btn-primary small-btn" onClick={saveEdit}>
+                            Guardar
+                          </button>
+                          <button
+                            className="btn-secondary small-btn"
+                            onClick={() => {
+                              setEditingClientId(null);
+                              setEditingValue("");
+                            }}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="btn-secondary small-btn"
+                            onClick={() => startEdit(client)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            className="btn-danger small-btn"
+                            onClick={() => deleteClient(client)}
+                          >
+                            Borrar
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

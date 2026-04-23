@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { TECH_AVATAR_COLORS } from "../../data/constants";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, onDelete }) {
+  const { canManage } = usePermissions();
   const [newName, setNewName]   = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -50,29 +52,35 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
     <div className="technicians-view">
       <div className="tech-header">
         <h2>Técnicos</h2>
-        <p>Gestiona el equipo técnico y su carga de trabajo.</p>
+        <p>
+          {canManage
+            ? "Gestiona el equipo técnico y su carga de trabajo."
+            : "Equipo técnico y su carga de trabajo. Solo lectura."}
+        </p>
       </div>
 
-      <div className="tech-create-card">
-        <div className="tech-create-form">
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTechnician()}
-            placeholder="Nombre del técnico"
-            autoFocus
-          />
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={addTechnician}
-            disabled={!newName.trim()}
-          >
-            Añadir técnico
-          </button>
+      {canManage && (
+        <div className="tech-create-card">
+          <div className="tech-create-form">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTechnician()}
+              placeholder="Nombre del técnico"
+              autoFocus
+            />
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={addTechnician}
+              disabled={!newName.trim()}
+            >
+              Añadir técnico
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {technicians.length === 0 ? (
         <div className="empty-state">No hay técnicos registrados.</div>
@@ -126,27 +134,29 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
                   </div>
                 </div>
 
-                <div className="tech-card-actions">
-                  {isEditing ? (
-                    <>
-                      <button className="btn-primary small-btn" onClick={saveEdit}>
-                        Guardar
-                      </button>
-                      <button className="btn-secondary small-btn" onClick={() => setEditingId(null)}>
-                        Cancelar
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button className="btn-secondary small-btn" onClick={() => startEdit(tech)}>
-                        Editar
-                      </button>
-                      <button className="btn-danger small-btn" onClick={() => deleteTechnician(tech)}>
-                        Borrar
-                      </button>
-                    </>
-                  )}
-                </div>
+                {canManage && (
+                  <div className="tech-card-actions">
+                    {isEditing ? (
+                      <>
+                        <button className="btn-primary small-btn" onClick={saveEdit}>
+                          Guardar
+                        </button>
+                        <button className="btn-secondary small-btn" onClick={() => setEditingId(null)}>
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn-secondary small-btn" onClick={() => startEdit(tech)}>
+                          Editar
+                        </button>
+                        <button className="btn-danger small-btn" onClick={() => deleteTechnician(tech)}>
+                          Borrar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

@@ -1,8 +1,13 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
+import { requireRole } from "../auth.js";
 
 export const tasksRouter = Router();
+
+// Admins y supervisores pueden crear / modificar / borrar tareas.
+// Los técnicos sólo pueden leer (GET queda abierto a cualquier autenticado).
+const canManage = requireRole("admin", "supervisor");
 
 // Campos permitidos en PATCH (whitelist para evitar SQL injection por clave)
 const ALLOWED_PATCH_FIELDS = new Set([
@@ -34,7 +39,7 @@ tasksRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/tasks ─────────────────────────────────────
-tasksRouter.post("/", async (req, res) => {
+tasksRouter.post("/", canManage, async (req, res) => {
   try {
     const t = req.body || {};
     const { rows } = await query(
@@ -71,7 +76,7 @@ tasksRouter.post("/", async (req, res) => {
 });
 
 // ─── PUT /api/tasks/:id ──────────────────────────────────
-tasksRouter.put("/:id", async (req, res) => {
+tasksRouter.put("/:id", canManage, async (req, res) => {
   try {
     const t = req.body || {};
     const { rows } = await query(
@@ -111,7 +116,7 @@ tasksRouter.put("/:id", async (req, res) => {
 
 // ─── PATCH /api/tasks/:id ────────────────────────────────
 // Actualización parcial (ej. solo cambio de fecha al arrastrar en calendario).
-tasksRouter.patch("/:id", async (req, res) => {
+tasksRouter.patch("/:id", canManage, async (req, res) => {
   try {
     const fields = Object.entries(req.body || {}).filter(([k]) =>
       ALLOWED_PATCH_FIELDS.has(k)
@@ -144,7 +149,7 @@ tasksRouter.patch("/:id", async (req, res) => {
 });
 
 // ─── DELETE /api/tasks/:id ───────────────────────────────
-tasksRouter.delete("/:id", async (req, res) => {
+tasksRouter.delete("/:id", canManage, async (req, res) => {
   try {
     await query("delete from tasks where id = $1", [req.params.id]);
     emit("tasks:change", { type: "delete", id: req.params.id });

@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
+import { requireRole } from "../auth.js";
 
 export const techniciansRouter = Router();
+
+const canManage = requireRole("admin", "supervisor");
 
 // ─── GET /api/technicians ────────────────────────────────
 techniciansRouter.get("/", async (_req, res) => {
@@ -16,7 +19,7 @@ techniciansRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/technicians ───────────────────────────────
-techniciansRouter.post("/", async (req, res) => {
+techniciansRouter.post("/", canManage, async (req, res) => {
   try {
     const name      = (req.body?.name      || "").trim();
     const phone     = (req.body?.phone     || "").trim();
@@ -36,7 +39,7 @@ techniciansRouter.post("/", async (req, res) => {
 });
 
 // ─── PUT /api/technicians/:id ────────────────────────────
-techniciansRouter.put("/:id", async (req, res) => {
+techniciansRouter.put("/:id", canManage, async (req, res) => {
   try {
     const body = req.body || {};
     const sets = [];
@@ -73,7 +76,7 @@ techniciansRouter.put("/:id", async (req, res) => {
 });
 
 // ─── DELETE /api/technicians/:id ─────────────────────────
-techniciansRouter.delete("/:id", async (req, res) => {
+techniciansRouter.delete("/:id", canManage, async (req, res) => {
   try {
     await query("delete from technicians where id = $1", [req.params.id]);
     emit("technicians:change", { type: "delete", id: req.params.id });
