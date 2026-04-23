@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 
-import { supabase } from "./lib/supabase";
+import { api } from "./lib/api";
+import { connectSocket, disconnectSocket } from "./lib/socket";
 import { useAuth } from "./hooks/useAuth";
 import { taskFromDb, taskToDb } from "./utils/taskMapper";
 import { todayISO, getCalendarGrid } from "./utils/date";
-import { emptyTask, normalizeTask, taskHaystack } from "./utils/task";
+import { emptyTask, taskHaystack } from "./utils/task";
 import { TASK_TYPE_KEYS } from "./data/taskTypes";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUI } from "./hooks/useUI";
@@ -50,47 +51,56 @@ export default function App() {
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [newClientName, setNewClientName] = useState("");
 
-  // ── Carga de datos desde Supabase ────────────────────────
+  // ── Carga inicial desde el backend ───────────────────────
   const loadTasks = useCallback(async () => {
-    const { data } = await supabase
-      .from("tasks")
-      .select("*")
-      .order("created_at", { ascending: true });
-    if (data) setTasks(data.map(taskFromDb));
+    const rows = await api.get("/tasks");
+    setTasks((rows || []).map(taskFromDb));
   }, []);
 
   const loadClients = useCallback(async () => {
-    const { data } = await supabase
-      .from("clients")
-      .select("*")
-      .order("name", { ascending: true });
-    if (data) setClients(data);
+    const rows = await api.get("/clients");
+    setClients(rows || []);
   }, []);
 
   const loadTechnicians = useCallback(async () => {
-    const { data } = await supabase
-      .from("technicians")
-      .select("*")
-      .order("name", { ascending: true });
-    if (data) setTechnicians(data);
+    const rows = await api.get("/technicians");
+    setTechnicians(rows || []);
   }, []);
 
+  // ── Arranque: carga inicial + conexión de socket ────────
   useEffect(() => {
+    let cancelled = false;
+
     async function init() {
-      await Promise.all([loadTasks(), loadClients(), loadTechnicians()]);
-      setLoading(false);
+      try {
+        await Promise.all([loadTasks(), loadClients(), loadTechnicians()]);
+      } catch (err) {
+        console.error("Error cargando datos iniciales:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     init();
 
-    // Suscripciones en tiempo real — cualquier cambio recarga la tabla afectada
-    const channel = supabase
-      .channel("crm-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" },        loadTasks)
-      .on("postgres_changes", { event: "*", schema: "public", table: "clients" },      loadClients)
-      .on("postgres_changes", { event: "*", schema: "public", table: "technicians" },  loadTechnicians)
-      .subscribe();
+    // Tiempo real: el backend emite *:change; recargamos la tabla afectada.
+    // Recargar todo el listado (en lugar de aplicar el delta) mantiene la lógica
+    // simple y garantiza orden y consistencia.
+    const socket = connectSocket();
+    const onTasks       = () => loadTasks();
+    const onClients     = () => loadClients();
+    const onTechnicians = () => loadTechnicians();
 
-    return () => supabase.removeChannel(channel);
+    socket.on("tasks:change",       onTasks);
+    socket.on("clients:change",     onClients);
+    socket.on("technicians:change", onTechnicians);
+
+    return () => {
+      cancelled = true;
+      socket.off("tasks:change",       onTasks);
+      socket.off("clients:change",     onClients);
+      socket.off("technicians:change", onTechnicians);
+      disconnectSocket();
+    };
   }, [loadTasks, loadClients, loadTechnicians]);
 
   // ── Sincronización de filtros ────────────────────────────
@@ -144,11 +154,11 @@ export default function App() {
 
   // ── CRUD — Tareas ────────────────────────────────────────
   async function saveTask(taskToSave) {
-    const row = taskToDb(taskToSave, user.id);
+    const row = taskToDb(taskToSave, user?.id);
     if (taskToSave.id) {
-      await supabase.from("tasks").update(row).eq("id", taskToSave.id);
+      await api.put(`/tasks/${taskToSave.id}`, row);
     } else {
-      await supabase.from("tasks").insert({ ...row, created_by: user.id });
+      await api.post("/tasks", row);
     }
     setSelectedDate(taskToSave.date);
     setIsModalOpen(false);
@@ -157,16 +167,14 @@ export default function App() {
 
   async function deleteTask() {
     if (!draft.id) return;
-    await supabase.from("tasks").delete().eq("id", draft.id);
+    await api.delete(`/tasks/${draft.id}`);
     setIsModalOpen(false);
     setDraft(emptyTask(selectedDate));
   }
 
   async function handleDropOnDate(date) {
     if (!draggedTaskId) return;
-    await supabase.from("tasks")
-      .update({ date, updated_by: user.id })
-      .eq("id", draggedTaskId);
+    await api.patch(`/tasks/${draggedTaskId}`, { date });
     setDraggedTaskId(null);
     setSelectedDate(date);
   }
@@ -181,38 +189,34 @@ export default function App() {
       setNewClientName("");
       return;
     }
-    const { data } = await supabase
-      .from("clients")
-      .insert({ name, created_by: user.id })
-      .select()
-      .single();
-    if (data) setDraft({ ...draft, clientId: data.id });
+    const created = await api.post("/clients", { name });
+    if (created) setDraft({ ...draft, clientId: created.id });
     setNewClientName("");
   }
 
   async function handleAddClient(name) {
-    await supabase.from("clients").insert({ name, created_by: user.id });
+    await api.post("/clients", { name });
   }
 
   async function handleUpdateClient(id, name) {
-    await supabase.from("clients").update({ name }).eq("id", id);
+    await api.put(`/clients/${id}`, { name });
   }
 
   async function handleDeleteClient(id) {
-    await supabase.from("clients").delete().eq("id", id);
+    await api.delete(`/clients/${id}`);
   }
 
   // ── CRUD — Técnicos ──────────────────────────────────────
   async function handleAddTechnician(name) {
-    await supabase.from("technicians").insert({ name, phone: "", specialty: "" });
+    await api.post("/technicians", { name, phone: "", specialty: "" });
   }
 
   async function handleUpdateTechnician(id, name) {
-    await supabase.from("technicians").update({ name }).eq("id", id);
+    await api.put(`/technicians/${id}`, { name });
   }
 
   async function handleDeleteTechnician(id) {
-    await supabase.from("technicians").delete().eq("id", id);
+    await api.delete(`/technicians/${id}`);
   }
 
   // ── Modal ────────────────────────────────────────────────

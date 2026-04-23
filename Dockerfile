@@ -1,4 +1,4 @@
-# Stage 1: Build
+# Stage 1: Build del frontend
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -6,9 +6,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve
-FROM node:22-alpine
-RUN npm install -g serve
-COPY --from=build /app/dist /app
+# Stage 2: Servir con nginx (hace de reverse proxy al backend)
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
-CMD ["serve", "-s", "/app", "-l", "80"]

@@ -1,6 +1,49 @@
 services:
+  # ─── PostgreSQL ────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-crm}
+      POSTGRES_USER:     ${POSTGRES_USER:-crm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerida en .env}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crm} -d ${POSTGRES_DB:-crm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Backend API (Express + Socket.io) ─────────────────────
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:    postgres://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-crm}
+      JWT_SECRET:      ${JWT_SECRET:?JWT_SECRET requerida en .env}
+      ADMIN_EMAIL:     ${ADMIN_EMAIL:-admin@smartgroup.es}
+      ADMIN_PASSWORD:  ${ADMIN_PASSWORD:-cambiar-en-produccion}
+      ADMIN_NAME:      ${ADMIN_NAME:-Administrador}
+      CORS_ORIGIN:     ${CORS_ORIGIN:-*}
+      PORT:            3001
+    # Descomenta si quieres atacar el backend desde `npm run dev` (Vite en el host).
+    # En producción no hace falta: nginx lo alcanza por la red interna.
+    ports:
+      - "3001:3001"
+
+  # ─── Frontend (nginx + reverse proxy al backend) ──────────
   app:
     build: .
-    ports:
-      - "9090:80"
     restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${APP_PORT:-9090}:80"
+
+volumes:
+  pg_data:

@@ -1,7 +1,7 @@
 import { TASK_TYPES } from "../data/taskTypes";
 
 /**
- * Convierte una fila de Supabase (snake_case) → objeto de tarea del frontend (camelCase).
+ * Convierte una fila del backend (snake_case) → objeto de tarea del frontend (camelCase).
  * Los campos específicos del tipo se mezclan al nivel raíz del objeto.
  */
 export function taskFromDb(row) {
@@ -26,7 +26,7 @@ export function taskFromDb(row) {
 }
 
 /**
- * Convierte un objeto de tarea del frontend (camelCase) → fila para Supabase (snake_case).
+ * Convierte un objeto de tarea del frontend (camelCase) → fila para el backend (snake_case).
  * Los campos específicos del tipo se agrupan en type_fields (JSONB).
  */
 export function taskToDb(task, userId) {
