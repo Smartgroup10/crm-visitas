@@ -5,7 +5,7 @@ import cors from "cors";
 
 import { authMiddleware, verifyToken } from "./auth.js";
 import { setIO } from "./io.js";
-import { seedAdmin, waitForDb } from "./seed.js";
+import { applySchema, seedAdmin, waitForDb } from "./seed.js";
 
 import { authRouter }        from "./routes/auth.js";
 import { tasksRouter }       from "./routes/tasks.js";
@@ -73,6 +73,7 @@ const PORT = Number(process.env.PORT) || 3001;
 (async () => {
   try {
     await waitForDb();
+    await applySchema();
     await seedAdmin();
     server.listen(PORT, () => {
       console.log(`[backend] escuchando en :${PORT}`);

@@ -1,5 +1,28 @@
 import bcrypt from "bcryptjs";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { query } from "./db.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Aplica schema.sql contra la BD. El script es idempotente
+ * (usa `create table if not exists` y `on conflict do nothing`),
+ * así que es seguro ejecutarlo en cada arranque. Evita depender de
+ * docker-entrypoint-initdb.d, que solo corre si el volumen está vacío.
+ */
+export async function applySchema() {
+  try {
+    const sqlPath = resolve(__dirname, "..", "schema.sql");
+    const sql = await readFile(sqlPath, "utf8");
+    await query(sql);
+    console.log("[db] schema aplicado");
+  } catch (err) {
+    console.error("[db] error aplicando schema:", err);
+    throw err;
+  }
+}
 
 /**
  * Crea un usuario administrador inicial si no existe ningún usuario en la BD.

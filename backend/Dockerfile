@@ -6,8 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Copiar código fuente
+# Copiar código fuente + schema.sql (el backend lo aplica al arrancar)
 COPY src ./src
+COPY schema.sql ./schema.sql
 
 ENV NODE_ENV=production
 EXPOSE 3001
