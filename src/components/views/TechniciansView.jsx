@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { TECH_AVATAR_COLORS } from "../../data/constants";
 import { usePermissions } from "../../hooks/usePermissions";
 import { useToast } from "../../hooks/useToast";
 import { useConfirm } from "../../hooks/useConfirm";
+import EmptyState from "../EmptyState";
 
 export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, onDelete }) {
   const { canManage } = usePermissions();
@@ -14,6 +15,7 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
   const [busyAdd, setBusyAdd]     = useState(false);
   const [busyEdit, setBusyEdit]   = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const newNameInputRef = useRef(null);
 
   async function addTechnician() {
     const name = newName.trim();
@@ -98,6 +100,7 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
         <div className="tech-create-card">
           <div className="tech-create-form">
             <input
+              ref={newNameInputRef}
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -125,7 +128,24 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
       )}
 
       {technicians.length === 0 ? (
-        <div className="empty-state">No hay técnicos registrados.</div>
+        <EmptyState
+          icon="users"
+          title="No hay técnicos registrados"
+          description={
+            canManage
+              ? "Añade a tu equipo para poder asignarles intervenciones."
+              : "Aún no se ha registrado ningún técnico."
+          }
+          action={
+            canManage
+              ? {
+                  label: "Añadir técnico",
+                  variant: "primary",
+                  onClick: () => newNameInputRef.current?.focus(),
+                }
+              : undefined
+          }
+        />
       ) : (
         <div className="tech-grid">
           {technicians.map((tech, i) => {

@@ -11,6 +11,7 @@ import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getStatusClass, getPriorityClass } from "../../utils/status";
 import { useUI } from "../../hooks/useUI";
 import { usePermissions } from "../../hooks/usePermissions";
+import EmptyState from "../EmptyState";
 
 const WEEKDAY_LABELS = ["lun.", "mar.", "mié.", "jue.", "vie.", "sáb.", "dom."];
 
@@ -199,7 +200,12 @@ export default function SeguimientoView({
             </div>
 
             {selectedTasks.length === 0 ? (
-              <div className="empty-state">No hay tareas para este día.</div>
+              <EmptyState
+                compact
+                icon="check"
+                title="Día sin tareas"
+                description="Pulsa sobre otro día del calendario o crea una nueva tarea (N)."
+              />
             ) : (
               <div className="day-task-list">
                 {selectedTasks.map((task) => (
@@ -378,9 +384,11 @@ function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians }
       </div>
 
       {dayTasks.length === 0 ? (
-        <div className="empty-state day-view-empty">
-          No hay intervenciones programadas para este día.
-        </div>
+        <EmptyState
+          icon="check"
+          title="Día libre"
+          description="No hay intervenciones programadas para este día. Pulsa N para crear una."
+        />
       ) : (
         <div className="day-view-list">
           {dayTasks.map((task) => (

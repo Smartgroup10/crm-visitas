@@ -3,6 +3,7 @@ import { todayISO, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
 import { IconAlert } from "../Icon";
+import EmptyState from "../EmptyState";
 
 export default function MiTrabajoView({ tasks, clients, technicians, onEditTask }) {
   const today = todayISO();
@@ -56,7 +57,12 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
             <span>{requiresAction.length}</span>
           </div>
           {requiresAction.length === 0 ? (
-            <div className="empty-state">Sin elementos que requieran atención inmediata.</div>
+            <EmptyState
+              compact
+              icon="check"
+              title="Nada que atender ahora"
+              description="No hay tareas bloqueadas ni urgentes pendientes."
+            />
           ) : (
             <div className="day-task-list">
               {requiresAction.map((task) => (
@@ -90,7 +96,12 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
             </div>
           )}
           {agendaHoy.length === 0 ? (
-            <div className="empty-state">No hay intervenciones programadas para hoy.</div>
+            <EmptyState
+              compact
+              icon="inbox"
+              title="Sin intervenciones hoy"
+              description="La agenda de hoy está vacía."
+            />
           ) : (
             <div className="day-task-list">
               {agendaHoy.map((task) => (
@@ -115,7 +126,12 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
             <span>{incomplete.length} sin técnico o sin fecha</span>
           </div>
           {incomplete.length === 0 ? (
-            <div className="empty-state">Todas las tareas tienen técnico y fecha asignados.</div>
+            <EmptyState
+              compact
+              icon="check"
+              title="Sin datos faltantes"
+              description="Todas las tareas tienen técnico y fecha asignados."
+            />
           ) : (
             <div className="incomplete-grid">
               {incomplete.map((task) => (

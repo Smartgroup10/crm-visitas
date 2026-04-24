@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePermissions } from "../../hooks/usePermissions";
 import { useToast } from "../../hooks/useToast";
 import { useConfirm } from "../../hooks/useConfirm";
+import EmptyState from "../EmptyState";
 
 export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete }) {
   const { canManage } = usePermissions();
@@ -13,6 +14,7 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
   const [busyAdd, setBusyAdd]                 = useState(false);
   const [busyEdit, setBusyEdit]               = useState(false);
   const [deletingId, setDeletingId]           = useState(null);
+  const newClientInputRef = useRef(null);
 
   async function addClient() {
     const value = newClient.trim();
@@ -96,6 +98,7 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
         <div className="clients-create-card">
           <div className="inline-action">
             <input
+              ref={newClientInputRef}
               type="text"
               value={newClient}
               onChange={(e) => setNewClient(e.target.value)}
@@ -118,7 +121,24 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
 
       <div className="clients-list-card">
         {clients.length === 0 ? (
-          <div className="empty-state">No hay clientes creados.</div>
+          <EmptyState
+            icon="folder"
+            title="No hay clientes creados"
+            description={
+              canManage
+                ? "Crea tu primer cliente para poder asignarlo a intervenciones."
+                : "Aún no se ha creado ningún cliente."
+            }
+            action={
+              canManage
+                ? {
+                    label: "Crear cliente",
+                    variant: "primary",
+                    onClick: () => newClientInputRef.current?.focus(),
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="clients-list">
             {clients.map((client) => {

@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { useToast } from "../../hooks/useToast";
 import { useConfirm } from "../../hooks/useConfirm";
+import EmptyState from "../EmptyState";
 
 const ROLE_OPTIONS = [
   { value: "admin",      label: "Administrador" },
@@ -222,7 +223,11 @@ export default function UsersView({
       {/* ─── Listado ─────────────────────────────────────── */}
       <div className="clients-list-card">
         {users.length === 0 ? (
-          <div className="empty-state">No hay usuarios.</div>
+          <EmptyState
+            icon="users"
+            title="Sin usuarios"
+            description="Rellena el formulario superior para crear el primer usuario."
+          />
         ) : (
           <div className="clients-list">
             {users.map((u) => {

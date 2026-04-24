@@ -15,6 +15,8 @@ import TaskModal from "./components/TaskModal";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import CounterModal from "./components/CounterModal";
+import ShortcutsHelp from "./components/ShortcutsHelp";
+import AppSkeleton from "./components/AppSkeleton";
 import ClientsView from "./components/views/ClientsView";
 import TechniciansView from "./components/views/TechniciansView";
 import InicioView from "./components/views/InicioView";
@@ -36,6 +38,7 @@ export default function App() {
     priorityFilter,
     categoryFilter,
     setUi,
+    setCalendarMode,
     counterModalOpen,
     setCounterModalOpen,
   } = useUI();
@@ -58,6 +61,7 @@ export default function App() {
   const [isModalOpen, setIsModalOpen]   = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [newClientName, setNewClientName] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // ── Carga inicial desde el backend ───────────────────────
   const loadTasks = useCallback(async () => {
@@ -386,7 +390,18 @@ export default function App() {
       const searchEl = document.querySelector(".search-input");
       if (searchEl) searchEl.focus();
     },
+    onGoToday: goToday,
+    onCalendarMode: (mode) => {
+      // Solo tiene sentido cambiar modo de calendario si estamos en la vista
+      // de instalaciones (que es la que muestra el calendario).
+      if (section === "instalaciones") setCalendarMode(mode);
+    },
+    onHelp: () => setHelpOpen(true),
     onEscape: () => {
+      if (helpOpen) {
+        setHelpOpen(false);
+        return;
+      }
       if (isModalOpen || counterModalOpen) {
         setIsModalOpen(false);
         setCounterModalOpen(false);
@@ -396,12 +411,7 @@ export default function App() {
 
   // ── Loading ──────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="app-loading">
-        <div className="loading-spinner" />
-        <p>Cargando datos…</p>
-      </div>
-    );
+    return <AppSkeleton />;
   }
 
   // ── Render ───────────────────────────────────────────────
@@ -505,6 +515,8 @@ export default function App() {
         technicians={technicians}
         onEditTask={editTask}
       />
+
+      <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

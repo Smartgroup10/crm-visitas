@@ -5,6 +5,7 @@ import { statusSlug } from "../utils/status";
 import { taskHaystack } from "../utils/task";
 import { TASK_TYPES } from "../data/taskTypes";
 import { useUI } from "../hooks/useUI";
+import EmptyState from "./EmptyState";
 
 export default function CounterModal({ tasks, clients, technicians, onEditTask }) {
   const {
@@ -82,7 +83,16 @@ export default function CounterModal({ tasks, clients, technicians, onEditTask }
 
         <div className="counter-modal-list">
           {counterTasks.length === 0 ? (
-            <div className="empty-state">No hay tareas para este contador.</div>
+            <EmptyState
+              compact
+              icon={counterSearch ? "search" : "inbox"}
+              title={counterSearch ? "Sin resultados" : "Sin tareas"}
+              description={
+                counterSearch
+                  ? "Prueba con otro texto de búsqueda."
+                  : "No hay tareas que correspondan a este contador."
+              }
+            />
           ) : (
             Object.entries(groupedCounterTasks).map(([date, tasksForDate]) => (
               <div key={date} className="counter-date-group">

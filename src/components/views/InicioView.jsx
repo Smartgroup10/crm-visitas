@@ -3,6 +3,7 @@ import { TASK_TYPES } from "../../data/taskTypes";
 import { todayISO, addDays, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
+import EmptyState from "../EmptyState";
 
 export default function InicioView({ tasks, clients, technicians, onEditTask }) {
   const today = todayISO();
@@ -83,7 +84,12 @@ export default function InicioView({ tasks, clients, technicians, onEditTask }) 
             <span>{urgentOrBlocked.length}</span>
           </div>
           {urgentOrBlocked.length === 0 ? (
-            <div className="empty-state">Sin tareas urgentes ni bloqueadas.</div>
+            <EmptyState
+              compact
+              icon="check"
+              title="Todo bajo control"
+              description="No hay tareas urgentes ni bloqueadas."
+            />
           ) : (
             <div className="day-task-list">
               {urgentOrBlocked.map((task) => (
@@ -109,7 +115,12 @@ export default function InicioView({ tasks, clients, technicians, onEditTask }) 
             <span>{todayAndTomorrow.length}</span>
           </div>
           {todayAndTomorrow.length === 0 ? (
-            <div className="empty-state">No hay tareas para hoy ni mañana.</div>
+            <EmptyState
+              compact
+              icon="inbox"
+              title="Agenda despejada"
+              description="No hay tareas para hoy ni mañana."
+            />
           ) : (
             <div className="day-task-list">
               {todayAndTomorrow.map((task) => (
@@ -159,7 +170,12 @@ export default function InicioView({ tasks, clients, technicians, onEditTask }) 
             <span>{next7.length} tareas</span>
           </div>
           {next7.length === 0 ? (
-            <div className="empty-state">No hay tareas planificadas esta semana.</div>
+            <EmptyState
+              compact
+              icon="inbox"
+              title="Semana vacía"
+              description="No hay tareas planificadas en los próximos 7 días."
+            />
           ) : (
             <div className="day-task-list">
               {next7.map((task) => (
