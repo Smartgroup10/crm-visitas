@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { query } from "../db.js";
 import { signToken, authMiddleware } from "../auth.js";
+import { logger } from "../logger.js";
 
 export const authRouter = Router();
 
@@ -32,7 +33,7 @@ authRouter.post("/login", async (req, res) => {
     const token = signToken(payload);
     res.json({ token, user: payload });
   } catch (err) {
-    console.error("[auth/login]", err);
+    logger.error({ err }, "[auth/login]");
     res.status(500).json({ error: "Error del servidor" });
   }
 });

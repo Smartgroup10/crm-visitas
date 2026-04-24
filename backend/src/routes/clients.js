@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
 import { requireRole } from "../auth.js";
+import { logger } from "../logger.js";
 
 export const clientsRouter = Router();
 
@@ -13,7 +14,7 @@ clientsRouter.get("/", async (_req, res) => {
     const { rows } = await query("select * from clients order by name asc");
     res.json(rows);
   } catch (err) {
-    console.error("[clients/list]", err);
+    logger.error({ err }, "[clients/list]");
     res.status(500).json({ error: "Error obteniendo clientes" });
   }
 });
@@ -31,7 +32,7 @@ clientsRouter.post("/", canManage, async (req, res) => {
     emit("clients:change", { type: "insert", client: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[clients/create]", err);
+    logger.error({ err }, "[clients/create]");
     res.status(500).json({ error: "Error creando cliente" });
   }
 });
@@ -50,7 +51,7 @@ clientsRouter.put("/:id", canManage, async (req, res) => {
     emit("clients:change", { type: "update", client: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[clients/update]", err);
+    logger.error({ err }, "[clients/update]");
     res.status(500).json({ error: "Error actualizando cliente" });
   }
 });
@@ -62,7 +63,7 @@ clientsRouter.delete("/:id", canManage, async (req, res) => {
     emit("clients:change", { type: "delete", id: req.params.id });
     res.json({ ok: true });
   } catch (err) {
-    console.error("[clients/delete]", err);
+    logger.error({ err }, "[clients/delete]");
     res.status(500).json({ error: "Error borrando cliente" });
   }
 });

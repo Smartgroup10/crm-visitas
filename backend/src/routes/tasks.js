@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
 import { requireRole } from "../auth.js";
+import { logger } from "../logger.js";
 
 export const tasksRouter = Router();
 
@@ -33,7 +34,7 @@ tasksRouter.get("/", async (_req, res) => {
     const { rows } = await query("select * from tasks order by created_at asc");
     res.json(rows);
   } catch (err) {
-    console.error("[tasks/list]", err);
+    logger.error({ err }, "[tasks/list]");
     res.status(500).json({ error: "Error obteniendo tareas" });
   }
 });
@@ -70,7 +71,7 @@ tasksRouter.post("/", canManage, async (req, res) => {
     emit("tasks:change", { type: "insert", task: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[tasks/create]", err);
+    logger.error({ err }, "[tasks/create]");
     res.status(500).json({ error: "Error creando tarea" });
   }
 });
@@ -109,7 +110,7 @@ tasksRouter.put("/:id", canManage, async (req, res) => {
     emit("tasks:change", { type: "update", task: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[tasks/update]", err);
+    logger.error({ err }, "[tasks/update]");
     res.status(500).json({ error: "Error actualizando tarea" });
   }
 });
@@ -143,7 +144,7 @@ tasksRouter.patch("/:id", canManage, async (req, res) => {
     emit("tasks:change", { type: "update", task: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[tasks/patch]", err);
+    logger.error({ err }, "[tasks/patch]");
     res.status(500).json({ error: "Error actualizando tarea" });
   }
 });
@@ -155,7 +156,7 @@ tasksRouter.delete("/:id", canManage, async (req, res) => {
     emit("tasks:change", { type: "delete", id: req.params.id });
     res.json({ ok: true });
   } catch (err) {
-    console.error("[tasks/delete]", err);
+    logger.error({ err }, "[tasks/delete]");
     res.status(500).json({ error: "Error borrando tarea" });
   }
 });

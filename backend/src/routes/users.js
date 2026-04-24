@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { query } from "../db.js";
 import { emit } from "../io.js";
+import { logger } from "../logger.js";
 
 export const usersRouter = Router();
 
@@ -32,7 +33,7 @@ usersRouter.get("/", async (_req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("[users/list]", err);
+    logger.error({ err }, "[users/list]");
     res.status(500).json({ error: "Error obteniendo usuarios" });
   }
 });
@@ -67,7 +68,7 @@ usersRouter.post("/", async (req, res) => {
       // duplicado de email (unique constraint)
       return res.status(409).json({ error: "Ya existe un usuario con ese email" });
     }
-    console.error("[users/create]", err);
+    logger.error({ err }, "[users/create]");
     res.status(500).json({ error: "Error creando usuario" });
   }
 });
@@ -97,7 +98,7 @@ usersRouter.put("/:id", async (req, res) => {
     emit("users:change", { type: "update", user: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[users/update]", err);
+    logger.error({ err }, "[users/update]");
     res.status(500).json({ error: "Error actualizando usuario" });
   }
 });
@@ -121,7 +122,7 @@ usersRouter.patch("/:id/password", async (req, res) => {
     if (!rowCount) return res.status(404).json({ error: "Usuario no encontrado" });
     res.json({ ok: true });
   } catch (err) {
-    console.error("[users/password]", err);
+    logger.error({ err }, "[users/password]");
     res.status(500).json({ error: "Error actualizando contraseña" });
   }
 });
@@ -139,7 +140,7 @@ usersRouter.delete("/:id", async (req, res) => {
     emit("users:change", { type: "delete", id: req.params.id });
     res.json({ ok: true });
   } catch (err) {
-    console.error("[users/delete]", err);
+    logger.error({ err }, "[users/delete]");
     res.status(500).json({ error: "Error borrando usuario" });
   }
 });

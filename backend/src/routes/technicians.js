@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
 import { requireRole } from "../auth.js";
+import { logger } from "../logger.js";
 
 export const techniciansRouter = Router();
 
@@ -13,7 +14,7 @@ techniciansRouter.get("/", async (_req, res) => {
     const { rows } = await query("select * from technicians order by name asc");
     res.json(rows);
   } catch (err) {
-    console.error("[technicians/list]", err);
+    logger.error({ err }, "[technicians/list]");
     res.status(500).json({ error: "Error obteniendo técnicos" });
   }
 });
@@ -33,7 +34,7 @@ techniciansRouter.post("/", canManage, async (req, res) => {
     emit("technicians:change", { type: "insert", technician: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[technicians/create]", err);
+    logger.error({ err }, "[technicians/create]");
     res.status(500).json({ error: "Error creando técnico" });
   }
 });
@@ -70,7 +71,7 @@ techniciansRouter.put("/:id", canManage, async (req, res) => {
     emit("technicians:change", { type: "update", technician: rows[0] });
     res.json(rows[0]);
   } catch (err) {
-    console.error("[technicians/update]", err);
+    logger.error({ err }, "[technicians/update]");
     res.status(500).json({ error: "Error actualizando técnico" });
   }
 });
@@ -82,7 +83,7 @@ techniciansRouter.delete("/:id", canManage, async (req, res) => {
     emit("technicians:change", { type: "delete", id: req.params.id });
     res.json({ ok: true });
   } catch (err) {
-    console.error("[technicians/delete]", err);
+    logger.error({ err }, "[technicians/delete]");
     res.status(500).json({ error: "Error borrando técnico" });
   }
 });

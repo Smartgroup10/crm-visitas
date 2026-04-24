@@ -4,11 +4,13 @@ import { Server as SocketServer } from "socket.io";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import pinoHttp from "pino-http";
 
 import { authMiddleware, requireRole, verifyToken } from "./auth.js";
 import { setIO } from "./io.js";
 import { pool } from "./db.js";
 import { applySchema, seedAdmin, waitForDb } from "./seed.js";
+import { logger } from "./logger.js";
 
 import { authRouter }        from "./routes/auth.js";
 import { tasksRouter }       from "./routes/tasks.js";
@@ -27,8 +29,8 @@ const corsOrigin = (process.env.CORS_ORIGIN || "")
   .filter(Boolean);
 
 if (IS_PROD && (corsOrigin.length === 0 || corsOrigin.includes("*"))) {
-  console.error(
-    "[backend] FATAL: CORS_ORIGIN debe estar definido y no puede ser '*' en producción."
+  logger.fatal(
+    "[backend] CORS_ORIGIN debe estar definido y no puede ser '*' en producción."
   );
   process.exit(1);
 }
@@ -52,6 +54,26 @@ const io = new SocketServer(server, {
   path: "/socket.io",
 });
 setIO(io);
+
+// Logger HTTP: una línea estructurada por request (método, path, status,
+// latencia, req-id). Lo ponemos lo primero para que cualquier error
+// posterior quede asociado al request que lo disparó.
+app.use(
+  pinoHttp({
+    logger,
+    // No inundamos los logs con los health checks (Coolify los pulsa
+    // constantemente). Los errores de /health/ready siguen registrándose
+    // porque llegan por logger.error desde la ruta.
+    autoLogging: {
+      ignore: (req) => req.url?.startsWith("/health"),
+    },
+    customLogLevel: (_req, res, err) => {
+      if (err || res.statusCode >= 500) return "error";
+      if (res.statusCode >= 400) return "warn";
+      return "info";
+    },
+  })
+);
 
 // Cabeceras de seguridad. Deshabilitamos CSP aquí porque el frontend se sirve
 // aparte (Vite) y la API solo devuelve JSON; lo dejamos para el reverse proxy.
@@ -112,9 +134,9 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const user = socket.data.user;
-  console.log(`[socket] conectado: ${user?.email || user?.id}`);
+  logger.info({ user: user?.email || user?.id }, "[socket] conectado");
   socket.on("disconnect", () => {
-    console.log(`[socket] desconectado: ${user?.email || user?.id}`);
+    logger.info({ user: user?.email || user?.id }, "[socket] desconectado");
   });
 });
 
@@ -127,11 +149,13 @@ const PORT = Number(process.env.PORT) || 3001;
     await applySchema();
     await seedAdmin();
     server.listen(PORT, () => {
-      console.log(`[backend] escuchando en :${PORT}`);
-      console.log(`[backend] CORS origin: ${allowAnyOrigin ? "*" : JSON.stringify(corsOrigin)}`);
+      logger.info(
+        { port: PORT, corsOrigin: allowAnyOrigin ? "*" : corsOrigin },
+        "[backend] escuchando"
+      );
     });
   } catch (err) {
-    console.error("[backend] fallo al arrancar:", err);
+    logger.fatal({ err }, "[backend] fallo al arrancar");
     process.exit(1);
   }
 })();
@@ -144,11 +168,11 @@ let shuttingDown = false;
 async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`[backend] recibido ${signal}, cerrando con gracia...`);
+  logger.info({ signal }, "[backend] cerrando con gracia...");
 
   // Forzamos salida si algo se queda colgado más de 10s.
   const killTimer = setTimeout(() => {
-    console.error("[backend] shutdown forzado tras 10s");
+    logger.error("[backend] shutdown forzado tras 10s");
     process.exit(1);
   }, 10_000);
   killTimer.unref();
@@ -157,10 +181,10 @@ async function shutdown(signal) {
     io.close();
     await new Promise((resolve) => server.close(resolve));
     await pool.end();
-    console.log("[backend] cerrado limpiamente");
+    logger.info("[backend] cerrado limpiamente");
     process.exit(0);
   } catch (err) {
-    console.error("[backend] error durante shutdown:", err);
+    logger.error({ err }, "[backend] error durante shutdown");
     process.exit(1);
   }
 }

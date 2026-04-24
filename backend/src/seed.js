@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { query } from "./db.js";
+import { logger } from "./logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -17,9 +18,9 @@ export async function applySchema() {
     const sqlPath = resolve(__dirname, "..", "schema.sql");
     const sql = await readFile(sqlPath, "utf8");
     await query(sql);
-    console.log("[db] schema aplicado");
+    logger.info("[db] schema aplicado");
   } catch (err) {
-    console.error("[db] error aplicando schema:", err);
+    logger.error({ err }, "[db] error aplicando schema");
     throw err;
   }
 }
@@ -40,7 +41,7 @@ export async function seedAdmin() {
     // Sin credenciales explícitas NO sembramos un admin: evitamos crear
     // un usuario con contraseña conocida/adivinable en producción.
     if (!email || !password) {
-      console.warn(
+      logger.warn(
         "[seed] ADMIN_EMAIL y/o ADMIN_PASSWORD no definidos: no se crea usuario admin. " +
         "Define ambas variables en .env para sembrar el admin inicial."
       );
@@ -52,9 +53,9 @@ export async function seedAdmin() {
       "insert into users (email, password_hash, name, role) values ($1, $2, $3, $4)",
       [email, hash, name, "admin"]
     );
-    console.log(`[seed] usuario admin creado: ${email}`);
+    logger.info({ email }, "[seed] usuario admin creado");
   } catch (err) {
-    console.error("[seed] error creando admin:", err);
+    logger.error({ err }, "[seed] error creando admin");
   }
 }
 
@@ -67,7 +68,7 @@ export async function waitForDb(maxAttempts = 30, delayMs = 1000) {
       await query("select 1");
       return;
     } catch (err) {
-      console.log(`[db] esperando conexión... (${i + 1}/${maxAttempts})`);
+      logger.info({ attempt: i + 1, maxAttempts }, "[db] esperando conexión...");
       await new Promise((r) => setTimeout(r, delayMs));
     }
   }

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { logger } from "./logger.js";
 
 /**
  * Resolución del secreto JWT.
@@ -11,13 +12,13 @@ const IS_PROD = process.env.NODE_ENV === "production";
 const RAW_SECRET = process.env.JWT_SECRET;
 
 if (IS_PROD && !RAW_SECRET) {
-  console.error(
-    "[auth] FATAL: JWT_SECRET no está definido. El servidor no puede arrancar en producción sin un secreto."
+  logger.fatal(
+    "[auth] JWT_SECRET no está definido. El servidor no puede arrancar en producción sin un secreto."
   );
   process.exit(1);
 }
 if (!RAW_SECRET) {
-  console.warn("[auth] JWT_SECRET no definido; usando valor de desarrollo inseguro");
+  logger.warn("[auth] JWT_SECRET no definido; usando valor de desarrollo inseguro");
 }
 
 const SECRET = RAW_SECRET || "dev-secret";
