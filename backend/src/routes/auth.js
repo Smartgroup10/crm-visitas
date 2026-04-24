@@ -38,7 +38,20 @@ authRouter.post("/login", validate(schemas.login), async (req, res) => {
 });
 
 // ─── GET /api/auth/me ────────────────────────────────────
-authRouter.get("/me", authMiddleware, (req, res) => {
-  // Devuelve los datos del token. Si quieres refrescar con BD, consulta users.
-  res.json(req.user);
+// Devuelve el perfil leído fresco de BD, no el del JWT (que está cacheado
+// hasta 7 días). Si un admin te promueve o degrada, el frontend ve el
+// cambio en la siguiente recarga sin necesidad de cerrar sesión.
+authRouter.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await query(
+      "select id, email, name, role from users where id = $1",
+      [req.user.id]
+    );
+    const fresh = rows[0];
+    if (!fresh) return res.status(401).json({ error: "Usuario no existe" });
+    res.json(fresh);
+  } catch (err) {
+    logger.error({ err }, "[auth/me]");
+    res.status(500).json({ error: "Error leyendo perfil" });
+  }
 });

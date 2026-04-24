@@ -436,6 +436,7 @@ export default function App() {
                 users={users}
                 tasks={tasks}
                 currentUserId={user?.id}
+                currentUserRole={user?.role}
                 canManage={isAdmin}
                 onCreate={handleCreateUser}
                 onUpdate={handleUpdateUser}

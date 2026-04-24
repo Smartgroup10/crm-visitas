@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { logger } from "./logger.js";
+import { query } from "./db.js";
 
 /**
  * Resolución del secreto JWT.
@@ -47,13 +48,36 @@ export function authMiddleware(req, res, next) {
 /**
  * Middleware de autorización por rol. Usar SIEMPRE después de authMiddleware.
  *   app.use('/api/users', authMiddleware, requireRole('admin'), usersRouter);
+ *
+ * Lee el rol actual de la BD en vez de confiar en el payload del JWT (que
+ * tiene TTL de 7 días): si un admin promueve a alguien, no tiene que cerrar
+ * sesión. Y si el admin pierde el rol, deja de tener acceso inmediatamente
+ * en la siguiente petición. El coste es una SELECT corta por cada request
+ * protegida — aceptable y cacheada por el pool de pg.
  */
 export function requireRole(...allowedRoles) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: "Sin sesión" });
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Permiso insuficiente" });
+    try {
+      const { rows } = await query(
+        "select role from users where id = $1",
+        [req.user.id]
+      );
+      const currentRole = rows[0]?.role;
+      if (!currentRole) {
+        // El user del JWT ya no existe en BD (borrado)
+        return res.status(401).json({ error: "Usuario no existe" });
+      }
+      // Refrescamos el req.user para que los handlers posteriores vean el
+      // rol actualizado sin tener que repetir la consulta.
+      req.user.role = currentRole;
+      if (!allowedRoles.includes(currentRole)) {
+        return res.status(403).json({ error: "Permiso insuficiente" });
+      }
+      next();
+    } catch (err) {
+      logger.error({ err }, "[auth/requireRole]");
+      res.status(500).json({ error: "Error verificando permisos" });
     }
-    next();
   };
 }

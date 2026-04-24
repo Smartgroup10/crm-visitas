@@ -32,6 +32,7 @@ export default function UsersView({
   users,
   tasks = [],
   currentUserId,
+  currentUserRole,
   canManage = false,
   onCreate,
   onUpdate,
@@ -222,6 +223,22 @@ export default function UsersView({
           </button>
         )}
       </div>
+
+      {/* Aviso explícito si el usuario no tiene permiso de gestión, para que
+          no parezca que los botones "no funcionan" cuando en realidad están
+          ocultos por política. Incluye el rol actual para ayudar a diagnosticar
+          promociones pendientes. */}
+      {!canManage && (
+        <div className="users-no-permissions">
+          <strong>Solo los administradores pueden crear, editar o borrar
+          miembros del equipo.</strong>{" "}
+          Tu rol actual es{" "}
+          <span className={roleBadgeClass(currentUserRole || "tecnico")}>
+            {ROLE_LABELS[currentUserRole] || currentUserRole || "desconocido"}
+          </span>.
+          Si esto no es correcto, pídele a un administrador que actualice tu rol.
+        </div>
+      )}
 
       {/* ─── Alta ─────────────────────────────────────── */}
       {canManage && showCreate && (
