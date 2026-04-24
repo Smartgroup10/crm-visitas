@@ -3,6 +3,7 @@ import { query } from "../db.js";
 import { emit } from "../io.js";
 import { requireRole } from "../auth.js";
 import { logger } from "../logger.js";
+import { schemas, validate } from "../schemas.js";
 
 export const techniciansRouter = Router();
 
@@ -20,12 +21,9 @@ techniciansRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/technicians ───────────────────────────────
-techniciansRouter.post("/", canManage, async (req, res) => {
+techniciansRouter.post("/", canManage, validate(schemas.technicianCreate), async (req, res) => {
   try {
-    const name      = (req.body?.name      || "").trim();
-    const phone     = (req.body?.phone     || "").trim();
-    const specialty = (req.body?.specialty || "").trim();
-    if (!name) return res.status(400).json({ error: "Nombre requerido" });
+    const { name, phone = "", specialty = "" } = req.body;
 
     const { rows } = await query(
       "insert into technicians (name, phone, specialty) values ($1, $2, $3) returning *",
@@ -40,27 +38,19 @@ techniciansRouter.post("/", canManage, async (req, res) => {
 });
 
 // ─── PUT /api/technicians/:id ────────────────────────────
-techniciansRouter.put("/:id", canManage, async (req, res) => {
+techniciansRouter.put("/:id", canManage, validate(schemas.technicianUpdate), async (req, res) => {
   try {
-    const body = req.body || {};
+    // El schema ya garantiza que al menos uno viene y que son strings.
+    const body = req.body;
     const sets = [];
     const values = [];
 
-    if (typeof body.name === "string") {
-      const name = body.name.trim();
-      if (!name) return res.status(400).json({ error: "Nombre requerido" });
-      values.push(name);
-      sets.push(`name = $${values.length}`);
+    for (const field of ["name", "phone", "specialty"]) {
+      if (field in body) {
+        values.push(body[field]);
+        sets.push(`${field} = $${values.length}`);
+      }
     }
-    if (typeof body.phone === "string") {
-      values.push(body.phone.trim());
-      sets.push(`phone = $${values.length}`);
-    }
-    if (typeof body.specialty === "string") {
-      values.push(body.specialty.trim());
-      sets.push(`specialty = $${values.length}`);
-    }
-    if (!sets.length) return res.status(400).json({ error: "Nada que actualizar" });
 
     values.push(req.params.id);
     const { rows } = await query(

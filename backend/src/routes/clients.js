@@ -3,6 +3,7 @@ import { query } from "../db.js";
 import { emit } from "../io.js";
 import { requireRole } from "../auth.js";
 import { logger } from "../logger.js";
+import { schemas, validate } from "../schemas.js";
 
 export const clientsRouter = Router();
 
@@ -20,10 +21,9 @@ clientsRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/clients ───────────────────────────────────
-clientsRouter.post("/", canManage, async (req, res) => {
+clientsRouter.post("/", canManage, validate(schemas.clientCreate), async (req, res) => {
   try {
-    const name = (req.body?.name || "").trim();
-    if (!name) return res.status(400).json({ error: "Nombre requerido" });
+    const { name } = req.body;
 
     const { rows } = await query(
       "insert into clients (name, created_by) values ($1, $2) returning *",
@@ -38,10 +38,9 @@ clientsRouter.post("/", canManage, async (req, res) => {
 });
 
 // ─── PUT /api/clients/:id ────────────────────────────────
-clientsRouter.put("/:id", canManage, async (req, res) => {
+clientsRouter.put("/:id", canManage, validate(schemas.clientUpdate), async (req, res) => {
   try {
-    const name = (req.body?.name || "").trim();
-    if (!name) return res.status(400).json({ error: "Nombre requerido" });
+    const { name } = req.body;
 
     const { rows } = await query(
       "update clients set name = $1 where id = $2 returning *",

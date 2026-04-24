@@ -3,20 +3,19 @@ import bcrypt from "bcryptjs";
 import { query } from "../db.js";
 import { signToken, authMiddleware } from "../auth.js";
 import { logger } from "../logger.js";
+import { schemas, validate } from "../schemas.js";
 
 export const authRouter = Router();
 
 // ─── POST /api/auth/login ─────────────────────────────────
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", validate(schemas.login), async (req, res) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: "Faltan credenciales" });
-    }
+    // email ya viene trim + lowercase aplicados por el schema
+    const { email, password } = req.body;
 
     const { rows } = await query(
       "select id, email, password_hash, name, role from users where email = $1",
-      [email.toLowerCase().trim()]
+      [email]
     );
     const user = rows[0];
     if (!user) return res.status(401).json({ error: "Credenciales inválidas" });

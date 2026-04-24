@@ -3,12 +3,13 @@ import bcrypt from "bcryptjs";
 import { query } from "../db.js";
 import { emit } from "../io.js";
 import { logger } from "../logger.js";
+import { schemas, validate } from "../schemas.js";
 
 export const usersRouter = Router();
 
-// Roles permitidos (debe coincidir con el check constraint de schema.sql)
+// Roles permitidos (debe coincidir con el check constraint de schema.sql
+// y con los enums del módulo schemas.js).
 const VALID_ROLES = new Set(["admin", "supervisor", "tecnico"]);
-const MIN_PASSWORD_LENGTH = 8;
 
 function publicUser(row) {
   // Nunca devolvemos el password_hash al frontend
@@ -19,10 +20,6 @@ function publicUser(row) {
     role:       row.role,
     created_at: row.created_at,
   };
-}
-
-function normalizeEmail(email) {
-  return (email || "").toLowerCase().trim();
 }
 
 // ─── GET /api/users ──────────────────────────────────────
@@ -39,20 +36,11 @@ usersRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/users ─────────────────────────────────────
-usersRouter.post("/", async (req, res) => {
+usersRouter.post("/", validate(schemas.userCreate), async (req, res) => {
   try {
-    const email    = normalizeEmail(req.body?.email);
-    const name     = (req.body?.name || "").trim();
-    const password = req.body?.password || "";
-    const role     = (req.body?.role || "tecnico").trim();
-
-    if (!email)                   return res.status(400).json({ error: "Email requerido" });
-    if (!VALID_ROLES.has(role))   return res.status(400).json({ error: "Rol inválido" });
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      return res.status(400).json({
-        error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
-      });
-    }
+    // email, name, password, role ya vienen normalizados por el schema
+    // (trim, lowercase, defaults, role ∈ VALID_ROLES, password.length ≥ 8).
+    const { email, name = "", password, role } = req.body;
 
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await query(
@@ -75,12 +63,9 @@ usersRouter.post("/", async (req, res) => {
 
 // ─── PUT /api/users/:id ──────────────────────────────────
 // Actualiza nombre y/o rol. El email no se cambia (sería liarla con logins).
-usersRouter.put("/:id", async (req, res) => {
+usersRouter.put("/:id", validate(schemas.userUpdate), async (req, res) => {
   try {
-    const name = (req.body?.name || "").trim();
-    const role = (req.body?.role || "").trim();
-
-    if (!VALID_ROLES.has(role)) return res.status(400).json({ error: "Rol inválido" });
+    const { name = "", role } = req.body;
 
     // Protección: evitar que el admin se quite el rol a sí mismo (se quedaría sin acceso)
     if (req.user.id === req.params.id && role !== "admin") {
@@ -106,14 +91,9 @@ usersRouter.put("/:id", async (req, res) => {
 // ─── PATCH /api/users/:id/password ───────────────────────
 // Reset de contraseña (por admin). Si quisieras que el propio usuario se
 // la cambie, sería una ruta aparte con comprobación de la password actual.
-usersRouter.patch("/:id/password", async (req, res) => {
+usersRouter.patch("/:id/password", validate(schemas.passwordChange), async (req, res) => {
   try {
-    const password = req.body?.password || "";
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      return res.status(400).json({
-        error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
-      });
-    }
+    const { password } = req.body;
     const hash = await bcrypt.hash(password, 10);
     const { rowCount } = await query(
       "update users set password_hash = $1 where id = $2",

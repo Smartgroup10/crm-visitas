@@ -3,6 +3,7 @@ import { query } from "../db.js";
 import { emit } from "../io.js";
 import { requireRole } from "../auth.js";
 import { logger } from "../logger.js";
+import { schemas, validate } from "../schemas.js";
 
 export const tasksRouter = Router();
 
@@ -10,14 +11,7 @@ export const tasksRouter = Router();
 // Los técnicos sólo pueden leer (GET queda abierto a cualquier autenticado).
 const canManage = requireRole("admin", "supervisor");
 
-// Campos permitidos en PATCH (whitelist para evitar SQL injection por clave)
-const ALLOWED_PATCH_FIELDS = new Set([
-  "title", "date", "status", "priority", "client_id", "phone",
-  "technician_ids", "vehicle", "type", "notes", "materials",
-  "estimated_time", "attachments", "type_fields",
-]);
-
-// Campos JSONB que hay que serializar
+// Campos JSONB que hay que serializar antes de pasarlos al driver pg.
 const JSONB_FIELDS = new Set(["attachments", "type_fields"]);
 
 function prepareValue(key, value) {
@@ -40,7 +34,7 @@ tasksRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/tasks ─────────────────────────────────────
-tasksRouter.post("/", canManage, async (req, res) => {
+tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) => {
   try {
     const t = req.body || {};
     const { rows } = await query(
@@ -77,7 +71,7 @@ tasksRouter.post("/", canManage, async (req, res) => {
 });
 
 // ─── PUT /api/tasks/:id ──────────────────────────────────
-tasksRouter.put("/:id", canManage, async (req, res) => {
+tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res) => {
   try {
     const t = req.body || {};
     const { rows } = await query(
@@ -117,14 +111,11 @@ tasksRouter.put("/:id", canManage, async (req, res) => {
 
 // ─── PATCH /api/tasks/:id ────────────────────────────────
 // Actualización parcial (ej. solo cambio de fecha al arrastrar en calendario).
-tasksRouter.patch("/:id", canManage, async (req, res) => {
+// El schema ya garantiza que (1) todas las claves son conocidas y (2) al
+// menos una viene, así que podemos iterar req.body directamente.
+tasksRouter.patch("/:id", canManage, validate(schemas.taskPatch), async (req, res) => {
   try {
-    const fields = Object.entries(req.body || {}).filter(([k]) =>
-      ALLOWED_PATCH_FIELDS.has(k)
-    );
-    if (!fields.length) {
-      return res.status(400).json({ error: "Nada que actualizar" });
-    }
+    const fields = Object.entries(req.body);
 
     const values = [];
     const setClauses = [];
