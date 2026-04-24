@@ -4,7 +4,7 @@ import { api } from "./lib/api";
 import { connectSocket, disconnectSocket } from "./lib/socket";
 import { useAuth } from "./hooks/useAuth";
 import { taskFromDb, taskToDb } from "./utils/taskMapper";
-import { todayISO, getCalendarGrid } from "./utils/date";
+import { todayISO, getCalendarGrid, getWeekGrid, addDays, shiftMonthIso } from "./utils/date";
 import { emptyTask, taskHaystack } from "./utils/task";
 import { TASK_TYPE_KEYS } from "./data/taskTypes";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -25,6 +25,7 @@ export default function App() {
 
   const {
     section,
+    calendarMode,
     search,
     personFilter,
     statusFilter,
@@ -45,10 +46,9 @@ export default function App() {
   const [loading, setLoading]         = useState(true);
 
   // ── Estado de UI ─────────────────────────────────────────
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
+  // La fecha seleccionada es la única ancla temporal del calendario:
+  // el mes y la semana visibles se derivan de ella, y las vistas de
+  // "semana" / "día" la usan directamente.
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [draft, setDraft]               = useState(emptyTask(todayISO()));
   const [isModalOpen, setIsModalOpen]   = useState(false);
@@ -135,7 +135,13 @@ export default function App() {
   }, [categoryFilter, setUi]);
 
   // ── Datos derivados ──────────────────────────────────────
+  const currentMonth = useMemo(() => {
+    const d = new Date(`${selectedDate}T00:00:00`);
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  }, [selectedDate]);
+
   const monthCells = useMemo(() => getCalendarGrid(currentMonth), [currentMonth]);
+  const weekCells  = useMemo(() => getWeekGrid(selectedDate), [selectedDate]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
@@ -271,13 +277,21 @@ export default function App() {
 
   // ── Calendario ───────────────────────────────────────────
   function goToday() {
-    const now = new Date();
-    setCurrentMonth(new Date(now.getFullYear(), now.getMonth(), 1));
     setSelectedDate(todayISO());
   }
 
-  function changeMonth(offset) {
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+  // Navega al período anterior/siguiente según el modo activo del calendario:
+  //  - mes    → ±1 mes (manteniendo el día, clampado al último día del mes destino)
+  //  - semana → ±7 días
+  //  - día    → ±1 día
+  function changePeriod(offset) {
+    if (calendarMode === "semana") {
+      setSelectedDate((prev) => addDays(prev, offset * 7));
+    } else if (calendarMode === "dia") {
+      setSelectedDate((prev) => addDays(prev, offset));
+    } else {
+      setSelectedDate((prev) => shiftMonthIso(prev, offset));
+    }
   }
 
   // ── Atajos de teclado ─────────────────────────────────────
@@ -317,6 +331,7 @@ export default function App() {
           {section === "instalaciones" ? (
             <SeguimientoView
               monthCells={monthCells}
+              weekCells={weekCells}
               currentMonth={currentMonth}
               tasksByDate={tasksByDate}
               selectedDate={selectedDate}
@@ -324,7 +339,7 @@ export default function App() {
               setDraggedTaskId={setDraggedTaskId}
               handleDropOnDate={handleDropOnDate}
               goToday={goToday}
-              changeMonth={changeMonth}
+              changePeriod={changePeriod}
               filteredTasks={filteredTasks}
               selectedTasks={selectedTasks}
               clients={clients}

@@ -11,6 +11,8 @@ export const CATEGORY_OPTIONS = ["Visita", "Instalación", "Mantenimiento", "Inc
 
 export const VALID_SECTIONS = ["inicio", "mitrabajo", "instalaciones", "clientes", "tecnicos"];
 
+export const CALENDAR_MODES = ["mes", "semana", "dia"];
+
 export const TECH_AVATAR_COLORS = [
   "#0073ea",
   "#e2445c",

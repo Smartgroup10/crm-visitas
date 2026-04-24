@@ -1,12 +1,13 @@
 import { useState } from "react";
 
-import { UI_STORAGE_KEY, VALID_SECTIONS } from "../data/constants";
+import { CALENDAR_MODES, UI_STORAGE_KEY, VALID_SECTIONS } from "../data/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { UIContext } from "./UIContext";
 
 const DEFAULT_UI = {
   section: "inicio",
   activeView: "Calendario",
+  calendarMode: "mes",
   search: "",
   personFilter: "Todos",
   statusFilter: "Todos",
@@ -22,6 +23,9 @@ export function UIProvider({ children }) {
       if (!VALID_SECTIONS.includes(merged.section)) {
         merged.section = fallback.section;
       }
+      if (!CALENDAR_MODES.includes(merged.calendarMode)) {
+        merged.calendarMode = fallback.calendarMode;
+      }
       return merged;
     },
   });
@@ -32,6 +36,7 @@ export function UIProvider({ children }) {
 
   const setSection = (v) => setUi((u) => ({ ...u, section: v }));
   const setActiveView = (v) => setUi((u) => ({ ...u, activeView: v }));
+  const setCalendarMode = (v) => setUi((u) => ({ ...u, calendarMode: v }));
   const setSearch = (v) => setUi((u) => ({ ...u, search: v }));
   const setPersonFilter = (v) => setUi((u) => ({ ...u, personFilter: v }));
   const setStatusFilter = (v) => setUi((u) => ({ ...u, statusFilter: v }));
@@ -58,6 +63,7 @@ export function UIProvider({ children }) {
   const value = {
     section: ui.section,
     activeView: ui.activeView,
+    calendarMode: ui.calendarMode,
     search: ui.search,
     personFilter: ui.personFilter,
     statusFilter: ui.statusFilter,
@@ -66,6 +72,7 @@ export function UIProvider({ children }) {
     setUi,
     setSection,
     setActiveView,
+    setCalendarMode,
     setSearch,
     setPersonFilter,
     setStatusFilter,
