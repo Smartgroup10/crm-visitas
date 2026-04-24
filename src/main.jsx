@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { AuthProvider } from './context/AuthContext'
 import { UIProvider } from './context/UIProvider'
+import { ToastProvider } from './context/ToastProvider'
+import { ConfirmProvider } from './context/ConfirmProvider'
 import { useAuth } from './hooks/useAuth'
 import App from './App'
 import LoginPage from './components/LoginPage'
@@ -32,8 +34,12 @@ function Root() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider>
-      <Root />
-    </AuthProvider>
+    <ToastProvider>
+      <ConfirmProvider>
+        <AuthProvider>
+          <Root />
+        </AuthProvider>
+      </ConfirmProvider>
+    </ToastProvider>
   </StrictMode>,
 )

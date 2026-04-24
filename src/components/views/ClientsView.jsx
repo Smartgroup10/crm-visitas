@@ -1,18 +1,35 @@
 import { useState } from "react";
 import { usePermissions } from "../../hooks/usePermissions";
+import { useToast } from "../../hooks/useToast";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete }) {
   const { canManage } = usePermissions();
-  const [newClient, setNewClient]         = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [newClient, setNewClient]             = useState("");
   const [editingClientId, setEditingClientId] = useState(null);
-  const [editingValue, setEditingValue]   = useState("");
+  const [editingValue, setEditingValue]       = useState("");
+  const [busyAdd, setBusyAdd]                 = useState(false);
+  const [busyEdit, setBusyEdit]               = useState(false);
+  const [deletingId, setDeletingId]           = useState(null);
 
   async function addClient() {
     const value = newClient.trim();
     if (!value) return;
-    if (clients.some((c) => c.name === value)) return;
-    await onAdd(value);
-    setNewClient("");
+    if (clients.some((c) => c.name === value)) {
+      toast.error(`Ya existe un cliente con el nombre "${value}".`);
+      return;
+    }
+    setBusyAdd(true);
+    try {
+      await onAdd(value);
+      setNewClient("");
+    } catch {
+      // App.jsx ya muestra toast de error
+    } finally {
+      setBusyAdd(false);
+    }
   }
 
   function startEdit(client) {
@@ -23,19 +40,43 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
   async function saveEdit() {
     const value = editingValue.trim();
     if (!value) return;
-    if (clients.some((c) => c.name === value && c.id !== editingClientId)) return;
-    await onUpdate(editingClientId, value);
-    setEditingClientId(null);
-    setEditingValue("");
+    if (clients.some((c) => c.name === value && c.id !== editingClientId)) {
+      toast.error(`Ya existe un cliente con el nombre "${value}".`);
+      return;
+    }
+    setBusyEdit(true);
+    try {
+      await onUpdate(editingClientId, value);
+      setEditingClientId(null);
+      setEditingValue("");
+    } catch {
+      // App.jsx ya mostró toast
+    } finally {
+      setBusyEdit(false);
+    }
   }
 
   async function deleteClient(client) {
     const isUsed = tasks.some((task) => task.clientId === client.id);
     if (isUsed) {
-      alert("No puedes borrar este cliente porque está asignado a una o más tareas.");
+      toast.error("No puedes borrar este cliente porque está asignado a una o más tareas.");
       return;
     }
-    await onDelete(client.id);
+    const ok = await confirm({
+      title: "Borrar cliente",
+      message: `¿Seguro que quieres borrar "${client.name}"?`,
+      variant: "danger",
+      confirmLabel: "Borrar",
+    });
+    if (!ok) return;
+    setDeletingId(client.id);
+    try {
+      await onDelete(client.id);
+    } catch {
+      // toast ya mostrado en App
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -61,8 +102,15 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
               onKeyDown={(e) => e.key === "Enter" && addClient()}
               placeholder="Nombre del cliente"
             />
-            <button className="btn-primary" onClick={addClient}>
-              Crear cliente
+            <button className="btn-primary" onClick={addClient} disabled={busyAdd}>
+              {busyAdd ? (
+                <>
+                  <span className="btn-spinner" aria-hidden="true" />
+                  Creando…
+                </>
+              ) : (
+                "Crear cliente"
+              )}
             </button>
           </div>
         </div>
@@ -102,8 +150,12 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                     <div className="client-actions">
                       {isEditing ? (
                         <>
-                          <button className="btn-primary small-btn" onClick={saveEdit}>
-                            Guardar
+                          <button
+                            className="btn-primary small-btn"
+                            onClick={saveEdit}
+                            disabled={busyEdit}
+                          >
+                            {busyEdit ? "Guardando…" : "Guardar"}
                           </button>
                           <button
                             className="btn-secondary small-btn"
@@ -111,6 +163,7 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                               setEditingClientId(null);
                               setEditingValue("");
                             }}
+                            disabled={busyEdit}
                           >
                             Cancelar
                           </button>
@@ -120,14 +173,16 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                           <button
                             className="btn-secondary small-btn"
                             onClick={() => startEdit(client)}
+                            disabled={deletingId === client.id}
                           >
                             Editar
                           </button>
                           <button
                             className="btn-danger small-btn"
                             onClick={() => deleteClient(client)}
+                            disabled={deletingId === client.id}
                           >
-                            Borrar
+                            {deletingId === client.id ? "Borrando…" : "Borrar"}
                           </button>
                         </>
                       )}

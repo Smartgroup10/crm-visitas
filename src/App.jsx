@@ -9,6 +9,8 @@ import { emptyTask, taskHaystack } from "./utils/task";
 import { TASK_TYPE_KEYS } from "./data/taskTypes";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUI } from "./hooks/useUI";
+import { useToast } from "./hooks/useToast";
+import { useConfirm } from "./hooks/useConfirm";
 import TaskModal from "./components/TaskModal";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -22,6 +24,8 @@ import UsersView from "./components/views/UsersView";
 
 export default function App() {
   const { user } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   const {
     section,
@@ -79,8 +83,9 @@ export default function App() {
       setUsers(rows || []);
     } catch (err) {
       console.error("Error cargando usuarios:", err);
+      toast.error(err?.message || "No se pudieron cargar los usuarios.");
     }
-  }, [isAdmin]);
+  }, [isAdmin, toast]);
 
   // ── Arranque: carga inicial + conexión de socket ────────
   useEffect(() => {
@@ -91,6 +96,7 @@ export default function App() {
         await Promise.all([loadTasks(), loadClients(), loadTechnicians(), loadUsers()]);
       } catch (err) {
         console.error("Error cargando datos iniciales:", err);
+        toast.error(err?.message || "Error cargando datos iniciales.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -119,7 +125,7 @@ export default function App() {
       socket.off("users:change",       onUsers);
       disconnectSocket();
     };
-  }, [loadTasks, loadClients, loadTechnicians, loadUsers]);
+  }, [loadTasks, loadClients, loadTechnicians, loadUsers, toast]);
 
   // ── Sincronización de filtros ────────────────────────────
   useEffect(() => {
@@ -177,13 +183,27 @@ export default function App() {
   }), [tasks]);
 
   // ── CRUD — Tareas ────────────────────────────────────────
+  // saveTask NO atrapa el error: lo re-lanza para que TaskModal muestre
+  // los errores por campo (p. ej. validación zod del backend). Solo
+  // muestra toast si es éxito.
   async function saveTask(taskToSave) {
     const row = taskToDb(taskToSave, user?.id);
-    if (taskToSave.id) {
-      await api.put(`/tasks/${taskToSave.id}`, row);
-    } else {
-      await api.post("/tasks", row);
+    const isNew = !taskToSave.id;
+    try {
+      if (!isNew) {
+        await api.put(`/tasks/${taskToSave.id}`, row);
+      } else {
+        await api.post("/tasks", row);
+      }
+    } catch (err) {
+      // Si es error de red (sin details), mostramos toast para que el usuario
+      // sepa qué pasó; si tiene details (validación), TaskModal los pinta.
+      if (!err?.details) {
+        toast.error(err?.message || "No se pudo guardar la tarea.");
+      }
+      throw err;
     }
+    toast.success(isNew ? "Tarea creada." : "Tarea actualizada.");
     setSelectedDate(taskToSave.date);
     setIsModalOpen(false);
     setDraft(emptyTask(taskToSave.date));
@@ -191,16 +211,34 @@ export default function App() {
 
   async function deleteTask() {
     if (!draft.id) return;
-    await api.delete(`/tasks/${draft.id}`);
+    const ok = await confirm({
+      title: "Borrar tarea",
+      message: `¿Seguro que quieres borrar "${draft.title || "esta tarea"}"? Esta acción no se puede deshacer.`,
+      variant: "danger",
+      confirmLabel: "Borrar",
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/tasks/${draft.id}`);
+    } catch (err) {
+      toast.error(err?.message || "No se pudo borrar la tarea.");
+      throw err;
+    }
+    toast.success("Tarea borrada.");
     setIsModalOpen(false);
     setDraft(emptyTask(selectedDate));
   }
 
   async function handleDropOnDate(date) {
     if (!draggedTaskId) return;
-    await api.patch(`/tasks/${draggedTaskId}`, { date });
-    setDraggedTaskId(null);
-    setSelectedDate(date);
+    try {
+      await api.patch(`/tasks/${draggedTaskId}`, { date });
+      setSelectedDate(date);
+    } catch (err) {
+      toast.error(err?.message || "No se pudo mover la tarea.");
+    } finally {
+      setDraggedTaskId(null);
+    }
   }
 
   // ── CRUD — Clientes ──────────────────────────────────────
@@ -213,51 +251,98 @@ export default function App() {
       setNewClientName("");
       return;
     }
-    const created = await api.post("/clients", { name });
-    if (created) setDraft({ ...draft, clientId: created.id });
-    setNewClientName("");
+    try {
+      const created = await api.post("/clients", { name });
+      if (created) setDraft({ ...draft, clientId: created.id });
+      setNewClientName("");
+      toast.success(`Cliente "${name}" creado.`);
+    } catch (err) {
+      toast.error(err?.message || "No se pudo crear el cliente.");
+    }
   }
 
   async function handleAddClient(name) {
-    await api.post("/clients", { name });
+    try {
+      await api.post("/clients", { name });
+      toast.success(`Cliente "${name}" creado.`);
+    } catch (err) {
+      toast.error(err?.message || "No se pudo crear el cliente.");
+      throw err;
+    }
   }
 
   async function handleUpdateClient(id, name) {
-    await api.put(`/clients/${id}`, { name });
+    try {
+      await api.put(`/clients/${id}`, { name });
+      toast.success("Cliente actualizado.");
+    } catch (err) {
+      toast.error(err?.message || "No se pudo actualizar el cliente.");
+      throw err;
+    }
   }
 
   async function handleDeleteClient(id) {
-    await api.delete(`/clients/${id}`);
+    try {
+      await api.delete(`/clients/${id}`);
+      toast.success("Cliente borrado.");
+    } catch (err) {
+      toast.error(err?.message || "No se pudo borrar el cliente.");
+      throw err;
+    }
   }
 
   // ── CRUD — Técnicos ──────────────────────────────────────
   async function handleAddTechnician(name) {
-    await api.post("/technicians", { name, phone: "", specialty: "" });
+    try {
+      await api.post("/technicians", { name, phone: "", specialty: "" });
+      toast.success(`Técnico "${name}" creado.`);
+    } catch (err) {
+      toast.error(err?.message || "No se pudo crear el técnico.");
+      throw err;
+    }
   }
 
   async function handleUpdateTechnician(id, name) {
-    await api.put(`/technicians/${id}`, { name });
+    try {
+      await api.put(`/technicians/${id}`, { name });
+      toast.success("Técnico actualizado.");
+    } catch (err) {
+      toast.error(err?.message || "No se pudo actualizar el técnico.");
+      throw err;
+    }
   }
 
   async function handleDeleteTechnician(id) {
-    await api.delete(`/technicians/${id}`);
+    try {
+      await api.delete(`/technicians/${id}`);
+      toast.success("Técnico borrado.");
+    } catch (err) {
+      toast.error(err?.message || "No se pudo borrar el técnico.");
+      throw err;
+    }
   }
 
   // ── CRUD — Usuarios (solo admin) ─────────────────────────
+  // Estos re-lanzan sin toast de error para que UsersView pueda mostrar
+  // errores por campo (validación). El toast de éxito sí lo ponemos aquí.
   async function handleCreateUser(payload) {
     await api.post("/users", payload);
+    toast.success(`Usuario "${payload?.email || ""}" creado.`);
   }
 
   async function handleUpdateUser(id, payload) {
     await api.put(`/users/${id}`, payload);
+    toast.success("Usuario actualizado.");
   }
 
   async function handleResetUserPassword(id, password) {
     await api.patch(`/users/${id}/password`, { password });
+    toast.success("Contraseña restablecida.");
   }
 
   async function handleDeleteUser(id) {
     await api.delete(`/users/${id}`);
+    toast.success("Usuario borrado.");
   }
 
   // ── Modal ────────────────────────────────────────────────

@@ -44,15 +44,19 @@ export default function TaskModal({
 }) {
   const [errors, setErrors] = useState({});
   const [showNewClient, setShowNewClient] = useState(false);
+  const [busy, setBusy] = useState(false);
   const { canManage } = usePermissions();
   const readOnly = !canManage;
 
-  // Al cerrar el modal, plegamos el alta inline para que no quede abierto la
-  // próxima vez que se abra.
+  // Al cerrar el modal, plegamos el alta inline y reseteamos errores/busy.
+  // Es un reset síncrono de estado local atado al ciclo de vida del modal,
+  // no un efecto externo — por eso desactivamos set-state-in-effect.
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowNewClient(false);
       setErrors({});
+      setBusy(false);
     }
   }, [open]);
 
@@ -83,8 +87,9 @@ export default function TaskModal({
     setShowNewClient(false);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    if (busy) return;
     const sanitized = sanitizeForType(draft);
     const result = validateTask(sanitized);
     if (!result.valid) {
@@ -92,7 +97,32 @@ export default function TaskModal({
       return;
     }
     setErrors({});
-    onSave(sanitized);
+    setBusy(true);
+    try {
+      await onSave(sanitized);
+      // Si todo va bien, App cierra el modal; al cerrarse, el efecto
+      // resetea busy. Por si acaso, lo dejamos explícito:
+      setBusy(false);
+    } catch (err) {
+      setBusy(false);
+      // Si el backend devolvió validación zod, pintamos errores por campo.
+      // No mostramos toast aquí: App.jsx ya se encargó si era necesario.
+      const fieldErrors = err?.fieldErrors;
+      if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+      }
+    }
+  }
+
+  async function handleDeleteClick() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onDelete();
+      setBusy(false);
+    } catch {
+      setBusy(false);
+    }
   }
 
   return (
@@ -121,6 +151,7 @@ export default function TaskModal({
               <label>Título</label>
               <input
                 type="text"
+                className={errors.title ? "has-error" : ""}
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                 placeholder="Ej.: Instalación centralita"
@@ -130,7 +161,11 @@ export default function TaskModal({
 
             <div className="form-row">
               <label>Tipo</label>
-              <select value={draft.type} onChange={(e) => handleTypeChange(e.target.value)}>
+              <select
+                className={errors.type ? "has-error" : ""}
+                value={draft.type}
+                onChange={(e) => handleTypeChange(e.target.value)}
+              >
                 {TASK_TYPE_KEYS.map((key) => (
                   <option key={key} value={key}>
                     {TASK_TYPES[key].label}
@@ -144,15 +179,18 @@ export default function TaskModal({
               <label>Fecha</label>
               <input
                 type="date"
+                className={errors.date ? "has-error" : ""}
                 value={draft.date}
                 onChange={(e) => setDraft({ ...draft, date: e.target.value })}
               />
+              {errors.date && <div className="field-error">{errors.date}</div>}
             </div>
 
             <div className="form-row full">
               <label>Cliente</label>
               <div className="client-field">
                 <select
+                  className={errors.clientId ? "has-error" : ""}
                   value={draft.clientId}
                   onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
                 >
@@ -271,17 +309,34 @@ export default function TaskModal({
           <div className="form-actions">
             {!readOnly && (
               <>
-                <button type="submit" className="btn-primary">
-                  Guardar tarea
+                <button type="submit" className="btn-primary" disabled={busy}>
+                  {busy ? (
+                    <>
+                      <span className="btn-spinner" aria-hidden="true" />
+                      Guardando…
+                    </>
+                  ) : (
+                    "Guardar tarea"
+                  )}
                 </button>
                 {isEditing && (
-                  <button type="button" className="btn-danger" onClick={onDelete}>
+                  <button
+                    type="button"
+                    className="btn-danger"
+                    onClick={handleDeleteClick}
+                    disabled={busy}
+                  >
                     Eliminar
                   </button>
                 )}
               </>
             )}
-            <button type="button" className="btn-secondary" onClick={onClose}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onClose}
+              disabled={busy}
+            >
               Cerrar
             </button>
           </div>

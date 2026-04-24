@@ -1796,3 +1796,177 @@ select.toolbar-filter-select {
 .role-admin      { background: #fee2e2; color: #991b1b; }
 .role-supervisor { background: #dbeafe; color: #1e40af; }
 .role-tecnico    { background: #dcfce7; color: #166534; }
+
+/* ─── TOASTS ─────────────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: min(380px, calc(100vw - 48px));
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-modal);
+  border: 1px solid var(--line-main);
+  border-left-width: 4px;
+  font-size: 13.5px;
+  color: var(--text-main);
+  cursor: pointer;
+  animation: toast-in 220ms ease-out;
+}
+.toast-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+}
+.toast-message {
+  flex: 1;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.toast-close:hover { color: var(--text-main); background: var(--bg-soft); }
+
+.toast--success { border-left-color: var(--c-done); }
+.toast--success .toast-icon { background: var(--c-done); }
+.toast--error   { border-left-color: var(--c-blocked); }
+.toast--error   .toast-icon { background: var(--c-blocked); }
+.toast--info    { border-left-color: #3b82f6; }
+.toast--info    .toast-icon { background: #3b82f6; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── CONFIRM DIALOG ─────────────────────────────────── */
+.confirm-dialog {
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  padding: 22px 24px 18px;
+  max-width: min(440px, calc(100vw - 32px));
+  width: 100%;
+  animation: confirm-in 180ms ease-out;
+}
+.confirm-dialog-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+.confirm-dialog-message {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-soft);
+  white-space: pre-line;
+}
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.confirm-dialog--danger .confirm-dialog-title {
+  color: var(--c-blocked);
+}
+
+@keyframes confirm-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ─── FIELD ERROR (errores de validación bajo inputs) ── */
+.field-error {
+  font-size: 11.5px;
+  color: var(--c-blocked);
+  margin-top: 3px;
+  line-height: 1.3;
+}
+input.has-error,
+select.has-error,
+textarea.has-error {
+  border-color: var(--c-blocked) !important;
+}
+
+/* ─── BUTTON SPINNER (estado "guardando…" en botones) ── */
+.btn-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spinner-rotate 0.65s linear infinite;
+}
+@keyframes btn-spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ─── USERS VIEW: reset password inline y errores del formulario ── */
+.users-reset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--bg-surface-alt, rgba(0,0,0,0.03));
+  border-radius: var(--radius-md, 8px);
+}
+.users-reset-row input {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+.users-reset-row .field-error {
+  flex-basis: 100%;
+}
+.users-form-errors {
+  margin: 10px 0 0 0;
+  padding: 8px 12px;
+  list-style: none;
+  background: rgba(var(--c-blocked-rgb, 239, 68, 68), 0.08);
+  border-left: 3px solid var(--c-blocked);
+  border-radius: var(--radius-md, 8px);
+  font-size: 12.5px;
+  color: var(--c-blocked);
+}
+.users-form-errors li + li {
+  margin-top: 3px;
+}

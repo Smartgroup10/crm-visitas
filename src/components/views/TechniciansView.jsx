@@ -1,22 +1,36 @@
 import { useState } from "react";
 import { TECH_AVATAR_COLORS } from "../../data/constants";
 import { usePermissions } from "../../hooks/usePermissions";
+import { useToast } from "../../hooks/useToast";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, onDelete }) {
   const { canManage } = usePermissions();
-  const [newName, setNewName]   = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [newName, setNewName]     = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [editName, setEditName] = useState("");
+  const [editName, setEditName]   = useState("");
+  const [busyAdd, setBusyAdd]     = useState(false);
+  const [busyEdit, setBusyEdit]   = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   async function addTechnician() {
     const name = newName.trim();
     if (!name) return;
     if (technicians.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
-      alert(`El técnico "${name}" ya existe.`);
+      toast.error(`El técnico "${name}" ya existe.`);
       return;
     }
-    await onAdd(name);
-    setNewName("");
+    setBusyAdd(true);
+    try {
+      await onAdd(name);
+      setNewName("");
+    } catch {
+      // toast ya mostrado en App
+    } finally {
+      setBusyAdd(false);
+    }
   }
 
   function startEdit(tech) {
@@ -27,16 +41,37 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
   async function saveEdit() {
     const name = editName.trim();
     if (!name) return;
-    await onUpdate(editingId, name);
-    setEditingId(null);
+    setBusyEdit(true);
+    try {
+      await onUpdate(editingId, name);
+      setEditingId(null);
+    } catch {
+      // toast ya mostrado en App
+    } finally {
+      setBusyEdit(false);
+    }
   }
 
   async function deleteTechnician(tech) {
     if (tasks.some((task) => task.technicianIds.includes(tech.id))) {
-      alert("No puedes borrar este técnico porque está asignado a una o más tareas.");
+      toast.error("No puedes borrar este técnico porque está asignado a una o más tareas.");
       return;
     }
-    await onDelete(tech.id);
+    const ok = await confirm({
+      title: "Borrar técnico",
+      message: `¿Seguro que quieres borrar a "${tech.name}"?`,
+      variant: "danger",
+      confirmLabel: "Borrar",
+    });
+    if (!ok) return;
+    setDeletingId(tech.id);
+    try {
+      await onDelete(tech.id);
+    } catch {
+      // toast ya mostrado en App
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   function getTechStats(techId) {
@@ -74,9 +109,16 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
               type="button"
               className="btn-primary"
               onClick={addTechnician}
-              disabled={!newName.trim()}
+              disabled={!newName.trim() || busyAdd}
             >
-              Añadir técnico
+              {busyAdd ? (
+                <>
+                  <span className="btn-spinner" aria-hidden="true" />
+                  Añadiendo…
+                </>
+              ) : (
+                "Añadir técnico"
+              )}
             </button>
           </div>
         </div>
@@ -138,20 +180,36 @@ export default function TechniciansView({ technicians, tasks, onAdd, onUpdate, o
                   <div className="tech-card-actions">
                     {isEditing ? (
                       <>
-                        <button className="btn-primary small-btn" onClick={saveEdit}>
-                          Guardar
+                        <button
+                          className="btn-primary small-btn"
+                          onClick={saveEdit}
+                          disabled={busyEdit}
+                        >
+                          {busyEdit ? "Guardando…" : "Guardar"}
                         </button>
-                        <button className="btn-secondary small-btn" onClick={() => setEditingId(null)}>
+                        <button
+                          className="btn-secondary small-btn"
+                          onClick={() => setEditingId(null)}
+                          disabled={busyEdit}
+                        >
                           Cancelar
                         </button>
                       </>
                     ) : (
                       <>
-                        <button className="btn-secondary small-btn" onClick={() => startEdit(tech)}>
+                        <button
+                          className="btn-secondary small-btn"
+                          onClick={() => startEdit(tech)}
+                          disabled={deletingId === tech.id}
+                        >
                           Editar
                         </button>
-                        <button className="btn-danger small-btn" onClick={() => deleteTechnician(tech)}>
-                          Borrar
+                        <button
+                          className="btn-danger small-btn"
+                          onClick={() => deleteTechnician(tech)}
+                          disabled={deletingId === tech.id}
+                        >
+                          {deletingId === tech.id ? "Borrando…" : "Borrar"}
                         </button>
                       </>
                     )}
