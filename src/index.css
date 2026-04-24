@@ -1472,6 +1472,49 @@ select {
 
 .small-btn { padding: 4px 9px; font-size: 11.5px; }
 
+/* ─── COMPACT INLINE "NEW CLIENT" WIDGET ──────────────── */
+.client-field {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.client-field > select {
+  flex: 1;
+  min-width: 0;
+}
+.client-field-toggle {
+  flex-shrink: 0;
+  padding: 0 12px;
+  border: 1.5px solid var(--line-main);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.client-field-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.client-field-toggle[aria-expanded="true"] {
+  background: var(--bg-soft);
+  border-color: var(--line-soft);
+  color: var(--text-soft);
+}
+.client-new-inline {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: stretch;
+}
+.client-new-inline input {
+  flex: 1;
+  min-width: 0;
+}
+
 .form-actions {
   grid-column: 1 / -1;
   display: flex;
