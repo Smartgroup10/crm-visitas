@@ -671,7 +671,10 @@ select {
   background: #fafbfe;
 }
 .calendar-grid .calendar-cell:nth-child(7n) { border-right: 0; }
-.calendar-cell:hover { background: #f0f5ff !important; }
+.calendar-cell:hover { background: #f0f5ff !important; z-index: 30; }
+/* Cuando hay hover sobre una tarea, la celda que la contiene sube por encima
+   de las celdas vecinas para que el tooltip flote por delante, no detrás. */
+.calendar-cell:has(.task-pill:hover) { z-index: 40; }
 
 .calendar-cell.outside { background: #f4f5fa !important; }
 .calendar-cell.outside .cell-day { color: #c0c8d8; }
@@ -723,7 +726,7 @@ select {
   overflow: visible;
   border-left: 3px solid rgba(255,255,255,0.5);
 }
-.task-pill:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.task-pill:hover { filter: brightness(1.07); transform: translateY(-1px); z-index: 40; }
 
 .task-pill-content { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .task-type-icon { flex: 0 0 auto; font-size: 10px; line-height: 1; }
