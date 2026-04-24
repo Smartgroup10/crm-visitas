@@ -18,11 +18,11 @@ import CounterModal from "./components/CounterModal";
 import ShortcutsHelp from "./components/ShortcutsHelp";
 import AppSkeleton from "./components/AppSkeleton";
 import ClientsView from "./components/views/ClientsView";
-import TechniciansView from "./components/views/TechniciansView";
 import InicioView from "./components/views/InicioView";
 import MiTrabajoView from "./components/views/MiTrabajoView";
 import SeguimientoView from "./components/views/SeguimientoView";
 import UsersView from "./components/views/UsersView";
+import InformesView from "./components/views/InformesView";
 
 export default function App() {
   const { user } = useAuth();
@@ -45,12 +45,20 @@ export default function App() {
 
   const isAdmin = user?.role === "admin";
 
+  // Alias semántico: las vistas históricas piden `technicians` como la
+  // lista de personas asignables a una tarea. Tras la fusión, esa lista
+  // ES la de usuarios: cualquier usuario puede ser asignado.
+  const technicians = users;
+
   // ── Estado de datos ───────────────────────────────────────
-  const [clients, setClients]         = useState([]);
-  const [technicians, setTechnicians] = useState([]);
-  const [tasks, setTasks]             = useState([]);
-  const [users, setUsers]             = useState([]);
-  const [loading, setLoading]         = useState(true);
+  // Nota: `technicians` no existe como tabla separada desde la fusión con
+  // `users`. Cualquier usuario (admin / supervisor / tecnico) puede ser
+  // asignado a una tarea, así que las vistas reciben `users` como la lista
+  // de personas asignables.
+  const [clients, setClients] = useState([]);
+  const [tasks, setTasks]     = useState([]);
+  const [users, setUsers]     = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // ── Estado de UI ─────────────────────────────────────────
   // La fecha seleccionada es la única ancla temporal del calendario:
@@ -74,22 +82,18 @@ export default function App() {
     setClients(rows || []);
   }, []);
 
-  const loadTechnicians = useCallback(async () => {
-    const rows = await api.get("/technicians");
-    setTechnicians(rows || []);
-  }, []);
-
-  // Solo el admin puede listar usuarios; a los demás el backend les devolvería 403.
+  // Listado de equipo accesible a cualquier usuario autenticado:
+  // lo usamos para selectores de técnico, filtros por persona y
+  // las vistas de Equipo / Informes. El backend restringe las escrituras.
   const loadUsers = useCallback(async () => {
-    if (!isAdmin) return;
     try {
       const rows = await api.get("/users");
       setUsers(rows || []);
     } catch (err) {
       console.error("Error cargando usuarios:", err);
-      toast.error(err?.message || "No se pudieron cargar los usuarios.");
+      toast.error(err?.message || "No se pudo cargar el equipo.");
     }
-  }, [isAdmin, toast]);
+  }, [toast]);
 
   // ── Arranque: carga inicial + conexión de socket ────────
   useEffect(() => {
@@ -97,7 +101,7 @@ export default function App() {
 
     async function init() {
       try {
-        await Promise.all([loadTasks(), loadClients(), loadTechnicians(), loadUsers()]);
+        await Promise.all([loadTasks(), loadClients(), loadUsers()]);
       } catch (err) {
         console.error("Error cargando datos iniciales:", err);
         toast.error(err?.message || "Error cargando datos iniciales.");
@@ -111,25 +115,22 @@ export default function App() {
     // Recargar todo el listado (en lugar de aplicar el delta) mantiene la lógica
     // simple y garantiza orden y consistencia.
     const socket = connectSocket();
-    const onTasks       = () => loadTasks();
-    const onClients     = () => loadClients();
-    const onTechnicians = () => loadTechnicians();
-    const onUsers       = () => loadUsers();
+    const onTasks   = () => loadTasks();
+    const onClients = () => loadClients();
+    const onUsers   = () => loadUsers();
 
-    socket.on("tasks:change",       onTasks);
-    socket.on("clients:change",     onClients);
-    socket.on("technicians:change", onTechnicians);
-    socket.on("users:change",       onUsers);
+    socket.on("tasks:change",   onTasks);
+    socket.on("clients:change", onClients);
+    socket.on("users:change",   onUsers);
 
     return () => {
       cancelled = true;
-      socket.off("tasks:change",       onTasks);
-      socket.off("clients:change",     onClients);
-      socket.off("technicians:change", onTechnicians);
-      socket.off("users:change",       onUsers);
+      socket.off("tasks:change",   onTasks);
+      socket.off("clients:change", onClients);
+      socket.off("users:change",   onUsers);
       disconnectSocket();
     };
-  }, [loadTasks, loadClients, loadTechnicians, loadUsers, toast]);
+  }, [loadTasks, loadClients, loadUsers, toast]);
 
   // ── Sincronización de filtros ────────────────────────────
   useEffect(() => {
@@ -295,38 +296,7 @@ export default function App() {
     }
   }
 
-  // ── CRUD — Técnicos ──────────────────────────────────────
-  async function handleAddTechnician(name) {
-    try {
-      await api.post("/technicians", { name, phone: "", specialty: "" });
-      toast.success(`Técnico "${name}" creado.`);
-    } catch (err) {
-      toast.error(err?.message || "No se pudo crear el técnico.");
-      throw err;
-    }
-  }
-
-  async function handleUpdateTechnician(id, name) {
-    try {
-      await api.put(`/technicians/${id}`, { name });
-      toast.success("Técnico actualizado.");
-    } catch (err) {
-      toast.error(err?.message || "No se pudo actualizar el técnico.");
-      throw err;
-    }
-  }
-
-  async function handleDeleteTechnician(id) {
-    try {
-      await api.delete(`/technicians/${id}`);
-      toast.success("Técnico borrado.");
-    } catch (err) {
-      toast.error(err?.message || "No se pudo borrar el técnico.");
-      throw err;
-    }
-  }
-
-  // ── CRUD — Usuarios (solo admin) ─────────────────────────
+  // ── CRUD — Equipo (solo admin) ───────────────────────────
   // Estos re-lanzan sin toast de error para que UsersView pueda mostrar
   // errores por campo (validación). El toast de éxito sí lo ponemos aquí.
   async function handleCreateUser(payload) {
@@ -441,16 +411,6 @@ export default function App() {
               technicians={technicians}
               onEditTask={editTask}
             />
-          ) : section === "tecnicos" ? (
-            <section className="main-panel clients-main-panel full-width-panel">
-              <TechniciansView
-                technicians={technicians}
-                tasks={tasks}
-                onAdd={handleAddTechnician}
-                onUpdate={handleUpdateTechnician}
-                onDelete={handleDeleteTechnician}
-              />
-            </section>
           ) : section === "inicio" ? (
             <section className="main-panel clients-main-panel full-width-panel">
               <InicioView
@@ -469,15 +429,26 @@ export default function App() {
                 onEditTask={editTask}
               />
             </section>
-          ) : section === "usuarios" && isAdmin ? (
+          ) : section === "usuarios" ? (
             <section className="main-panel clients-main-panel full-width-panel">
               <UsersView
                 users={users}
+                tasks={tasks}
                 currentUserId={user?.id}
+                canManage={isAdmin}
                 onCreate={handleCreateUser}
                 onUpdate={handleUpdateUser}
                 onResetPassword={handleResetUserPassword}
                 onDelete={handleDeleteUser}
+              />
+            </section>
+          ) : section === "informes" ? (
+            <section className="main-panel clients-main-panel full-width-panel">
+              <InformesView
+                tasks={tasks}
+                users={users}
+                clients={clients}
+                onEditTask={editTask}
               />
             </section>
           ) : (

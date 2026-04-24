@@ -8,7 +8,8 @@ const TITLES = {
   mitrabajo: "Mi trabajo",
   instalaciones: "Seguimiento de intervenciones",
   clientes: "Clientes",
-  tecnicos: "Técnicos",
+  usuarios: "Equipo",
+  informes: "Informes",
 };
 
 const SUBTITLES = {
@@ -16,7 +17,8 @@ const SUBTITLES = {
   mitrabajo: "Gestión y atención prioritaria",
   instalaciones: "Visitas · Instalaciones · Mantenimiento · Incidencias",
   clientes: "Gestión del catálogo de clientes",
-  tecnicos: "Gestión del equipo técnico",
+  usuarios: "Equipo, accesos y responsabilidades",
+  informes: "Histórico, estadísticas y rendimiento",
 };
 
 export default function Topbar({ stats, technicians, openNewTask }) {

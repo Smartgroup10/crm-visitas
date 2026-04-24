@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { query } from "../db.js";
 import { emit } from "../io.js";
 import { logger } from "../logger.js";
+import { requireRole } from "../auth.js";
 import { schemas, validate } from "../schemas.js";
 
 export const usersRouter = Router();
@@ -18,17 +19,24 @@ function publicUser(row) {
     email:      row.email,
     name:       row.name,
     role:       row.role,
+    phone:      row.phone || "",
+    specialty:  row.specialty || "",
     created_at: row.created_at,
   };
 }
 
 // ─── GET /api/users ──────────────────────────────────────
+// Listado abierto a cualquier usuario autenticado: el frontend lo usa para
+// poblar selectores de técnico, filtros por persona, vista de Equipo, etc.
+// Las escrituras (POST/PUT/DELETE) siguen siendo solo para admin.
 usersRouter.get("/", async (_req, res) => {
   try {
     const { rows } = await query(
-      "select id, email, name, role, created_at from users order by created_at asc"
+      `select id, email, name, role, phone, specialty, created_at
+         from users
+        order by created_at asc`
     );
-    res.json(rows);
+    res.json(rows.map(publicUser));
   } catch (err) {
     logger.error({ err }, "[users/list]");
     res.status(500).json({ error: "Error obteniendo usuarios" });
@@ -36,21 +44,29 @@ usersRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/users ─────────────────────────────────────
-usersRouter.post("/", validate(schemas.userCreate), async (req, res) => {
+usersRouter.post("/", requireRole("admin"), validate(schemas.userCreate), async (req, res) => {
   try {
-    // email, name, password, role ya vienen normalizados por el schema
-    // (trim, lowercase, defaults, role ∈ VALID_ROLES, password.length ≥ 8).
-    const { email, name = "", password, role } = req.body;
+    // email, name, password, role, phone, specialty ya vienen normalizados
+    // por el schema (trim, lowercase, defaults, role ∈ VALID_ROLES, password ≥ 8).
+    const {
+      email,
+      name = "",
+      password,
+      role,
+      phone = "",
+      specialty = "",
+    } = req.body;
 
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await query(
-      `insert into users (email, password_hash, name, role)
-       values ($1, $2, $3, $4)
-       returning id, email, name, role, created_at`,
-      [email, hash, name, role]
+      `insert into users (email, password_hash, name, role, phone, specialty)
+       values ($1, $2, $3, $4, $5, $6)
+       returning id, email, name, role, phone, specialty, created_at`,
+      [email, hash, name, role, phone, specialty]
     );
-    emit("users:change", { type: "insert", user: rows[0] });
-    res.json(rows[0]);
+    const user = publicUser(rows[0]);
+    emit("users:change", { type: "insert", user });
+    res.json(user);
   } catch (err) {
     if (err?.code === "23505") {
       // duplicado de email (unique constraint)
@@ -62,10 +78,11 @@ usersRouter.post("/", validate(schemas.userCreate), async (req, res) => {
 });
 
 // ─── PUT /api/users/:id ──────────────────────────────────
-// Actualiza nombre y/o rol. El email no se cambia (sería liarla con logins).
-usersRouter.put("/:id", validate(schemas.userUpdate), async (req, res) => {
+// Actualiza nombre, rol, teléfono y especialidad. El email no se cambia
+// (sería liarla con logins). Para cambiar la contraseña, usa PATCH.
+usersRouter.put("/:id", requireRole("admin"), validate(schemas.userUpdate), async (req, res) => {
   try {
-    const { name = "", role } = req.body;
+    const { name = "", role, phone = "", specialty = "" } = req.body;
 
     // Protección: evitar que el admin se quite el rol a sí mismo (se quedaría sin acceso)
     if (req.user.id === req.params.id && role !== "admin") {
@@ -75,13 +92,16 @@ usersRouter.put("/:id", validate(schemas.userUpdate), async (req, res) => {
     }
 
     const { rows } = await query(
-      `update users set name = $1, role = $2 where id = $3
-       returning id, email, name, role, created_at`,
-      [name, role, req.params.id]
+      `update users
+          set name = $1, role = $2, phone = $3, specialty = $4
+        where id = $5
+      returning id, email, name, role, phone, specialty, created_at`,
+      [name, role, phone, specialty, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: "Usuario no encontrado" });
-    emit("users:change", { type: "update", user: rows[0] });
-    res.json(rows[0]);
+    const user = publicUser(rows[0]);
+    emit("users:change", { type: "update", user });
+    res.json(user);
   } catch (err) {
     logger.error({ err }, "[users/update]");
     res.status(500).json({ error: "Error actualizando usuario" });
@@ -91,7 +111,7 @@ usersRouter.put("/:id", validate(schemas.userUpdate), async (req, res) => {
 // ─── PATCH /api/users/:id/password ───────────────────────
 // Reset de contraseña (por admin). Si quisieras que el propio usuario se
 // la cambie, sería una ruta aparte con comprobación de la password actual.
-usersRouter.patch("/:id/password", validate(schemas.passwordChange), async (req, res) => {
+usersRouter.patch("/:id/password", requireRole("admin"), validate(schemas.passwordChange), async (req, res) => {
   try {
     const { password } = req.body;
     const hash = await bcrypt.hash(password, 10);
@@ -108,7 +128,7 @@ usersRouter.patch("/:id/password", validate(schemas.passwordChange), async (req,
 });
 
 // ─── DELETE /api/users/:id ───────────────────────────────
-usersRouter.delete("/:id", async (req, res) => {
+usersRouter.delete("/:id", requireRole("admin"), async (req, res) => {
   try {
     // Protección: no permitir borrarse a uno mismo (evita dejarse sin admins
     // accidentalmente si era el único).

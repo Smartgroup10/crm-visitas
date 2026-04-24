@@ -9,7 +9,17 @@ export const STATUS_OPTIONS = ["No iniciado", "En curso", "Listo", "Bloqueado"];
 export const PRIORITY_OPTIONS = ["Baja", "Media", "Alta", "Urgente"];
 export const CATEGORY_OPTIONS = ["Visita", "Instalación", "Mantenimiento", "Incidencia"];
 
-export const VALID_SECTIONS = ["inicio", "mitrabajo", "instalaciones", "clientes", "tecnicos"];
+// "tecnicos" ya no existe (fusionado con "equipo"); se mantiene la clave
+// "usuarios" (ahora etiquetada "Equipo" en la UI) para no invalidar el
+// estado guardado en localStorage de usuarios antiguos.
+export const VALID_SECTIONS = [
+  "inicio",
+  "mitrabajo",
+  "instalaciones",
+  "clientes",
+  "usuarios",
+  "informes",
+];
 
 export const CALENDAR_MODES = ["mes", "semana", "dia"];
 

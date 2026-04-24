@@ -6,7 +6,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 
-import { authMiddleware, requireRole, verifyToken } from "./auth.js";
+import { authMiddleware, verifyToken } from "./auth.js";
 import { setIO } from "./io.js";
 import { pool } from "./db.js";
 import { applySchema, seedAdmin, waitForDb } from "./seed.js";
@@ -15,7 +15,6 @@ import { logger } from "./logger.js";
 import { authRouter }        from "./routes/auth.js";
 import { tasksRouter }       from "./routes/tasks.js";
 import { clientsRouter }     from "./routes/clients.js";
-import { techniciansRouter } from "./routes/technicians.js";
 import { usersRouter }       from "./routes/users.js";
 
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -113,12 +112,13 @@ app.get("/health/ready", async (_req, res) => {
 });
 
 // ─── Rutas ───────────────────────────────────────────────
-app.use("/api/auth",        authRouter);
-app.use("/api/tasks",       authMiddleware, tasksRouter);
-app.use("/api/clients",     authMiddleware, clientsRouter);
-app.use("/api/technicians", authMiddleware, techniciansRouter);
-// Gestión de usuarios: solo admins
-app.use("/api/users",       authMiddleware, requireRole("admin"), usersRouter);
+app.use("/api/auth",    authRouter);
+app.use("/api/tasks",   authMiddleware, tasksRouter);
+app.use("/api/clients", authMiddleware, clientsRouter);
+// Gestión del equipo (usuarios). El listado es accesible a cualquier usuario
+// autenticado (se usa para asignar tareas, filtrar, etc.), pero las
+// operaciones de escritura se restringen dentro del router a admin.
+app.use("/api/users",   authMiddleware, usersRouter);
 
 // ─── Socket.io: autenticación en handshake ───────────────
 io.use((socket, next) => {

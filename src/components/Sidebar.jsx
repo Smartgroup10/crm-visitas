@@ -2,7 +2,7 @@ import { useUI } from "../hooks/useUI";
 import { useAuth } from "../hooks/useAuth";
 import {
   IconHome, IconCheckSquare, IconClipboard, IconUsers,
-  IconWrench, IconBarChart, IconKey, IconLogOut,
+  IconWrench, IconBarChart, IconLogOut,
 } from "./Icon";
 
 function getInitials(name) {
@@ -32,7 +32,6 @@ export default function Sidebar() {
 
   const displayName = profile?.name || "Usuario";
   const initials    = getInitials(displayName);
-  const isAdmin     = profile?.role === "admin";
   const roleLabel =
     profile?.role === "admin"      ? "Administrador" :
     profile?.role === "supervisor" ? "Supervisor"    :
@@ -57,17 +56,10 @@ export default function Sidebar() {
         <div className="nav-section-label">Operaciones</div>
         <NavItem icon={IconClipboard} label="Seguimiento" active={section === "instalaciones"} onClick={() => setSection("instalaciones")} />
         <NavItem icon={IconUsers}     label="Clientes"    active={section === "clientes"}      onClick={() => setSection("clientes")} />
-        <NavItem icon={IconWrench}    label="Técnicos"    active={section === "tecnicos"}      onClick={() => setSection("tecnicos")} />
+        <NavItem icon={IconWrench}    label="Equipo"      active={section === "usuarios"}      onClick={() => setSection("usuarios")} />
 
         <div className="nav-section-label">Análisis</div>
-        <NavItem icon={IconBarChart} label="Informes" disabled />
-
-        {isAdmin && (
-          <>
-            <div className="nav-section-label">Administración</div>
-            <NavItem icon={IconKey} label="Usuarios" active={section === "usuarios"} onClick={() => setSection("usuarios")} />
-          </>
-        )}
+        <NavItem icon={IconBarChart} label="Informes" active={section === "informes"} onClick={() => setSection("informes")} />
       </nav>
 
       <div className="sidebar-footer">

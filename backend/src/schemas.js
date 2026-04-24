@@ -55,22 +55,6 @@ export const schemas = {
     name: trimmed(200).min(1, "Nombre requerido"),
   }),
 
-  // Technicians
-  technicianCreate: z.object({
-    name:      trimmed(200).min(1, "Nombre requerido"),
-    phone:     optionalString(40),
-    specialty: optionalString(200),
-  }),
-  technicianUpdate: z
-    .object({
-      name:      trimmed(200).min(1, "Nombre requerido").optional(),
-      phone:     optionalString(40),
-      specialty: optionalString(200),
-    })
-    .refine((d) => Object.keys(d).length > 0, {
-      message: "Nada que actualizar",
-    }),
-
   // Tasks. No usamos .strict(): si el frontend envía campos legacy que
   // ya no se persisten (p.ej. campos específicos de un tipo que quitamos
   // de la UI), zod los descarta silenciosamente en lugar de rechazar la
@@ -88,16 +72,22 @@ export const schemas = {
       message: "Nada que actualizar",
     }),
 
-  // Users
+  // Users (== miembros del equipo: admin / supervisor / tecnico).
+  // phone y specialty se usan para el directorio del equipo y para la
+  // vista de informes; no influyen en autenticación ni autorización.
   userCreate: z.object({
-    email:    trimmed(255).toLowerCase().email("Email inválido"),
-    name:     optionalString(200),
-    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(200),
-    role:     z.enum(ROLES).optional().default("tecnico"),
+    email:     trimmed(255).toLowerCase().email("Email inválido"),
+    name:      optionalString(200),
+    password:  z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(200),
+    role:      z.enum(ROLES).optional().default("tecnico"),
+    phone:     optionalString(40),
+    specialty: optionalString(200),
   }),
   userUpdate: z.object({
-    name: optionalString(200),
-    role: z.enum(ROLES),
+    name:      optionalString(200),
+    role:      z.enum(ROLES),
+    phone:     optionalString(40),
+    specialty: optionalString(200),
   }),
   passwordChange: z.object({
     password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(200),
