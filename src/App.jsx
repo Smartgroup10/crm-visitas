@@ -45,20 +45,21 @@ export default function App() {
 
   const isAdmin = user?.role === "admin";
 
-  // Alias semántico: las vistas históricas piden `technicians` como la
-  // lista de personas asignables a una tarea. Tras la fusión, esa lista
-  // ES la de usuarios: cualquier usuario puede ser asignado.
-  const technicians = users;
-
   // ── Estado de datos ───────────────────────────────────────
   // Nota: `technicians` no existe como tabla separada desde la fusión con
   // `users`. Cualquier usuario (admin / supervisor / tecnico) puede ser
   // asignado a una tarea, así que las vistas reciben `users` como la lista
-  // de personas asignables.
+  // de personas asignables (expuesto abajo como alias `technicians`).
   const [clients, setClients] = useState([]);
   const [tasks, setTasks]     = useState([]);
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Alias semántico: las vistas históricas piden `technicians` como la
+  // lista de personas asignables a una tarea. Tras la fusión, esa lista
+  // ES la de usuarios. Debe ir DESPUÉS del useState que declara `users`
+  // (si no, explota con ReferenceError por TDZ al montar).
+  const technicians = users;
 
   // ── Estado de UI ─────────────────────────────────────────
   // La fecha seleccionada es la única ancla temporal del calendario:
