@@ -130,13 +130,46 @@ insert into clients (id, name) values
   ('00000000-0000-0000-0000-000000000005', 'Oficinas Smartgroup')
 on conflict (id) do nothing;
 
--- Técnicos de ejemplo (ahora como usuarios con rol `tecnico` y password vacío).
--- Reusan los mismos UUID que antes para no romper tasks.technician_ids.
-insert into users (id, email, password_hash, name, role, phone, specialty) values
-  ('00000000-0000-0001-0000-000000000001', 'tecnico-carlos@local',   '', 'Carlos',   'tecnico', '', 'Telefonía'),
-  ('00000000-0000-0001-0000-000000000002', 'tecnico-marta@local',    '', 'Marta',    'tecnico', '', 'Redes'),
-  ('00000000-0000-0001-0000-000000000003', 'tecnico-fernando@local', '', 'Fernando', 'tecnico', '', 'Instalaciones'),
-  ('00000000-0000-0001-0000-000000000004', 'tecnico-laura@local',    '', 'Laura',    'tecnico', '', 'Soporte'),
-  ('00000000-0000-0001-0000-000000000005', 'tecnico-andres@local',   '', 'Andrés',   'tecnico', '', 'Mantenimiento'),
-  ('00000000-0000-0001-0000-000000000006', 'tecnico-luis@local',     '', 'Luis',     'tecnico', '', 'Infraestructura')
-on conflict (id)    do nothing;
+-- ─── LIMPIEZA DE PLACEHOLDERS ─────────────────────────────
+-- Históricamente poblábamos el equipo con 6 "técnicos demo" (password vacío)
+-- más los migrados desde la antigua tabla `technicians` (también password
+-- vacío porque no tenían credenciales). Ninguno puede hacer login y saturan
+-- la vista de Equipo con usuarios falsos que parecen duplicados.
+--
+-- Ahora el flujo es: el admin crea un usuario desde la UI con email y
+-- contraseña → automáticamente queda como persona asignable en tareas.
+-- No necesitamos semillas de personas.
+--
+-- Borramos todos los users sin password_hash (placeholders), y limpiamos
+-- los uuid huérfanos que puedan quedar en tasks.technician_ids. Los users
+-- con password_hash real (creados por el admin) se respetan siempre.
+do $$
+begin
+  if exists (select 1 from users where coalesce(password_hash, '') = '') then
+
+    -- 1) Quitar las referencias huérfanas de los arrays de tareas.
+    --    El `&&` (intersección de arrays) selecciona solo tareas que tengan
+    --    al menos un placeholder; el array_agg reconstruye el array dejando
+    --    únicamente los ids que siguen correspondiendo a un usuario real.
+    update tasks
+       set technician_ids = coalesce(
+             (select array_agg(tid)
+                from unnest(technician_ids) as tid
+               where exists (
+                 select 1 from users u
+                  where u.id = tid
+                    and coalesce(u.password_hash, '') <> ''
+               )),
+             '{}'::uuid[]
+           )
+     where technician_ids && (
+       select coalesce(array_agg(id), '{}'::uuid[])
+         from users
+        where coalesce(password_hash, '') = ''
+     );
+
+    -- 2) Borrar los placeholders. Si una tarea tenía created_by/updated_by
+    --    apuntando aquí, el FK es `on delete set null` — no rompe nada.
+    delete from users where coalesce(password_hash, '') = '';
+  end if;
+end$$;
