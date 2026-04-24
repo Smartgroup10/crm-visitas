@@ -72,8 +72,11 @@ begin
       t.created_at
     from technicians t
     where not exists (select 1 from users u where u.id = t.id)
-    on conflict (id)    do nothing
-    on conflict (email) do nothing;
+    -- `on conflict do nothing` (sin columna) cubre cualquier unique
+    -- violation: colisión de id (pk) o de email. PostgreSQL no permite
+    -- encadenar dos `on conflict` en un mismo INSERT, así que esta forma
+    -- sin target es la que cubre ambos casos a la vez.
+    on conflict do nothing;
 
     drop table technicians;
   end if;
