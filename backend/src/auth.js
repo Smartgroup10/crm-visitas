@@ -1,18 +1,34 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET;
-if (!SECRET) {
+/**
+ * Resolución del secreto JWT.
+ *
+ * En producción es obligatorio: si no está definido, abortamos el arranque.
+ * En desarrollo permitimos un fallback visible para no bloquear el trabajo
+ * local, pero lo avisamos por consola para que nadie lo promueva sin querer.
+ */
+const IS_PROD = process.env.NODE_ENV === "production";
+const RAW_SECRET = process.env.JWT_SECRET;
+
+if (IS_PROD && !RAW_SECRET) {
+  console.error(
+    "[auth] FATAL: JWT_SECRET no está definido. El servidor no puede arrancar en producción sin un secreto."
+  );
+  process.exit(1);
+}
+if (!RAW_SECRET) {
   console.warn("[auth] JWT_SECRET no definido; usando valor de desarrollo inseguro");
 }
 
+const SECRET = RAW_SECRET || "dev-secret";
 const TOKEN_TTL = "7d";
 
 export function signToken(payload) {
-  return jwt.sign(payload, SECRET || "dev-secret", { expiresIn: TOKEN_TTL });
+  return jwt.sign(payload, SECRET, { expiresIn: TOKEN_TTL });
 }
 
 export function verifyToken(token) {
-  return jwt.verify(token, SECRET || "dev-secret");
+  return jwt.verify(token, SECRET);
 }
 
 export function authMiddleware(req, res, next) {
