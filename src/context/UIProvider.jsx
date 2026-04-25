@@ -34,6 +34,11 @@ export function UIProvider({ children }) {
   const [counterFilter, setCounterFilter] = useState("Total");
   const [counterSearch, setCounterSearch] = useState("");
 
+  // Drawer del sidebar en mobile. Estado efímero (no persistimos: que se
+  // abra/cierre cada vez que abres la app es lo natural). En desktop el
+  // sidebar siempre está visible y este estado se ignora.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const setSection = (v) => setUi((u) => ({ ...u, section: v }));
   const setActiveView = (v) => setUi((u) => ({ ...u, activeView: v }));
   const setCalendarMode = (v) => setUi((u) => ({ ...u, calendarMode: v }));
@@ -86,6 +91,8 @@ export function UIProvider({ children }) {
     setCounterFilter,
     setCounterSearch,
     openCounterModal,
+    drawerOpen,
+    setDrawerOpen,
   };
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;

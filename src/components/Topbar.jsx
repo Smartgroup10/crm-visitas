@@ -41,11 +41,24 @@ export default function Topbar({ stats, technicians, openNewTask }) {
     setCategoryFilter,
     resetFilters,
     openCounterModal,
+    setDrawerOpen,
   } = useUI();
 
   return (
     <header className="topbar compact-topbar">
       <div className="top-title-row">
+        {/* Hamburger mobile: abre el drawer del sidebar. CSS lo oculta en desktop. */}
+        <button
+          type="button"
+          className="topbar-burger"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Abrir menú de navegación"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
+
         <div className="top-title-block">
           <h1>{TITLES[section]}</h1>
           <p>{SUBTITLES[section]}</p>

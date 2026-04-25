@@ -225,9 +225,16 @@ select {
 /* ─── APP SHELL ─────────────────────────────────────── */
 .app-shell {
   display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* ─── SIDEBAR BACKDROP ─────────────────────────────────
+   En desktop no se ve nunca. En mobile aparece cuando el drawer está
+   abierto y un click sobre él lo cierra. */
+.sidebar-backdrop {
+  display: none;
 }
 
 /* ─── SIDEBAR ─────────────────────────────────────────── */
@@ -238,6 +245,21 @@ select {
   overflow: hidden;
   border-right: 1px solid var(--sb-border);
 }
+
+/* Botón cerrar visible solo en drawer mobile */
+.sidebar-close {
+  display: none;
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  align-items: center;
+  justify-content: center;
+  color: var(--sb-text);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.sidebar-close:hover { background: var(--sb-hover-bg); color: #fff; }
 
 .sidebar-brand {
   display: flex;
@@ -329,9 +351,14 @@ select {
   left: -8px;
   top: 6px;
   bottom: 6px;
-  width: 2.5px;
-  border-radius: 0 2px 2px 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
   background: var(--brand);
+  box-shadow: 0 0 12px rgba(37,99,235,0.45);
+}
+.nav-item:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--brand);
 }
 .nav-item:disabled,
 .nav-soon {
@@ -675,56 +702,193 @@ select {
   width: 100%;
 }
 
-/* ─── BUTTONS ─────────────────────────────────────────── */
-.btn-primary, .btn-secondary, .btn-danger {
+/* ─── BUTTONS ─────────────────────────────────────────────
+ *
+ * Sistema de botones unificado.
+ *
+ * Variantes (color/intención):
+ *   .btn-primary    Acción principal de la pantalla (1 por sección).
+ *   .btn-secondary  Outline. Acción complementaria.
+ *   .btn-danger     Confirmación destructiva.
+ *   .btn-ghost      Sin borde, hover suave. Para acciones discretas.
+ *
+ * Tamaños:
+ *   .btn-sm   (compacto, listas y filas de tabla)
+ *   .btn      (default, 32-34px)
+ *   .btn-lg   (CTA grande, login y empty states)
+ *
+ * Modificadores:
+ *   .btn-block        ocupa el ancho del contenedor
+ *   .btn-icon         square, solo icono (32x32 o 40x40 con .btn-lg)
+ *   .is-loading       deshabilita y muestra spinner via clase
+ *
+ * Compat: se conservan .small-btn, .quick-btn, .ghost-btn y .ghost-icon
+ * porque están en uso por todo el HTML existente.
+ */
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-ghost {
+  --_btn-pad-y: 8px;
+  --_btn-pad-x: 14px;
+  --_btn-font:  12.5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: var(--_btn-pad-y) var(--_btn-pad-x);
   border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: var(--_btn-font);
   font-weight: 600;
   letter-spacing: 0.1px;
-  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  line-height: 1.2;
   white-space: nowrap;
+  transition: background var(--t-fast), border-color var(--t-fast),
+              color var(--t-fast), box-shadow var(--t-fast),
+              transform 0.08s ease;
+  user-select: none;
 }
-.btn-primary:hover, .btn-secondary:hover, .btn-danger:hover {
-  transform: translateY(-1px);
+.btn:active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-danger:active,
+.btn-ghost:active { transform: scale(0.98); }
+
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+.btn-ghost:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
+
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-danger:disabled,
+.btn-ghost:disabled,
+.btn.is-loading,
+.btn-primary.is-loading,
+.btn-secondary.is-loading,
+.btn-danger.is-loading {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
+
+/* Variantes ─────────────── */
 .btn-primary {
   background: var(--brand);
   color: #fff;
+  border-color: var(--brand);
+  box-shadow: 0 1px 2px rgba(37,99,235,0.18);
 }
-.btn-primary:hover { background: var(--brand-hover); }
-.btn-primary:disabled, .btn-secondary:disabled, .btn-danger:disabled {
-  opacity: 0.45; cursor: not-allowed; transform: none; pointer-events: none;
+.btn-primary:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+  box-shadow: 0 2px 6px rgba(37,99,235,0.28);
 }
+
 .btn-secondary {
   background: var(--bg-surface);
   color: var(--text-main);
-  border: 1px solid var(--line-main);
+  border-color: var(--line-main);
 }
-.btn-secondary:hover { background: var(--bg-soft); border-color: #cfd6e2; }
+.btn-secondary:hover {
+  background: var(--bg-soft);
+  border-color: var(--line-strong);
+  color: var(--text-strong);
+}
+
 .btn-danger {
-  background: #dc2626;
+  background: var(--danger);
   color: #fff;
+  border-color: var(--danger);
+  box-shadow: 0 1px 2px rgba(239,68,68,0.18);
 }
-.btn-danger:hover { background: #b91c1c; }
+.btn-danger:hover {
+  background: var(--c-red-700);
+  border-color: var(--c-red-700);
+  box-shadow: 0 2px 6px rgba(239,68,68,0.28);
+}
 
-.full-btn { width: 100%; }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-soft);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--bg-soft);
+  color: var(--text-strong);
+}
 
+/* Tama\u00f1os ─────────────── */
+.btn-sm {
+  --_btn-pad-y: 5px;
+  --_btn-pad-x: 10px;
+  --_btn-font: 11.5px;
+  border-radius: var(--radius-sm);
+}
+.btn-lg {
+  --_btn-pad-y: 11px;
+  --_btn-pad-x: 18px;
+  --_btn-font: 13.5px;
+  border-radius: var(--radius-lg);
+}
+
+/* Modificadores ─────────────── */
+.btn-block { width: 100%; }
+.full-btn { width: 100%; } /* alias hist\u00f3rico */
+
+.btn-icon {
+  --_btn-pad-x: 0;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+.btn-icon.btn-sm { width: 28px; height: 28px; }
+.btn-icon.btn-lg { width: 42px; height: 42px; }
+
+/* Compat: .small-btn y .quick-btn siguen funcionando como antes */
+.small-btn { --_btn-pad-y: 4px; --_btn-pad-x: 9px; --_btn-font: 11.5px; }
+.quick-btn { height: 34px; padding-inline: 13px; }
+
+/* Spinner inline para botones con .is-loading o disabled durante una acci\u00f3n */
+.btn-spinner-inline {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ─── GHOST (compat hist\u00f3rico) ─────────────── */
 .ghost-btn, .ghost-icon {
   background: var(--bg-surface);
   border: 1.5px solid var(--line-main);
   color: var(--text-main);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
   font-size: 12.5px;
 }
-.ghost-btn:hover, .ghost-icon:hover { background: var(--bg-soft); border-color: #c4cedf; }
+.ghost-btn:hover, .ghost-icon:hover {
+  background: var(--bg-soft);
+  border-color: var(--line-strong);
+  color: var(--text-strong);
+}
+.ghost-btn:focus-visible, .ghost-icon:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--brand);
+}
 .ghost-btn { padding: 6px 11px; }
 .ghost-icon {
   width: 32px;
@@ -733,6 +897,46 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ─── CARD (primitiva) ─────────────────────────────────────
+ *
+ * Patrón visual común a team-card, kpi-card, day-task-card, clients-list-card,
+ * etc. Cada subclase añade lo suyo (gap, layout interno, decoración) pero
+ * el "skin" (fondo, borde, radius, sombra, hover) lo controla esta primitiva
+ * para que todo se sienta del mismo material.
+ *
+ * Uso directo:
+ *   <div class="card card-hover">…</div>
+ *
+ * O por composición CSS desde una clase semántica (lo que hacemos abajo
+ * con .team-card, .kpi-card, .day-task-card).
+ */
+.card,
+.team-card,
+.kpi-card,
+.day-task-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast),
+              transform var(--t-fast), background var(--t-fast);
+}
+
+.card-hover:hover,
+.team-card:hover,
+.day-task-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+/* Card "muted" (panel sin chrome) */
+.card-flat {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  border-radius: var(--radius-lg);
 }
 
 .month-label {
@@ -1328,16 +1532,17 @@ select {
 }
 
 .day-task-card {
+  /* Skin (bg/border/radius/shadow) lo aporta la primitiva .card */
   width: 100%;
   text-align: left;
-  background: var(--bg-surface);
-  border: 1.5px solid var(--line-main);
   border-radius: var(--radius-md);
   padding: 9px 10px;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, transform 0.11s;
 }
-.day-task-card:hover { background: #f0f5ff; border-color: #adc8f8; transform: translateY(-1px); }
+.day-task-card:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+}
 
 .day-task-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
 .day-task-top strong { color: var(--text-strong); font-size: 12.5px; font-weight: 600; }
@@ -1356,11 +1561,8 @@ select {
 
 .kpi-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .kpi-card {
+  /* Skin lo aporta .card. Aqu\u00ed solo layout + decoraci\u00f3n superior. */
   flex: 1 1 110px;
-  background: var(--bg-surface);
-  border: 1.5px solid var(--line-main);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
   padding: 14px 16px;
   display: flex; flex-direction: column; gap: 4px;
   border-top: 3px solid transparent;
@@ -1637,8 +1839,6 @@ select {
 .attachment-name { font-size: 12.5px; color: var(--text-strong); font-weight: 600; }
 .attachment-meta { margin-top: 2px; font-size: 11px; color: var(--text-soft); }
 
-.small-btn { padding: 4px 9px; font-size: 11.5px; }
-
 /* ─── COMPACT INLINE "NEW CLIENT" WIDGET ──────────────── */
 .client-field {
   display: flex;
@@ -1779,6 +1979,92 @@ select.toolbar-filter-select {
   .right-panel { grid-template-rows: auto; }
   .day-panel { overflow: visible; }
   .day-task-list { max-height: min(44vh, 400px); }
+}
+
+/* ─── HAMBURGER (topbar) ───────────────────────────────
+   Visible solo en mobile/tablet. Layout idéntico al theme-toggle. */
+.topbar-burger {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  background: transparent;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+  margin-right: 4px;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.topbar-burger:hover {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+  color: var(--text-strong);
+}
+.topbar-burger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--brand);
+}
+
+/* ─── DRAWER MOBILE ────────────────────────────────────
+   <900px: la sidebar se oculta off-canvas y reaparece como drawer
+   cuando .is-open. El backdrop oscurece el contenido y captura clicks. */
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topbar-burger { display: inline-flex; }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 0 0 transparent;
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: 8px 0 30px rgba(0,0,0,0.35);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: var(--bg-overlay);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+  }
+  .sidebar-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar-close { display: inline-flex; }
+
+  /* En mobile, baja la prioridad visual de las stat-pills:
+     se desbordarían el header. */
+  .top-header-counters { gap: 4px; }
+  .stat-pill { padding: 4px 8px 4px 7px; }
+  .stat-pill .stat-label { display: none; }
+
+  .top-title-row h1 { font-size: 16px; }
+  .top-title-row p  { font-size: 11px; }
+}
+
+/* En pantallas muy pequeñas, esconde el subtítulo */
+@media (max-width: 480px) {
+  .top-title-row p { display: none; }
 }
 
 /* ─── LOGIN PAGE ────────────────────────────────────────── */
@@ -2419,18 +2705,11 @@ button:disabled {
   padding: 12px;
 }
 .team-card {
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border-soft, #e5e7eb);
-  border-radius: 12px;
+  /* Skin lo aporta .card */
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: border-color .15s, box-shadow .15s;
-}
-.team-card:hover {
-  border-color: var(--border-strong, #d1d5db);
-  box-shadow: 0 2px 6px rgba(0,0,0,.04);
 }
 .team-card-top {
   display: flex;
