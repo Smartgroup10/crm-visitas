@@ -1,10 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>seguimiento-tareas</title>
+    <meta name="theme-color" content="#0f172a" />
+    <title>CRM Visitas</title>
+    <!--
+      Aplicar el tema ANTES de que React monte para evitar el flash blanco
+      al cargar en dark. Lee la preferencia guardada o cae al SO.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("crm_theme");
+          var theme = saved
+            ? saved
+            : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) { /* localStorage bloqueado: ignoramos */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

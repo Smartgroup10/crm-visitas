@@ -2,6 +2,7 @@ import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../data/constants";
 import { TASK_TYPES, TASK_TYPE_KEYS } from "../data/taskTypes";
 import { useUI } from "../hooks/useUI";
 import { usePermissions } from "../hooks/usePermissions";
+import { useTheme } from "../hooks/useTheme";
 
 const TITLES = {
   inicio: "Inicio",
@@ -23,6 +24,7 @@ const SUBTITLES = {
 
 export default function Topbar({ stats, technicians, openNewTask }) {
   const { canManage } = usePermissions();
+  const { theme, toggleTheme } = useTheme();
   const {
     section,
     activeView,
@@ -49,30 +51,55 @@ export default function Topbar({ stats, technicians, openNewTask }) {
           <p>{SUBTITLES[section]}</p>
         </div>
 
-        {section === "instalaciones" && (
-          <div className="top-header-counters">
-            <button type="button" className="stat-pill stat-total" onClick={() => openCounterModal("Total")}>
-              <span className="stat-dot"></span>
-              <strong>{stats.total}</strong>
-              <span className="stat-label">Total</span>
-            </button>
-            <button type="button" className="stat-pill stat-pending" onClick={() => openCounterModal("No iniciado")}>
-              <span className="stat-dot"></span>
-              <strong>{stats.pending}</strong>
-              <span className="stat-label">Pendiente</span>
-            </button>
-            <button type="button" className="stat-pill stat-progress" onClick={() => openCounterModal("En curso")}>
-              <span className="stat-dot"></span>
-              <strong>{stats.progress}</strong>
-              <span className="stat-label">En curso</span>
-            </button>
-            <button type="button" className="stat-pill stat-done" onClick={() => openCounterModal("Listo")}>
-              <span className="stat-dot"></span>
-              <strong>{stats.done}</strong>
-              <span className="stat-label">Listo</span>
-            </button>
-          </div>
-        )}
+        <div className="top-actions">
+          {section === "instalaciones" && (
+            <div className="top-header-counters">
+              <button type="button" className="stat-pill stat-total" onClick={() => openCounterModal("Total")}>
+                <span className="stat-dot"></span>
+                <strong>{stats.total}</strong>
+                <span className="stat-label">Total</span>
+              </button>
+              <button type="button" className="stat-pill stat-pending" onClick={() => openCounterModal("No iniciado")}>
+                <span className="stat-dot"></span>
+                <strong>{stats.pending}</strong>
+                <span className="stat-label">Pendiente</span>
+              </button>
+              <button type="button" className="stat-pill stat-progress" onClick={() => openCounterModal("En curso")}>
+                <span className="stat-dot"></span>
+                <strong>{stats.progress}</strong>
+                <span className="stat-label">En curso</span>
+              </button>
+              <button type="button" className="stat-pill stat-done" onClick={() => openCounterModal("Listo")}>
+                <span className="stat-dot"></span>
+                <strong>{stats.done}</strong>
+                <span className="stat-label">Listo</span>
+              </button>
+            </div>
+          )}
+
+          {/* Toggle de tema. Aria-label dinámico para que el lector de pantalla
+              anuncie el estado destino, no el actual ("activar modo oscuro"). */}
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+            title={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+          >
+            {theme === "dark" ? (
+              /* Sol — vamos a claro */
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+              </svg>
+            ) : (
+              /* Luna — vamos a oscuro */
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {section === "instalaciones" && (
