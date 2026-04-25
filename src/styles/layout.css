@@ -1,0 +1,121 @@
+/* ─── APP SHELL ─────────────────────────────────────── */
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ─── MAIN SHELL ─────────────────────────────────────── */
+.main-shell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  animation: fade-up 0.24s ease;
+  background: var(--bg-app);
+}
+
+/* ─── CONTENT GRID ─────────────────────────────────────── */
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 14px 14px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #b8c8e0 var(--bg-app);
+}
+.integrated-layout { align-items: stretch; }
+
+.main-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  scrollbar-width: thin;
+  scrollbar-color: #cdd5e8 #f3f5fb;
+}
+.top-aligned-panel { align-self: stretch; }
+.full-width-panel  { grid-column: 1 / -1; }
+.clients-main-panel { overflow: auto; }
+
+/* ─── RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 1280px) {
+  .topbar { padding: 10px 14px 0; }
+  .top-title-row { flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .search-input { min-width: 0; }
+}
+
+@media (max-width: 1250px) {
+  .content-grid { grid-template-columns: 1fr; grid-auto-rows: auto; padding: 10px 12px 12px; }
+  .stacked-controls-panel { position: static; height: auto; }
+  .right-panel { grid-template-rows: auto; }
+  .day-panel { overflow: visible; }
+  .day-task-list { max-height: min(44vh, 400px); }
+}
+
+/* ─── DRAWER MOBILE ────────────────────────────────────
+   <900px: la sidebar se oculta off-canvas y reaparece como drawer
+   cuando .is-open. El backdrop oscurece el contenido y captura clicks. */
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topbar-burger { display: inline-flex; }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 0 0 transparent;
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: 8px 0 30px rgba(0,0,0,0.35);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: var(--bg-overlay);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+  }
+  .sidebar-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar-close { display: inline-flex; }
+
+  /* En mobile, baja la prioridad visual de las stat-pills:
+     se desbordarían el header. */
+  .top-header-counters { gap: 4px; }
+  .stat-pill { padding: 4px 8px 4px 7px; }
+  .stat-pill .stat-label { display: none; }
+
+  .top-title-row h1 { font-size: 16px; }
+  .top-title-row p  { font-size: 11px; }
+}
+
+/* En pantallas muy pequeñas, esconde el subtítulo */
+@media (max-width: 480px) {
+  .top-title-row p { display: none; }
+}

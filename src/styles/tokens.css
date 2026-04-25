@@ -1,0 +1,172 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+/* ─── TOKENS ─────────────────────────────────────────── */
+/*
+ * Sistema de tokens en dos capas:
+ *   - Capa "primitiva" (azul-50, gris-700…): pocos cambios, paleta cruda.
+ *   - Capa "semántica" (--bg-app, --text-strong…): es lo que usan los
+ *     componentes. Son las que se intercambian en dark mode.
+ *
+ * Los tokens "originales" se conservan con el mismo nombre que la versión
+ * anterior para no romper el resto de este fichero. Los tokens nuevos
+ * añaden estados semánticos (success/warn/danger/info) y bordes/fondos
+ * suaves que antes había hardcoded en los componentes.
+ */
+:root {
+  /* ─── Paleta primitiva ─────────────────────────── */
+  --c-blue-50:   #eaf1ff;
+  --c-blue-100:  #d6e4ff;
+  --c-blue-500:  #2563eb;
+  --c-blue-600:  #1d4fd8;
+  --c-blue-700:  #1742b3;
+  --c-gray-50:   #f5f7fb;
+  --c-gray-100:  #eef1f6;
+  --c-gray-200:  #e3e8f0;
+  --c-gray-300:  #c4cedf;
+  --c-gray-400:  #94a0b4;
+  --c-gray-500:  #6a7589;
+  --c-gray-700:  #2c3648;
+  --c-gray-900:  #141a26;
+  --c-amber-50:  #fff8e1;
+  --c-amber-100: #ffe082;
+  --c-amber-500: #f59e0b;
+  --c-amber-700: #b45309;
+  --c-green-50:  #ecfdf5;
+  --c-green-100: #d1fae5;
+  --c-green-500: #10b981;
+  --c-green-700: #047857;
+  --c-red-50:    #fef2f2;
+  --c-red-100:   #fee2e2;
+  --c-red-500:   #ef4444;
+  --c-red-700:   #b91c1c;
+
+  /* ─── Sem\u00e1nticos (light por defecto) ────────────── */
+  --bg-app:        #eef2f7;
+  --bg-surface:    #ffffff;
+  --bg-soft:       var(--c-gray-50);
+  --bg-overlay:    rgba(15,23,42,0.45);     /* backdrop modales */
+
+  --text-strong:   var(--c-gray-900);
+  --text-main:     var(--c-gray-700);
+  --text-soft:     var(--c-gray-500);
+  --text-muted:    var(--c-gray-400);
+  --text-inverse:  #ffffff;
+
+  --line-main:     var(--c-gray-200);
+  --line-soft:     var(--c-gray-100);
+  --line-strong:   var(--c-gray-300);
+
+  --brand:         var(--c-blue-500);
+  --brand-hover:   var(--c-blue-600);
+  --brand-active:  var(--c-blue-700);
+  --brand-soft:    var(--c-blue-50);
+  --brand-border:  var(--c-blue-100);
+
+  /* Estados sem\u00e1nticos: 3 valores por estado (fondo suave / borde suave / color principal) */
+  --success:       var(--c-green-500);
+  --success-soft:  var(--c-green-50);
+  --success-border:var(--c-green-100);
+  --warning:       var(--c-amber-500);
+  --warning-soft:  var(--c-amber-50);
+  --warning-border:var(--c-amber-100);
+  --danger:        var(--c-red-500);
+  --danger-soft:   var(--c-red-50);
+  --danger-border: var(--c-red-100);
+  --info:          var(--c-blue-500);
+  --info-soft:     var(--c-blue-50);
+  --info-border:   var(--c-blue-100);
+
+  /* Sidebar (oscura tanto en light como en dark) */
+  --sb-bg:         #0f172a;
+  --sb-bg-soft:    #1a2236;
+  --sb-text:       #a8b1c5;
+  --sb-text-hover: #ffffff;
+  --sb-active-bg:  rgba(255,255,255,0.08);
+  --sb-hover-bg:   rgba(255,255,255,0.045);
+  --sb-section:    rgba(255,255,255,0.35);
+  --sb-border:     rgba(255,255,255,0.06);
+
+  /* Status de tareas (alias para mantener clases existentes) */
+  --c-pending:  var(--c-gray-300);
+  --c-progress: var(--warning);
+  --c-done:     var(--success);
+  --c-blocked:  var(--danger);
+
+  /* Foco accesible — mismo color que la marca, halo m\u00e1s visible */
+  --focus-ring: 0 0 0 3px rgba(37,99,235,0.22);
+
+  --radius-xl: 14px;
+  --radius-lg: 10px;
+  --radius-md: 7px;
+  --radius-sm: 4px;
+  --radius-pill: 999px;
+
+  /* Sombras escalonadas. La base tiene 0% saturaci\u00f3n para que en dark
+     mode se sienta m\u00e1s "vac\u00eda" (las sombras no se ven sobre fondo oscuro). */
+  --shadow-sm:    0 1px 2px rgba(15,23,42,0.05);
+  --shadow-card:  0 1px 2px rgba(15,23,42,0.04), 0 2px 8px rgba(15,23,42,0.06);
+  --shadow-card-hover: 0 2px 4px rgba(15,23,42,0.06), 0 8px 20px rgba(15,23,42,0.08);
+  --shadow-modal: 0 10px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.08);
+  --shadow-pop:   0 4px 16px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.06);
+
+  /* Transiciones est\u00e1ndar */
+  --t-fast: 0.14s ease;
+  --t-med:  0.22s ease;
+}
+
+/* ─── DARK MODE ──────────────────────────────────────── */
+/*
+ * Activado con [data-theme="dark"] en <html>. El AuthProvider lee la
+ * preferencia de localStorage al arrancar. Si no hay preferencia, se
+ * respeta `prefers-color-scheme` del sistema mediante el media query
+ * de abajo.
+ */
+[data-theme="dark"] {
+  --bg-app:        #0b1220;
+  --bg-surface:    #131a2a;
+  --bg-soft:       #1a2335;
+  --bg-overlay:    rgba(2,6,15,0.65);
+
+  --text-strong:   #f3f6fb;
+  --text-main:     #d6dce8;
+  --text-soft:     #99a3b8;
+  --text-muted:    #6c768c;
+  --text-inverse:  #0b1220;
+
+  --line-main:     #243049;
+  --line-soft:     #1c2438;
+  --line-strong:   #324063;
+
+  --brand:         #4f8bff;
+  --brand-hover:   #6a9eff;
+  --brand-active:  #84afff;
+  --brand-soft:    rgba(79,139,255,0.12);
+  --brand-border:  rgba(79,139,255,0.28);
+
+  --success-soft:  rgba(16,185,129,0.12);
+  --success-border:rgba(16,185,129,0.28);
+  --warning-soft:  rgba(245,158,11,0.12);
+  --warning-border:rgba(245,158,11,0.28);
+  --danger-soft:   rgba(239,68,68,0.12);
+  --danger-border: rgba(239,68,68,0.28);
+  --info-soft:     rgba(79,139,255,0.12);
+  --info-border:   rgba(79,139,255,0.28);
+
+  /* En dark, sombras m\u00e1s opacas y de tono fr\u00edo */
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.3);
+  --shadow-card:  0 1px 2px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.35);
+  --shadow-card-hover: 0 2px 4px rgba(0,0,0,0.35), 0 10px 24px rgba(0,0,0,0.45);
+  --shadow-modal: 0 16px 50px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-pop:   0 4px 16px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+
+  --focus-ring:   0 0 0 3px rgba(79,139,255,0.30);
+
+  color-scheme: dark;
+}
+
+/* Si el usuario nunca tocó el toggle, respeta la preferencia del SO */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+  }
+}

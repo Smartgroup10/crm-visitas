@@ -1,0 +1,103 @@
+/* ─── TABLE ──────────────────────────────────────────── */
+.table-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-gray-300) var(--bg-soft);
+  /* container queries no necesarios; el truco para que el sticky no
+     "sangre" por encima del borde redondeado del panel padre es que
+     el wrapper sea overflow:auto, lo cual ya hacíamos. */
+}
+
+.tasks-table {
+  width: 100%;
+  border-collapse: separate; /* separate permite usar border-spacing y
+                                que el border-bottom del sticky header
+                                quede pegado correctamente. */
+  border-spacing: 0;
+  min-width: 960px;
+  font-variant-numeric: tabular-nums; /* números mejor alineados */
+}
+
+/* Cabecera sticky: queda pegada al hacer scroll vertical en el wrapper.
+   Subimos z-index a 2 para que se posicione por encima de los chips
+   coloreados de las celdas. La sombra aparece sólo cuando hay scroll
+   gracias a .is-scrolled (ver script más abajo en el componente, opcional). */
+.tasks-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-soft);
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1.5px solid var(--line-main);
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  white-space: nowrap;
+  user-select: none;
+  /* Sombra suave debajo de la cabecera para separarla del contenido
+     cuando hay scroll. Es plana en estado inicial y aparece al
+     desplazar gracias al fondo translúcido del wrapper. */
+  box-shadow: 0 1px 0 var(--line-main);
+}
+
+.tasks-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--text-main);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Zebra striping muy suave en filas pares — facilita seguir filas
+   largas con la mirada sin distraer. Se aplica a las filas no-hover. */
+.tasks-table tbody tr:nth-child(even) td {
+  background: var(--bg-soft);
+}
+
+/* Left color bar per status */
+.tasks-table tbody tr {
+  cursor: pointer;
+  position: relative;
+  transition: background 0.08s ease;
+}
+.tasks-table tbody tr td:first-child {
+  border-left: 3px solid transparent;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+/* Status-based row left border */
+.tasks-table tbody tr:has(.mini-status.no-iniciado) td:first-child  { border-left-color: var(--c-pending); }
+.tasks-table tbody tr:has(.mini-status.en-curso) td:first-child      { border-left-color: var(--c-progress); }
+.tasks-table tbody tr:has(.mini-status.listo) td:first-child          { border-left-color: var(--c-done); }
+.tasks-table tbody tr:has(.mini-status.bloqueado) td:first-child      { border-left-color: var(--c-blocked); }
+
+/* Hover gana sobre zebra. Usamos brand-soft (token) en vez del azul
+   harcoded anterior para que el dark mode funcione automáticamente. */
+.tasks-table tbody tr:hover td,
+.tasks-table tbody tr:nth-child(even):hover td {
+  background: var(--brand-soft);
+}
+
+/* Foco con teclado para navegar la tabla. Mejora a11y y no rompe el
+   layout porque usamos outline en vez de border. */
+.tasks-table tbody tr:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+/* Densidad compacta opcional: aplicar .tasks-table--compact al table
+   cuando hay mucho contenido. Por defecto seguimos en densidad cómoda. */
+.tasks-table--compact thead th { padding: 7px 10px; font-size: 10.5px; }
+.tasks-table--compact tbody td { padding: 6px 10px; font-size: 12.5px; }
+
+.table-empty {
+  text-align: center;
+  color: var(--text-soft);
+  padding: 32px !important;
+  font-size: 13px;
+}

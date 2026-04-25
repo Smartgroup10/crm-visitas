@@ -1,0 +1,270 @@
+/* ─── TOPBAR ─────────────────────────────────────────── */
+.topbar {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--line-main);
+  padding: 14px 22px 0;
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.compact-topbar { padding-bottom: 0; }
+
+.top-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.top-title-block { min-width: 0; }
+
+.top-title-row h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text-strong);
+}
+
+.top-title-row p {
+  margin: 2px 0 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Acciones globales del topbar (counters + theme toggle) */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Stat pills (counters) */
+.top-header-counters {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* Toggle de tema en el topbar.
+   Botón circular grande para que sea fácil de pulsar también en mobile. */
+.theme-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-soft);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast),
+              color var(--t-fast), transform var(--t-fast);
+  flex: 0 0 auto;
+}
+.theme-toggle:hover {
+  background: var(--bg-soft);
+  border-color: var(--line-strong);
+  color: var(--text-strong);
+}
+.theme-toggle:active { transform: scale(0.94); }
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--brand);
+}
+.theme-toggle svg { display: block; }
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-main);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: border-color 0.13s, background 0.13s, box-shadow 0.13s;
+  white-space: nowrap;
+}
+.stat-pill:hover {
+  background: var(--bg-soft);
+  border-color: #c4cedf;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.stat-pill strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-strong);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+.stat-total   .stat-dot { background: #9399b0; }
+.stat-pending .stat-dot { background: var(--c-pending); }
+.stat-progress .stat-dot { background: var(--c-progress); }
+.stat-done    .stat-dot { background: var(--c-done); }
+
+/* ─── TOOLBAR ─────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 0 8px;
+  border-top: 1px solid var(--line-soft);
+  row-gap: 6px;
+}
+
+.toolbar-installations { align-items: center; }
+.toolbar-top-row { margin-top: 0; }
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quick-actions { margin-left: auto; gap: 6px; }
+
+.quick-btn {
+  height: 34px;
+  padding-inline: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+/* ─── VIEW TABS ──────────────────────────────────────── */
+.toolbar-search-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1 1 500px;
+  min-width: 0;
+}
+
+.inline-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-soft);
+  border: 1.5px solid var(--line-main);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  flex: 0 0 auto;
+}
+
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 5px;
+  padding: 5px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+}
+.view-tab:hover { background: rgba(0,0,0,0.04); color: var(--text-strong); }
+.view-tab.active {
+  background: var(--bg-surface);
+  color: var(--text-strong);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.view-tab-svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: currentColor;
+}
+
+/* ─── SEARCH WRAPPER ─────────────────────────────────── */
+.search-wrapper {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 200px;
+}
+
+.search-wrapper::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Ccircle cx='9' cy='9' r='6' stroke='%237180a0' stroke-width='1.8'/%3E%3Cpath d='M13.5 13.5L17 17' stroke='%237180a0' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.search-input {
+  height: 34px;
+  padding: 0 12px 0 30px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  font-size: 12.5px;
+  width: 100%;
+}
+
+/* ─── HAMBURGER (topbar) ───────────────────────────────
+   Visible solo en mobile/tablet. Layout idéntico al theme-toggle. */
+.topbar-burger {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  background: transparent;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+  margin-right: 4px;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.topbar-burger:hover {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+  color: var(--text-strong);
+}
+.topbar-burger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--brand);
+}

@@ -1,0 +1,49 @@
+/* ─── EMPTY STATE v2 (con ícono + CTA opcional) ─────── */
+.empty-state-v2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 36px 20px;
+  gap: 8px;
+  color: var(--text-soft, #6b7280);
+}
+.empty-state-v2--compact {
+  padding: 18px 12px;
+  gap: 4px;
+}
+.empty-state-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface-alt, rgba(0,0,0,0.04));
+  color: var(--text-soft, #9ca3af);
+  margin-bottom: 6px;
+}
+.empty-state-v2--compact .empty-state-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 2px;
+}
+.empty-state-v2--compact .empty-state-icon svg {
+  width: 32px;
+  height: 32px;
+}
+.empty-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong, #111827);
+}
+.empty-state-desc {
+  font-size: 12.5px;
+  color: var(--text-soft, #6b7280);
+  max-width: 320px;
+  line-height: 1.45;
+}
+.empty-state-v2 button {
+  margin-top: 8px;
+}

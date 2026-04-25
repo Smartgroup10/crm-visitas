@@ -1,0 +1,48 @@
+/* ─── CARD (primitiva) ─────────────────────────────────────
+ *
+ * Patrón visual común a team-card, kpi-card, day-task-card, clients-list-card,
+ * etc. Cada subclase añade lo suyo (gap, layout interno, decoración) pero
+ * el "skin" (fondo, borde, radius, sombra, hover) lo controla esta primitiva
+ * para que todo se sienta del mismo material.
+ *
+ * Uso directo:
+ *   <div class="card card-hover">…</div>
+ *
+ * O por composición CSS desde una clase semántica (lo que hacemos abajo
+ * con .team-card, .kpi-card, .day-task-card).
+ */
+.card,
+.team-card,
+.kpi-card,
+.day-task-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast),
+              transform var(--t-fast), background var(--t-fast);
+}
+
+.card-hover:hover,
+.team-card:hover,
+.day-task-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+/* Card "muted" (panel sin chrome) */
+.card-flat {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  border-radius: var(--radius-lg);
+}
+
+.month-label {
+  min-width: 120px;
+  text-align: center;
+  text-transform: capitalize;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-strong);
+}

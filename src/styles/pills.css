@@ -1,0 +1,21 @@
+/* ─── MINI STATUS & PRIORITY PILLS ─────────────────── */
+.mini-status, .mini-priority {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15px;
+}
+
+.mini-status.no-iniciado  { background: #eaecf2; color: #626b85; }
+.mini-status.en-curso     { background: #fff4e0; color: #8a5300; }
+.mini-status.listo        { background: #dcfaee; color: #007848; }
+.mini-status.bloqueado    { background: #fde8ec; color: #a01030; }
+
+.mini-priority.priority-low    { background: #eef0f5; color: #6b7591; }
+.mini-priority.priority-medium { background: #e8edf8; color: #3a5092; }
+.mini-priority.priority-high   { background: #deeeff; color: #0050b8; }
+.mini-priority.priority-urgent { background: #fde8ec; color: #b0001f; }

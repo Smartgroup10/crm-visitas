@@ -1,0 +1,117 @@
+/* ─── DARK MODE — overrides quirúrgicos ────────────────
+ *
+ * Los componentes de las primeras fases tienen colores hardcoded
+ * (fondos claros, hovers azulados, badges con tonos pastel). En vez de
+ * tocar 30+ reglas distribuidas, las repintamos aquí concentradas.
+ * Cuando se modularice el CSS por dominio, estos overrides
+ * desaparecerán al usar tokens en cada componente.
+ */
+[data-theme="dark"] .calendar-cell { background: var(--bg-surface); }
+[data-theme="dark"] .calendar-cell:hover { background: var(--brand-soft) !important; }
+[data-theme="dark"] .calendar-cell.outside { background: var(--bg-soft) !important; }
+[data-theme="dark"] .calendar-cell.today { background: rgba(79,139,255,0.18) !important; }
+
+[data-theme="dark"] .week-column:nth-last-child(2) { background: var(--bg-soft); }
+[data-theme="dark"] .week-column.today { background: rgba(79,139,255,0.14); }
+[data-theme="dark"] .week-column-header { background: var(--bg-soft); }
+[data-theme="dark"] .week-column-header:hover { background: var(--brand-soft); }
+
+[data-theme="dark"] .tasks-table { background: var(--bg-surface); }
+[data-theme="dark"] .tasks-table thead th {
+  background: var(--bg-soft);
+  color: var(--text-soft);
+  box-shadow: 0 1px 0 var(--line-main);
+}
+/* En dark, el zebra se ve mejor con un tinte ligeramente más claro
+   que la superficie. brand-soft en hover sigue funcionando. */
+[data-theme="dark"] .tasks-table tbody tr:nth-child(even) td {
+  background: rgba(148,160,180,0.05);
+}
+[data-theme="dark"] .tasks-table tbody tr:hover td,
+[data-theme="dark"] .tasks-table tbody tr:nth-child(even):hover td {
+  background: var(--brand-soft);
+}
+[data-theme="dark"] .tasks-table td { border-color: var(--line-soft); }
+
+[data-theme="dark"] .day-task-card { background: var(--bg-surface); border-color: var(--line-main); }
+[data-theme="dark"] .day-task-card:hover { background: var(--brand-soft); border-color: var(--brand-border); }
+
+[data-theme="dark"] .mini-status.no-iniciado  { background: rgba(148,160,180,0.16); color: var(--text-main); }
+[data-theme="dark"] .mini-status.en-curso     { background: var(--warning-soft); color: var(--warning); }
+[data-theme="dark"] .mini-status.listo        { background: var(--success-soft); color: var(--success); }
+[data-theme="dark"] .mini-status.bloqueado    { background: var(--danger-soft); color: var(--danger); }
+
+[data-theme="dark"] .mini-priority.priority-low    { background: rgba(148,160,180,0.16); color: var(--text-soft); }
+[data-theme="dark"] .mini-priority.priority-medium { background: var(--info-soft); color: var(--brand); }
+[data-theme="dark"] .mini-priority.priority-high   { background: var(--info-soft); color: var(--brand); }
+[data-theme="dark"] .mini-priority.priority-urgent { background: var(--danger-soft); color: var(--danger); }
+
+[data-theme="dark"] .role-admin      { background: var(--danger-soft);  color: var(--danger); }
+[data-theme="dark"] .role-supervisor { background: var(--info-soft);    color: var(--brand); }
+[data-theme="dark"] .role-tecnico    { background: var(--success-soft); color: var(--success); }
+
+[data-theme="dark"] .icon-close:hover { background: var(--danger-soft); color: var(--danger); }
+
+[data-theme="dark"] .users-no-permissions {
+  background: var(--warning-soft);
+  border-color: var(--warning-border);
+  color: var(--warning);
+}
+
+[data-theme="dark"] .kpi-card.kpi-urgent { background: linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(239,68,68,0.20) 100%); }
+[data-theme="dark"] .kpi-card.kpi-total  { background: linear-gradient(135deg, rgba(79,139,255,0.10) 0%, rgba(79,139,255,0.20) 100%); }
+
+/* Inputs en dark: borde más visible y placeholder más legible */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+  color: var(--text-strong);
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: var(--text-muted); }
+[data-theme="dark"] input:hover,
+[data-theme="dark"] select:hover,
+[data-theme="dark"] textarea:hover { border-color: var(--line-strong); }
+
+/* Flecha del select custom: el SVG inline usa el gris claro original.
+   En dark lo invertimos a un gris más claro para que se vea sobre fondo oscuro. */
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a8b1c5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Task type tags en dark: bajamos saturación y subimos legibilidad. Se
+   mantienen reconocibles pero sin gritar sobre el fondo oscuro. */
+[data-theme="dark"] .task-type-tag {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+  color: var(--text-main);
+}
+[data-theme="dark"] .task-type-tag.task-type-incidencia {
+  background: var(--danger-soft); border-color: var(--danger-border); color: var(--danger);
+}
+[data-theme="dark"] .task-type-tag.task-type-instalacion-proyecto {
+  background: var(--info-soft); border-color: var(--brand-border); color: var(--brand);
+}
+[data-theme="dark"] .task-type-tag.task-type-ampliacion {
+  background: var(--success-soft); border-color: var(--success-border); color: var(--success);
+}
+[data-theme="dark"] .task-type-tag.task-type-mantenimiento-preventivo {
+  background: var(--warning-soft); border-color: var(--warning-border); color: var(--warning);
+}
+[data-theme="dark"] .task-type-tag.task-type-preventa {
+  background: rgba(168,85,247,0.14);
+  border-color: rgba(168,85,247,0.32);
+  color: #d8b4fe;
+}
+[data-theme="dark"] .task-type-tag.task-type-visita {
+  background: rgba(148,160,180,0.14);
+  border-color: rgba(148,160,180,0.30);
+  color: var(--text-main);
+}
+
+/* Modal y form-section en dark: que sticky header/footer no se queden
+   transparentes con scroll. */
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .form-actions { background: var(--bg-surface); }
