@@ -1388,44 +1388,66 @@ select {
   height: 100%;
   overflow: auto;
   scrollbar-width: thin;
-  scrollbar-color: #cdd5e8 #f3f5fb;
+  scrollbar-color: var(--c-gray-300) var(--bg-soft);
+  /* container queries no necesarios; el truco para que el sticky no
+     "sangre" por encima del borde redondeado del panel padre es que
+     el wrapper sea overflow:auto, lo cual ya hacíamos. */
 }
 
 .tasks-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate; /* separate permite usar border-spacing y
+                                que el border-bottom del sticky header
+                                quede pegado correctamente. */
+  border-spacing: 0;
   min-width: 960px;
+  font-variant-numeric: tabular-nums; /* números mejor alineados */
 }
 
+/* Cabecera sticky: queda pegada al hacer scroll vertical en el wrapper.
+   Subimos z-index a 2 para que se posicione por encima de los chips
+   coloreados de las celdas. La sombra aparece sólo cuando hay scroll
+   gracias a .is-scrolled (ver script más abajo en el componente, opcional). */
 .tasks-table thead th {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   background: var(--bg-soft);
   color: var(--text-soft);
   font-size: 11px;
   font-weight: 700;
   text-align: left;
-  padding: 8px 12px;
-  border-bottom: 2px solid var(--line-main);
+  padding: 9px 12px;
+  border-bottom: 1.5px solid var(--line-main);
   text-transform: uppercase;
   letter-spacing: 0.55px;
   white-space: nowrap;
   user-select: none;
+  /* Sombra suave debajo de la cabecera para separarla del contenido
+     cuando hay scroll. Es plana en estado inicial y aparece al
+     desplazar gracias al fondo translúcido del wrapper. */
+  box-shadow: 0 1px 0 var(--line-main);
 }
 
 .tasks-table tbody td {
-  padding: 8px 12px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--line-soft);
   color: var(--text-main);
   font-size: 13px;
   white-space: nowrap;
 }
 
+/* Zebra striping muy suave en filas pares — facilita seguir filas
+   largas con la mirada sin distraer. Se aplica a las filas no-hover. */
+.tasks-table tbody tr:nth-child(even) td {
+  background: var(--bg-soft);
+}
+
 /* Left color bar per status */
 .tasks-table tbody tr {
   cursor: pointer;
   position: relative;
+  transition: background 0.08s ease;
 }
 .tasks-table tbody tr td:first-child {
   border-left: 3px solid transparent;
@@ -1438,7 +1460,24 @@ select {
 .tasks-table tbody tr:has(.mini-status.listo) td:first-child          { border-left-color: var(--c-done); }
 .tasks-table tbody tr:has(.mini-status.bloqueado) td:first-child      { border-left-color: var(--c-blocked); }
 
-.tasks-table tbody tr:hover td { background: #f2f6ff; }
+/* Hover gana sobre zebra. Usamos brand-soft (token) en vez del azul
+   harcoded anterior para que el dark mode funcione automáticamente. */
+.tasks-table tbody tr:hover td,
+.tasks-table tbody tr:nth-child(even):hover td {
+  background: var(--brand-soft);
+}
+
+/* Foco con teclado para navegar la tabla. Mejora a11y y no rompe el
+   layout porque usamos outline en vez de border. */
+.tasks-table tbody tr:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+/* Densidad compacta opcional: aplicar .tasks-table--compact al table
+   cuando hay mucho contenido. Por defecto seguimos en densidad cómoda. */
+.tasks-table--compact thead th { padding: 7px 10px; font-size: 10.5px; }
+.tasks-table--compact tbody td { padding: 6px 10px; font-size: 12.5px; }
 
 .table-empty {
   text-align: center;
@@ -1749,15 +1788,76 @@ select {
 .counter-modal { width: min(740px, 100%); max-height: 88vh; }
 
 .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
-  padding: 16px 20px 14px;
+  padding: 14px 20px 12px;
   border-bottom: 1.5px solid var(--line-soft);
+  background: var(--bg-surface);
+}
+.modal-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 .modal-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-strong); }
 .modal-header p { margin: 3px 0 0; font-size: 12px; color: var(--text-soft); }
+
+/* Tag de tipo de tarea en el header del modal — mismo color por tipo en
+   toda la app, así el usuario reconoce de un vistazo de qué tarea hablamos. */
+.task-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1.5px solid var(--line-main);
+  background: var(--bg-soft);
+  color: var(--text-main);
+  white-space: nowrap;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.task-type-tag.task-type-incidencia {
+  background: var(--c-red-50);
+  border-color: var(--c-red-100);
+  color: var(--c-red-700);
+}
+.task-type-tag.task-type-instalacion-proyecto {
+  background: var(--c-blue-50);
+  border-color: var(--c-blue-100);
+  color: var(--c-blue-700);
+}
+.task-type-tag.task-type-ampliacion {
+  background: var(--c-green-50);
+  border-color: var(--c-green-100);
+  color: var(--c-green-700);
+}
+.task-type-tag.task-type-mantenimiento-preventivo {
+  background: var(--c-amber-50);
+  border-color: var(--c-amber-100);
+  color: var(--c-amber-700);
+}
+.task-type-tag.task-type-preventa {
+  background: #f3eaff;
+  border-color: #e0ccff;
+  color: #6b21a8;
+}
+.task-type-tag.task-type-visita {
+  background: var(--c-gray-100);
+  border-color: var(--c-gray-200);
+  color: var(--c-gray-700);
+}
 
 .icon-close {
   width: 30px;
@@ -1777,11 +1877,35 @@ select {
 .icon-close:hover { background: #fde0e5; color: var(--c-blocked); }
 
 /* ─── FORM ───────────────────────────────────────────── */
+/* El form ahora se compone de "form-section". Mantenemos padding inferior
+   reducido porque el footer .form-actions tiene su propio padding sticky. */
 .task-form {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* Cada sección agrupa campos relacionados (Información, Cliente, etc.).
+   Visualmente: cabecera tenue + rejilla de 2 columnas y separación inferior. */
+.form-section {
+  padding: 14px 20px 16px;
+  border-bottom: 1.5px solid var(--line-soft);
+}
+.form-section:last-of-type { border-bottom: 0; }
+
+.form-section-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-soft);
+  margin-bottom: 10px;
+}
+
+.form-section-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  padding: 16px 20px 18px;
 }
 
 .form-row { display: flex; flex-direction: column; gap: 4px; }
@@ -1882,14 +2006,35 @@ select {
   min-width: 0;
 }
 
+/* Footer sticky con las acciones del formulario. El delete vive a la
+   izquierda y los botones de cancelar/guardar a la derecha; el spacer
+   empuja el grupo derecho con flex:1. */
 .form-actions {
-  grid-column: 1 / -1;
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
   display: flex;
-  gap: 7px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 4px;
-  padding-top: 12px;
+  padding: 12px 20px;
   border-top: 1.5px solid var(--line-soft);
+  background: var(--bg-surface);
+}
+.form-actions-spacer { flex: 1 1 auto; min-width: 8px; }
+
+/* Utilidad de accesibilidad: oculta visualmente sin sacar del árbol de
+   accesibilidad (label sigue siendo leído por lectores de pantalla). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ─── COUNTER MODAL INTERNALS ───────────────────────── */
@@ -2067,28 +2212,97 @@ select.toolbar-filter-select {
   .top-title-row p { display: none; }
 }
 
+/* ─── MODAL responsive ───────────────────────────────── */
+/* En mobile el grid de 2 columnas del modal molesta más que ayuda:
+   los selects se quedan estrechos y los labels se cortan. Pasamos a
+   columna única y dejamos respirar los campos. */
+@media (max-width: 640px) {
+  .form-section {
+    padding: 12px 14px 14px;
+  }
+  .form-section-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .form-actions { padding: 10px 14px; }
+  .modal-header { padding: 12px 14px 10px; }
+  .modal-header-main { gap: 10px; }
+  .task-type-tag { font-size: 10px; padding: 3px 8px; }
+}
+
 /* ─── LOGIN PAGE ────────────────────────────────────────── */
 .login-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  /* Capas de gradiente: una mancha de marca arriba a la izquierda, otra
+     verde abajo a la derecha. Le da profundidad sin distraer. En dark se
+     ven sutiles porque las rgba ya están al 8/6%. */
   background:
-    radial-gradient(1200px 600px at 20% 10%, rgba(37,99,235,0.08), transparent 60%),
-    radial-gradient(900px 500px at 85% 90%, rgba(16,185,129,0.06), transparent 60%),
+    radial-gradient(1200px 600px at 20% 10%, rgba(37,99,235,0.10), transparent 60%),
+    radial-gradient(900px 500px at 85% 90%, rgba(16,185,129,0.07), transparent 60%),
     var(--bg-app);
   padding: 24px;
+  overflow: hidden;
+}
+
+/* Patrón de puntos sutil al fondo, solo decorativo */
+.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(15,23,42,0.05) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+[data-theme="dark"] .login-page::before {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1.5px);
+}
+
+.login-theme-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--line-main);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast),
+              border-color var(--t-fast), transform var(--t-fast);
+  z-index: 1;
+}
+.login-theme-toggle:hover {
+  background: var(--bg-soft);
+  color: var(--text-strong);
+  border-color: var(--line-strong);
+}
+.login-theme-toggle:active { transform: scale(0.94); }
+.login-theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--brand);
 }
 
 .login-card {
+  position: relative;
   background: var(--bg-surface);
-  border: 1px solid var(--line-main);
+  border: 1.5px solid var(--line-main);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
-  padding: 36px 36px 32px;
+  padding: 38px 40px 30px;
   width: 100%;
-  max-width: 400px;
-  animation: scale-in 0.18s ease;
+  max-width: 420px;
+  animation: scale-in 0.20s ease;
+  z-index: 1;
 }
 
 .login-brand {
@@ -2096,54 +2310,128 @@ select.toolbar-filter-select {
   align-items: center;
   gap: 12px;
   margin-bottom: 32px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft);
 }
+.login-brand .brand-title    { color: var(--text-strong); font-size: 13px; }
+.login-brand .brand-subtitle { color: var(--text-soft); font-size: 11px; }
 
 .login-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-strong);
-  margin: 0 0 4px;
+  margin: 0 0 6px;
+  letter-spacing: -0.3px;
 }
 
 .login-hint {
   font-size: 13px;
   color: var(--text-soft);
-  margin: 0 0 24px;
+  margin: 0 0 26px;
+  line-height: 1.5;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .login-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .login-field label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-main);
+  letter-spacing: 0.1px;
+}
+
+/* Input con icono prefijo + acción opcional al final (mostrar contraseña) */
+.login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.login-input-wrap input {
+  padding: 10px 12px 10px 38px;
+  font-size: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+  border: 1.5px solid var(--line-main);
+}
+.login-input-wrap input:hover { border-color: var(--line-strong); }
+.login-input-wrap input:focus {
+  border-color: var(--brand);
+  background: var(--bg-surface);
+  box-shadow: var(--focus-ring);
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.login-input-wrap input:focus ~ .login-input-icon,
+.login-input-wrap input:focus + .login-input-icon { color: var(--brand); }
+
+.login-input-action {
+  position: absolute;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.login-input-action:hover {
+  background: var(--bg-soft);
+  color: var(--text-strong);
 }
 
 .login-error {
-  background: #fff0f2;
-  border: 1.5px solid #f8bcc8;
-  color: var(--c-blocked);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--danger-soft);
+  border: 1.5px solid var(--danger-border);
+  color: var(--danger);
   border-radius: var(--radius-md);
-  padding: 9px 12px;
+  padding: 10px 12px;
   font-size: 13px;
+  font-weight: 500;
+  animation: fade-up 0.15s ease;
 }
+.login-error svg { flex: 0 0 auto; margin-top: 1px; }
 
 .login-submit {
-  width: 100%;
-  padding: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 4px;
+  margin-top: 6px;
+}
+
+.login-footer {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.2px;
+}
+
+@media (max-width: 480px) {
+  .login-card { padding: 28px 24px 22px; }
+  .login-title { font-size: 19px; }
 }
 
 /* ─── APP LOADING ────────────────────────────────────────── */
@@ -2891,16 +3179,19 @@ button:disabled {
 .informes-table thead th.sortable {
   cursor: pointer;
   user-select: none;
+  transition: background 0.1s, color 0.1s;
 }
 .informes-table thead th.sortable:hover {
-  background: rgba(0,0,0,.03);
+  background: var(--line-soft);
+  color: var(--text-main);
 }
 .informes-table thead th.sortable.active {
-  color: #0073ea;
+  color: var(--brand);
 }
 .informes-table .sort-arrow {
   font-size: 10px;
-  margin-left: 2px;
+  margin-left: 4px;
+  color: var(--brand);
 }
 
 .informes-empty {
@@ -2936,8 +3227,20 @@ button:disabled {
 [data-theme="dark"] .week-column-header:hover { background: var(--brand-soft); }
 
 [data-theme="dark"] .tasks-table { background: var(--bg-surface); }
-[data-theme="dark"] .tasks-table thead th { background: var(--bg-soft); color: var(--text-soft); }
-[data-theme="dark"] .tasks-table tbody tr:hover td { background: var(--brand-soft); }
+[data-theme="dark"] .tasks-table thead th {
+  background: var(--bg-soft);
+  color: var(--text-soft);
+  box-shadow: 0 1px 0 var(--line-main);
+}
+/* En dark, el zebra se ve mejor con un tinte ligeramente más claro
+   que la superficie. brand-soft en hover sigue funcionando. */
+[data-theme="dark"] .tasks-table tbody tr:nth-child(even) td {
+  background: rgba(148,160,180,0.05);
+}
+[data-theme="dark"] .tasks-table tbody tr:hover td,
+[data-theme="dark"] .tasks-table tbody tr:nth-child(even):hover td {
+  background: var(--brand-soft);
+}
 [data-theme="dark"] .tasks-table td { border-color: var(--line-soft); }
 
 [data-theme="dark"] .day-task-card { background: var(--bg-surface); border-color: var(--line-main); }
@@ -2987,3 +3290,39 @@ button:disabled {
 [data-theme="dark"] select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a8b1c5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
 }
+
+/* Task type tags en dark: bajamos saturación y subimos legibilidad. Se
+   mantienen reconocibles pero sin gritar sobre el fondo oscuro. */
+[data-theme="dark"] .task-type-tag {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+  color: var(--text-main);
+}
+[data-theme="dark"] .task-type-tag.task-type-incidencia {
+  background: var(--danger-soft); border-color: var(--danger-border); color: var(--danger);
+}
+[data-theme="dark"] .task-type-tag.task-type-instalacion-proyecto {
+  background: var(--info-soft); border-color: var(--brand-border); color: var(--brand);
+}
+[data-theme="dark"] .task-type-tag.task-type-ampliacion {
+  background: var(--success-soft); border-color: var(--success-border); color: var(--success);
+}
+[data-theme="dark"] .task-type-tag.task-type-mantenimiento-preventivo {
+  background: var(--warning-soft); border-color: var(--warning-border); color: var(--warning);
+}
+[data-theme="dark"] .task-type-tag.task-type-preventa {
+  background: rgba(168,85,247,0.14);
+  border-color: rgba(168,85,247,0.32);
+  color: #d8b4fe;
+}
+[data-theme="dark"] .task-type-tag.task-type-visita {
+  background: rgba(148,160,180,0.14);
+  border-color: rgba(148,160,180,0.30);
+  color: var(--text-main);
+}
+
+/* Modal y form-section en dark: que sticky header/footer no se queden
+   transparentes con scroll. */
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .form-actions { background: var(--bg-surface); }
+[data-theme="dark"] .form-section { border-bottom-color: var(--line-soft); }
