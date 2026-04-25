@@ -3,9 +3,11 @@ import { todayISO, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
 import { IconAlert } from "../Icon";
+import { usePermissions } from "../../hooks/usePermissions";
 import EmptyState from "../EmptyState";
 
-export default function MiTrabajoView({ tasks, clients, technicians, onEditTask }) {
+export default function MiTrabajoView({ tasks, clients, technicians, onEditTask, openNewTask }) {
+  const { canManage } = usePermissions();
   const today = todayISO();
 
   const requiresAction = tasks
@@ -101,6 +103,11 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask 
               icon="inbox"
               title="Sin intervenciones hoy"
               description="La agenda de hoy está vacía."
+              action={
+                canManage && openNewTask
+                  ? { label: "+ Crear tarea", variant: "primary", onClick: openNewTask }
+                  : undefined
+              }
             />
           ) : (
             <div className="day-task-list">

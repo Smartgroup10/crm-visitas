@@ -66,9 +66,23 @@ export default function SeguimientoView({
   clients,
   technicians,
   onEditTask,
+  openNewTask,
 }) {
-  const { activeView, calendarMode, setCalendarMode } = useUI();
+  const {
+    activeView, calendarMode, setCalendarMode,
+    search, personFilter, statusFilter, priorityFilter, categoryFilter,
+    resetFilters,
+  } = useUI();
   const { canManage } = usePermissions();
+
+  // ¿Hay filtros activos? Si los hay, el empty state ofrece "Limpiar filtros".
+  // Si no, ofrece "Crear nueva tarea" (cuando el usuario puede gestionar).
+  const hasActiveFilters =
+    !!search ||
+    personFilter   !== "Todos" ||
+    statusFilter   !== "Todos" ||
+    priorityFilter !== "Todas" ||
+    categoryFilter !== "Todas";
 
   const isCalendar = activeView === "Calendario";
   const isDayMode  = isCalendar && calendarMode === "dia";
@@ -177,6 +191,8 @@ export default function SeguimientoView({
                 tasksByDate={tasksByDate}
                 onEditTask={onEditTask}
                 clients={clients}
+                canManage={canManage}
+                openNewTask={openNewTask}
                 technicians={technicians}
               />
             )}
@@ -187,6 +203,10 @@ export default function SeguimientoView({
             clients={clients}
             technicians={technicians}
             onEditTask={onEditTask}
+            canManage={canManage}
+            hasActiveFilters={hasActiveFilters}
+            resetFilters={resetFilters}
+            openNewTask={openNewTask}
           />
         )}
       </section>
@@ -204,7 +224,12 @@ export default function SeguimientoView({
                 compact
                 icon="check"
                 title="Día sin tareas"
-                description="Pulsa sobre otro día del calendario o crea una nueva tarea (N)."
+                description="Pulsa sobre otro día del calendario o crea una nueva tarea."
+                action={
+                  canManage && openNewTask
+                    ? { label: "+ Nueva tarea", variant: "primary", onClick: openNewTask }
+                    : undefined
+                }
               />
             ) : (
               <div className="day-task-list">
@@ -369,7 +394,7 @@ function WeekView({
 }
 
 // ─── Vista DÍA ───────────────────────────────────────────────
-function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians }) {
+function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, canManage, openNewTask }) {
   const dayTasks = (tasksByDate[selectedDate] || [])
     .slice()
     .sort((a, b) => a.title.localeCompare(b.title, "es"));
@@ -387,7 +412,12 @@ function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians }
         <EmptyState
           icon="check"
           title="Día libre"
-          description="No hay intervenciones programadas para este día. Pulsa N para crear una."
+          description="No hay intervenciones programadas para este día."
+          action={
+            canManage && openNewTask
+              ? { label: "+ Crear tarea", variant: "primary", onClick: openNewTask }
+              : undefined
+          }
         />
       ) : (
         <div className="day-view-list">
@@ -454,9 +484,32 @@ function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians }
 }
 
 // ─── Vista TABLA ─────────────────────────────────────────────
-function TableView({ filteredTasks, clients, technicians, onEditTask }) {
+function TableView({
+  filteredTasks, clients, technicians, onEditTask,
+  canManage, hasActiveFilters, resetFilters, openNewTask,
+}) {
+  // CTA contextual: si hay filtros aplicados, lo lógico es ofrecer
+  // limpiarlos. Si no hay tareas en absoluto, ofrecer crear una.
+  const emptyAction = hasActiveFilters
+    ? { label: "Limpiar filtros", variant: "primary", onClick: resetFilters }
+    : (canManage && openNewTask
+        ? { label: "+ Crear primera tarea", variant: "primary", onClick: openNewTask }
+        : undefined);
+
   return (
     <div className="table-wrapper">
+      {filteredTasks.length === 0 ? (
+        <EmptyState
+          icon={hasActiveFilters ? "search" : "inbox"}
+          title={hasActiveFilters ? "Sin resultados" : "Aún no hay tareas"}
+          description={
+            hasActiveFilters
+              ? "Ninguna tarea coincide con los filtros actuales. Prueba a cambiar o limpiar los filtros."
+              : "Crea tu primera intervención para empezar a planificar el trabajo del equipo."
+          }
+          action={emptyAction}
+        />
+      ) : (
       <table className="tasks-table">
         <thead>
           <tr>
@@ -474,13 +527,7 @@ function TableView({ filteredTasks, clients, technicians, onEditTask }) {
           </tr>
         </thead>
         <tbody>
-          {filteredTasks.length === 0 ? (
-            <tr>
-              <td colSpan="11" className="table-empty">
-                No hay tareas que coincidan con los filtros.
-              </td>
-            </tr>
-          ) : (
+          {(
             filteredTasks
               .slice()
               .sort((a, b) => a.date.localeCompare(b.date))
@@ -510,6 +557,7 @@ function TableView({ filteredTasks, clients, technicians, onEditTask }) {
           )}
         </tbody>
       </table>
+      )}
     </div>
   );
 }

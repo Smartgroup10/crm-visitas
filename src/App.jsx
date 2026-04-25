@@ -411,6 +411,7 @@ export default function App() {
               clients={clients}
               technicians={technicians}
               onEditTask={editTask}
+              openNewTask={openNewTask}
             />
           ) : section === "inicio" ? (
             <section className="main-panel clients-main-panel full-width-panel">
@@ -419,6 +420,7 @@ export default function App() {
                 clients={clients}
                 technicians={technicians}
                 onEditTask={editTask}
+                openNewTask={openNewTask}
               />
             </section>
           ) : section === "mitrabajo" ? (
@@ -428,6 +430,7 @@ export default function App() {
                 clients={clients}
                 technicians={technicians}
                 onEditTask={editTask}
+                openNewTask={openNewTask}
               />
             </section>
           ) : section === "usuarios" ? (

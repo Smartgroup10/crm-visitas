@@ -3,9 +3,11 @@ import { TASK_TYPES } from "../../data/taskTypes";
 import { todayISO, addDays, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
+import { usePermissions } from "../../hooks/usePermissions";
 import EmptyState from "../EmptyState";
 
-export default function InicioView({ tasks, clients, technicians, onEditTask }) {
+export default function InicioView({ tasks, clients, technicians, onEditTask, openNewTask }) {
+  const { canManage } = usePermissions();
   const today = todayISO();
   const tomorrow = addDays(today, 1);
   const in7 = addDays(today, 7);
@@ -120,6 +122,11 @@ export default function InicioView({ tasks, clients, technicians, onEditTask }) 
               icon="inbox"
               title="Agenda despejada"
               description="No hay tareas para hoy ni mañana."
+              action={
+                canManage && openNewTask
+                  ? { label: "+ Nueva tarea", variant: "primary", onClick: openNewTask }
+                  : undefined
+              }
             />
           ) : (
             <div className="day-task-list">
@@ -175,6 +182,11 @@ export default function InicioView({ tasks, clients, technicians, onEditTask }) 
               icon="inbox"
               title="Semana vacía"
               description="No hay tareas planificadas en los próximos 7 días."
+              action={
+                canManage && openNewTask
+                  ? { label: "+ Planificar tarea", variant: "primary", onClick: openNewTask }
+                  : undefined
+              }
             />
           ) : (
             <div className="day-task-list">
