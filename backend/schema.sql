@@ -180,3 +180,36 @@ begin
     delete from users where coalesce(password_hash, '') = '';
   end if;
 end$$;
+
+-- ─── RECORDATORIOS PERSONALES ─────────────────────────────
+-- Cada usuario crea sus propios recordatorios (privados). El backend
+-- programa un job en pg-boss para `remind_at`; al disparar, el worker
+-- envía un email al usuario y marca status='sent'.
+-- Estados:
+--   pending  → programado, no enviado todavía
+--   sent     → enviado correctamente al menos una vez
+--   dismissed→ el usuario lo descartó manualmente; no se envía
+create table if not exists reminders (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references users(id) on delete cascade,
+  title       text not null,
+  body        text not null default '',
+  remind_at   timestamptz not null,
+  status      text not null default 'pending',
+  job_id      text,                                    -- id del job en pg-boss (para cancelar)
+  sent_at     timestamptz,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+alter table reminders drop constraint if exists reminders_status_check;
+alter table reminders
+  add constraint reminders_status_check check (status in ('pending','sent','dismissed'));
+
+create index if not exists reminders_user_id_idx   on reminders(user_id);
+create index if not exists reminders_remind_at_idx on reminders(remind_at);
+
+drop trigger if exists reminders_updated_at on reminders;
+create trigger reminders_updated_at
+  before update on reminders
+  for each row execute function update_updated_at();

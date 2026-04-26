@@ -5,6 +5,7 @@ import { statusSlug, getPriorityClass } from "../../utils/status";
 import { IconAlert } from "../Icon";
 import { usePermissions } from "../../hooks/usePermissions";
 import EmptyState from "../EmptyState";
+import RemindersPanel from "../RemindersPanel";
 
 export default function MiTrabajoView({ tasks, clients, technicians, onEditTask, openNewTask }) {
   const { canManage } = usePermissions();
@@ -53,6 +54,8 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask,
       )}
 
       <div className="dashboard-grid">
+        <RemindersPanel />
+
         <div className="panel-block">
           <div className="panel-block-header">
             <h2>Requieren acción</h2>

@@ -18,6 +18,7 @@ import { authRouter }        from "./routes/auth.js";
 import { tasksRouter }       from "./routes/tasks.js";
 import { clientsRouter }     from "./routes/clients.js";
 import { usersRouter }       from "./routes/users.js";
+import { remindersRouter }   from "./routes/reminders.js";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 
@@ -121,6 +122,9 @@ app.use("/api/clients", authMiddleware, clientsRouter);
 // autenticado (se usa para asignar tareas, filtrar, etc.), pero las
 // operaciones de escritura se restringen dentro del router a admin.
 app.use("/api/users",   authMiddleware, usersRouter);
+// Recordatorios personales: cada usuario sólo ve los suyos (filtro por
+// req.user.id dentro del router; no hace falta requireRole).
+app.use("/api/reminders", authMiddleware, remindersRouter);
 
 // ─── Socket.io: autenticación en handshake ───────────────
 io.use((socket, next) => {

@@ -362,3 +362,84 @@ select.toolbar-filter-select {
   font-size: 12px;
   color: var(--text-soft);
 }
+
+/* ─── RECORDATORIOS PERSONALES ───────────────────────────
+   Modal y panel "Mis recordatorios": presets temporales en chips,
+   selector de fecha+hora, y tarjetas con botón de descartar a la derecha. */
+.reminder-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.reminder-when {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.reminder-when input[type="date"],
+.reminder-when input[type="time"] {
+  flex: 1;
+}
+
+/* Tarjetas de recordatorio en el panel: layout en fila con un botón de
+   descarte en la esquina. Reusan .day-task-card como base para alinearse
+   visualmente con el resto del dashboard. */
+.reminder-card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+}
+.reminder-card .reminder-main {
+  flex: 1;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 10px 38px 10px 12px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.reminder-card .reminder-main:hover { background: var(--bg-soft); }
+.reminder-card.is-past .day-task-top strong { color: var(--c-red-700, #b91c1c); }
+
+.reminder-when-pill {
+  font-size: 11px;
+  color: var(--text-soft);
+  background: var(--bg-soft);
+  border: 1px solid var(--line-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.reminder-card.is-past .reminder-when-pill {
+  color: var(--c-red-700, #b91c1c);
+  border-color: var(--c-red-100, #fecaca);
+  background: var(--c-red-50, #fef2f2);
+}
+
+.reminder-body {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reminder-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: transparent;
+  border: 0;
+  color: var(--text-soft);
+  font-size: 18px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.reminder-dismiss:hover { background: var(--bg-soft); color: var(--text-strong); }

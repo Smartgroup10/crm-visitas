@@ -6,8 +6,10 @@
 // de lo posible: pg-boss reintenta en caso de error.
 // ============================================================
 
+import { query } from "./db.js";
 import { logger } from "./logger.js";
 import { sendMail } from "./mailer.js";
+import { reminderEmail } from "./templates.js";
 import { QUEUES, getQueue } from "./queue.js";
 
 export async function registerWorkers() {
@@ -20,7 +22,6 @@ export async function registerWorkers() {
   // ─── Cola: send-email ────────────────────────────────────────
   // Recibe { to, subject, html, text, replyTo, headers } y delega en mailer.
   await boss.work(QUEUES.SEND_EMAIL, { teamSize: 5, teamConcurrency: 2 }, async (jobs) => {
-    // pg-boss v10 entrega arrays de jobs por batch.
     const list = Array.isArray(jobs) ? jobs : [jobs];
     for (const job of list) {
       const data = job.data || {};
@@ -32,5 +33,116 @@ export async function registerWorkers() {
     }
   });
 
+  // ─── Cola: reminder-fire ─────────────────────────────────────
+  // Recibe { reminderId } y dispara el envío del email asociado, dejando
+  // el reminder marcado como `sent`. Idempotente: si el reminder ya está
+  // sent o dismissed, no hace nada.
+  await boss.work(QUEUES.REMINDER_FIRE, { teamSize: 3, teamConcurrency: 2 }, async (jobs) => {
+    const list = Array.isArray(jobs) ? jobs : [jobs];
+    for (const job of list) {
+      await handleReminderFire(job.data?.reminderId);
+    }
+  });
+
   logger.info("[workers] registrados");
+
+  // ─── Sweeper periódico ──────────────────────────────────────
+  // Para casos en los que pg-boss no estaba arriba al programar (job_id
+  // null) o el job se perdió: cada minuto miramos los recordatorios
+  // pending cuya fecha ya pasó y los disparamos. Es la red de seguridad.
+  scheduleSweeper();
+}
+
+async function handleReminderFire(reminderId) {
+  if (!reminderId) return;
+  const { rows } = await query(
+    `select r.id, r.title, r.body, r.remind_at, r.status,
+            u.id as user_id, u.email, u.name,
+            u.notify_email_enabled
+       from reminders r
+       join users u on u.id = r.user_id
+      where r.id = $1`,
+    [reminderId]
+  );
+  const reminder = rows[0];
+  if (!reminder) {
+    logger.warn({ reminderId }, "[reminder-fire] no existe");
+    return;
+  }
+  if (reminder.status !== "pending") {
+    logger.debug({ reminderId, status: reminder.status }, "[reminder-fire] ya procesado");
+    return;
+  }
+  if (!reminder.notify_email_enabled) {
+    // El usuario tiene desactivados los avisos: marcamos como sent igual
+    // para no volver a procesarlo, pero sin enviar nada.
+    await query(
+      "update reminders set status = 'sent', sent_at = now() where id = $1",
+      [reminderId]
+    );
+    logger.info({ reminderId }, "[reminder-fire] usuario con avisos desactivados; saltado");
+    return;
+  }
+  if (!reminder.email) {
+    logger.warn({ reminderId }, "[reminder-fire] usuario sin email; saltado");
+    return;
+  }
+
+  const tpl = reminderEmail({
+    user: { name: reminder.name, email: reminder.email },
+    reminder: { title: reminder.title, body: reminder.body, remind_at: reminder.remind_at },
+  });
+
+  const result = await sendMail({
+    to: reminder.email,
+    subject: tpl.subject,
+    html: tpl.html,
+    text: tpl.text,
+  });
+
+  if (!result?.ok) {
+    // Dejamos el reminder en pending para que el sweeper lo reintente
+    // (y pg-boss también reintentará el job al lanzar excepción).
+    throw new Error(result?.error || "send_failed");
+  }
+
+  await query(
+    "update reminders set status = 'sent', sent_at = now() where id = $1 and status = 'pending'",
+    [reminderId]
+  );
+  logger.info({ reminderId, to: reminder.email }, "[reminder-fire] enviado");
+}
+
+// ─── Sweeper de recordatorios atrasados ─────────────────────
+// Corre cada minuto. Coge recordatorios `pending` con `remind_at` ya pasada
+// y dispara `handleReminderFire` directamente, sin pasar por pg-boss
+// (porque o el job nunca se programó, o se perdió). Limitamos a 50 por
+// pasada para no saturar el worker si hubiera un atasco.
+let sweeperTimer = null;
+function scheduleSweeper() {
+  if (sweeperTimer) return;
+  const tick = async () => {
+    try {
+      const { rows } = await query(
+        `select id from reminders
+          where status = 'pending'
+            and remind_at <= now()
+          order by remind_at asc
+          limit 50`
+      );
+      for (const r of rows) {
+        try {
+          await handleReminderFire(r.id);
+        } catch (err) {
+          logger.error({ err, id: r.id }, "[reminder-sweeper] error procesando");
+        }
+      }
+    } catch (err) {
+      logger.error({ err }, "[reminder-sweeper] error en barrido");
+    }
+  };
+  // Primera pasada en 5s para coger lo que estaba esperando al arrancar,
+  // y luego cada 60s.
+  sweeperTimer = setInterval(tick, 60_000);
+  setTimeout(tick, 5_000);
 }

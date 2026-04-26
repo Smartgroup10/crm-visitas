@@ -105,6 +105,25 @@ export const schemas = {
     .refine((d) => Object.keys(d).length > 0, {
       message: "Nada que actualizar",
     }),
+
+  // Recordatorios personales. `remind_at` debe ser una fecha ISO válida
+  // (el frontend pasa Date.toISOString()). No exigimos que sea futura aquí
+  // porque el handler ya decide qué hacer si la fecha ya pasó (programar
+  // un job inmediato o rechazar, según política).
+  reminderCreate: z.object({
+    title:     trimmed(200).min(1, "El título es obligatorio"),
+    body:      optionalString(2000),
+    remind_at: z.string().datetime({ offset: true }),
+  }),
+  reminderUpdate: z
+    .object({
+      title:     trimmed(200).min(1, "El título es obligatorio").optional(),
+      body:      optionalString(2000),
+      remind_at: z.string().datetime({ offset: true }).optional(),
+    })
+    .refine((d) => Object.keys(d).length > 0, {
+      message: "Nada que actualizar",
+    }),
 };
 
 // Middleware -------------------------------------------------------
