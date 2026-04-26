@@ -9,6 +9,7 @@ export function emptyTask(date, type = "incidencia") {
     phone: "",
     type,
     date,
+    startTime: "",
     technicianIds: [],
     status: "No iniciado",
     priority: "Media",

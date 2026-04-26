@@ -94,6 +94,7 @@ create table if not exists tasks (
   id             uuid primary key default gen_random_uuid(),
   title          text not null,
   date           text,                          -- YYYY-MM-DD
+  start_time     text,                          -- HH:MM (24h, hora local del operador) o null
   status         text not null default 'No iniciado',
   priority       text not null default 'Media',
   client_id      uuid references clients(id) on delete set null,
@@ -111,6 +112,11 @@ create table if not exists tasks (
   created_by     uuid references users(id) on delete set null,
   updated_by     uuid references users(id) on delete set null
 );
+
+-- Migración idempotente para instalaciones previas: añade start_time si
+-- no existe. Se almacena como text "HH:MM" para mantener simetría con
+-- `date` (también text). Null = sin hora concreta.
+alter table tasks add column if not exists start_time text;
 
 -- Trigger: actualizar updated_at automáticamente al modificar una tarea
 create or replace function update_updated_at()
@@ -180,6 +186,17 @@ begin
     delete from users where coalesce(password_hash, '') = '';
   end if;
 end$$;
+
+-- ─── JOBS DE RECORDATORIO DE TAREAS ───────────────────────
+-- Por cada (tarea, técnico) guardamos el id del job programado en pg-boss
+-- para poder cancelarlo si la tarea cambia de fecha/hora o si se desasigna
+-- al técnico. ON DELETE CASCADE limpia automáticamente al borrar tarea/usuario.
+create table if not exists task_reminder_jobs (
+  task_id  uuid  not null references tasks(id) on delete cascade,
+  user_id  uuid  not null references users(id) on delete cascade,
+  job_id   text  not null,
+  primary key (task_id, user_id)
+);
 
 -- ─── RECORDATORIOS PERSONALES ─────────────────────────────
 -- Cada usuario crea sus propios recordatorios (privados). El backend

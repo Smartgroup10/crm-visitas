@@ -9,7 +9,7 @@
 import { query } from "./db.js";
 import { logger } from "./logger.js";
 import { sendMail } from "./mailer.js";
-import { reminderEmail } from "./templates.js";
+import { reminderEmail, taskReminderEmail } from "./templates.js";
 import { QUEUES, getQueue } from "./queue.js";
 
 export async function registerWorkers() {
@@ -41,6 +41,17 @@ export async function registerWorkers() {
     const list = Array.isArray(jobs) ? jobs : [jobs];
     for (const job of list) {
       await handleReminderFire(job.data?.reminderId);
+    }
+  });
+
+  // ─── Cola: task-reminder ─────────────────────────────────────
+  // Recibe { taskId, userId } y manda el email "tu tarea empieza en X
+  // minutos". Si en el momento del envío la tarea ya no existe, ya está
+  // listo, o el técnico ya no está asignado, el handler no hace nada.
+  await boss.work(QUEUES.TASK_REMINDER, { teamSize: 3, teamConcurrency: 2 }, async (jobs) => {
+    const list = Array.isArray(jobs) ? jobs : [jobs];
+    for (const job of list) {
+      await handleTaskReminderFire(job.data || {});
     }
   });
 
@@ -111,6 +122,61 @@ async function handleReminderFire(reminderId) {
     [reminderId]
   );
   logger.info({ reminderId, to: reminder.email }, "[reminder-fire] enviado");
+}
+
+async function handleTaskReminderFire({ taskId, userId }) {
+  if (!taskId || !userId) return;
+
+  // Limpiamos la fila de seguimiento (si el job se dispara, su id ya no es
+  // útil para cancelar). Lo hacemos al principio para que sea idempotente
+  // y no acumule basura aunque el envío falle.
+  await query(
+    "delete from task_reminder_jobs where task_id = $1 and user_id = $2",
+    [taskId, userId]
+  );
+
+  const { rows } = await query(
+    `select t.id, t.title, t.date, t.start_time, t.priority, t.status,
+            t.notes, t.client_id, t.technician_ids,
+            c.name as client_name,
+            u.id as user_id, u.email as user_email, u.name as user_name,
+            u.notify_email_enabled, u.notify_lead_minutes
+       from tasks t
+       left join clients c on c.id = t.client_id
+       join users u on u.id = $2
+      where t.id = $1`,
+    [taskId, userId]
+  );
+  const row = rows[0];
+  if (!row) {
+    logger.debug({ taskId, userId }, "[task-reminder] tarea no existe; saltado");
+    return;
+  }
+  if (row.status === "Listo") {
+    logger.debug({ taskId, userId }, "[task-reminder] tarea ya completada; saltado");
+    return;
+  }
+  if (!Array.isArray(row.technician_ids) || !row.technician_ids.includes(userId)) {
+    logger.debug({ taskId, userId }, "[task-reminder] usuario ya no asignado; saltado");
+    return;
+  }
+  if (!row.notify_email_enabled) return;
+  if (!row.user_email) return;
+
+  const tpl = taskReminderEmail({
+    user: { id: row.user_id, name: row.user_name, email: row.user_email },
+    task: {
+      id: row.id, title: row.title, date: row.date, start_time: row.start_time,
+      priority: row.priority, status: row.status, notes: row.notes,
+    },
+    clientName: row.client_name,
+    leadMinutes: Number(row.notify_lead_minutes ?? 60),
+  });
+
+  const result = await sendMail({
+    to: row.user_email, subject: tpl.subject, html: tpl.html, text: tpl.text,
+  });
+  if (!result?.ok) throw new Error(result?.error || "send_failed");
 }
 
 // ─── Sweeper de recordatorios atrasados ─────────────────────

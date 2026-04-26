@@ -133,6 +133,35 @@ export default function App() {
     };
   }, [loadTasks, loadClients, loadUsers, toast]);
 
+  // ── Deep link ?task=<id> ────────────────────────────────
+  // Cuando un email contiene un enlace tipo `https://crm/?task=<uuid>`,
+  // queremos abrir el modal con esa tarea cargada en cuanto se haya cargado
+  // la lista. Limpiamos el query string para que un refresh no reabra el
+  // modal y para que el botón "atrás" no entre en bucle.
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(window.location.search);
+    const wantedId = params.get("task");
+    if (!wantedId) return;
+    const task = tasks.find((t) => t.id === wantedId);
+    if (task) {
+      setDraft({ ...task });
+      setIsModalOpen(true);
+      if (task.date) setSelectedDate(task.date);
+    }
+    // Quitar el parámetro tras procesarlo. No queremos recargar si la tarea
+    // ya no existe: simplemente lo retiramos para que el usuario vea la app
+    // normal en vez de un error en bucle.
+    params.delete("task");
+    const newUrl = `${window.location.pathname}${
+      params.toString() ? `?${params.toString()}` : ""
+    }${window.location.hash}`;
+    window.history.replaceState({}, "", newUrl);
+    // Solo en la primera carga: si más tareas llegan después por socket,
+    // no queremos reabrir el modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
   // ── Sincronización de filtros ────────────────────────────
   useEffect(() => {
     if (personFilter !== "Todos" && !technicians.some((t) => t.id === personFilter)) {

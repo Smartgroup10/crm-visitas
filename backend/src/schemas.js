@@ -21,10 +21,15 @@ const uuid = z.string().uuid();
 
 const ROLES = ["admin", "supervisor", "tecnico"];
 
+// Regex para validar "HH:MM" (00:00 a 23:59). Permitimos null/undefined
+// si la tarea no tiene hora concreta.
+const HHMM_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 // Campos de una tarea (forma común compartida por POST / PUT) -----
 const taskShape = {
   title:           trimmed(500).min(1, "El título es obligatorio"),
   date:            z.string().max(30).nullable().optional(),     // "YYYY-MM-DD" o null
+  start_time:      z.string().regex(HHMM_REGEX, "Hora inválida (HH:MM)").nullable().optional(),
   status:          optionalString(50),
   priority:        optionalString(50),
   client_id:       uuid.nullable().optional(),

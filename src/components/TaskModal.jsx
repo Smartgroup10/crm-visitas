@@ -199,6 +199,40 @@ export default function TaskModal({
                   />
                   {errors.date && <div className="field-error">{errors.date}</div>}
                 </div>
+
+                <div className="form-row">
+                  <label>Hora de inicio</label>
+                  {/*
+                    Hora opcional ("" = sin hora). Si la tarea tiene fecha+hora,
+                    el backend programa un email recordatorio según las
+                    preferencias del técnico (notify_lead_minutes).
+                  */}
+                  <input
+                    type="time"
+                    className={errors.startTime ? "has-error" : ""}
+                    value={draft.startTime || ""}
+                    onChange={(e) => setDraft({ ...draft, startTime: e.target.value })}
+                    step="300"
+                  />
+                  {errors.startTime && <div className="field-error">{errors.startTime}</div>}
+                  <div className="time-presets">
+                    {["09:00", "12:00", "16:00"].map((preset) => (
+                      <button
+                        type="button"
+                        key={preset}
+                        className={`chip ${draft.startTime === preset ? "chip-active" : ""}`}
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            startTime: draft.startTime === preset ? "" : preset,
+                          })
+                        }
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 

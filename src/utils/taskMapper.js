@@ -9,6 +9,7 @@ export function taskFromDb(row) {
     id:             row.id,
     title:          row.title          ?? "",
     date:           row.date           ?? "",
+    startTime:      row.start_time     ?? "",
     status:         row.status         ?? "No iniciado",
     priority:       row.priority       ?? "Media",
     clientId:       row.client_id      ?? "",
@@ -43,6 +44,7 @@ export function taskToDb(task, userId) {
   return {
     title:          task.title          ?? "",
     date:           task.date           ?? null,
+    start_time:     task.startTime ? task.startTime : null,
     status:         task.status         ?? "No iniciado",
     priority:       task.priority       ?? "Media",
     client_id:      task.clientId       || null,

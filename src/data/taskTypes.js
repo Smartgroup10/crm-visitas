@@ -59,6 +59,7 @@ export const COMMON_TASK_FIELDS = [
   "phone",
   "type",
   "date",
+  "startTime",
   "technicianIds",
   "status",
   "priority",

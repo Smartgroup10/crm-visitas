@@ -4,6 +4,7 @@ import { emit } from "../io.js";
 import { requireRole } from "../auth.js";
 import { logger } from "../logger.js";
 import { schemas, validate } from "../schemas.js";
+import { dispatchTaskNotifications } from "../taskNotifs.js";
 
 export const tasksRouter = Router();
 
@@ -39,14 +40,15 @@ tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) 
     const t = req.body || {};
     const { rows } = await query(
       `insert into tasks (
-        title, date, status, priority, client_id, phone, technician_ids,
+        title, date, start_time, status, priority, client_id, phone, technician_ids,
         vehicle, type, notes, materials, estimated_time, attachments,
         type_fields, created_by, updated_by
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15)
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$16)
       returning *`,
       [
         t.title           ?? "",
         t.date            ?? null,
+        t.start_time      ?? null,
         t.status          ?? "No iniciado",
         t.priority        ?? "Media",
         t.client_id       || null,
@@ -64,6 +66,8 @@ tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) 
     );
     emit("tasks:change", { type: "insert", task: rows[0] });
     res.json(rows[0]);
+    // Notificaciones en background: no bloquean la respuesta.
+    dispatchTaskNotifications({ prev: null, next: rows[0], actorId: req.user.id });
   } catch (err) {
     logger.error({ err }, "[tasks/create]");
     res.status(500).json({ error: "Error creando tarea" });
@@ -74,16 +78,21 @@ tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) 
 tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res) => {
   try {
     const t = req.body || {};
+    // Leemos el estado previo para poder hacer diff de asignación / fecha.
+    const { rows: prevRows } = await query("select * from tasks where id = $1", [req.params.id]);
+    const prev = prevRows[0] || null;
+
     const { rows } = await query(
       `update tasks set
-         title = $1, date = $2, status = $3, priority = $4, client_id = $5,
-         phone = $6, technician_ids = $7, vehicle = $8, type = $9,
-         notes = $10, materials = $11, estimated_time = $12,
-         attachments = $13, type_fields = $14, updated_by = $15
-       where id = $16 returning *`,
+         title = $1, date = $2, start_time = $3, status = $4, priority = $5,
+         client_id = $6, phone = $7, technician_ids = $8, vehicle = $9, type = $10,
+         notes = $11, materials = $12, estimated_time = $13,
+         attachments = $14, type_fields = $15, updated_by = $16
+       where id = $17 returning *`,
       [
         t.title          ?? "",
         t.date           ?? null,
+        t.start_time     ?? null,
         t.status         ?? "No iniciado",
         t.priority       ?? "Media",
         t.client_id      || null,
@@ -103,6 +112,7 @@ tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res
     if (!rows[0]) return res.status(404).json({ error: "Tarea no encontrada" });
     emit("tasks:change", { type: "update", task: rows[0] });
     res.json(rows[0]);
+    dispatchTaskNotifications({ prev, next: rows[0], actorId: req.user.id });
   } catch (err) {
     logger.error({ err }, "[tasks/update]");
     res.status(500).json({ error: "Error actualizando tarea" });
@@ -116,6 +126,9 @@ tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res
 tasksRouter.patch("/:id", canManage, validate(schemas.taskPatch), async (req, res) => {
   try {
     const fields = Object.entries(req.body);
+
+    const { rows: prevRows } = await query("select * from tasks where id = $1", [req.params.id]);
+    const prev = prevRows[0] || null;
 
     const values = [];
     const setClauses = [];
@@ -134,6 +147,7 @@ tasksRouter.patch("/:id", canManage, validate(schemas.taskPatch), async (req, re
     if (!rows[0]) return res.status(404).json({ error: "Tarea no encontrada" });
     emit("tasks:change", { type: "update", task: rows[0] });
     res.json(rows[0]);
+    dispatchTaskNotifications({ prev, next: rows[0], actorId: req.user.id });
   } catch (err) {
     logger.error({ err }, "[tasks/patch]");
     res.status(500).json({ error: "Error actualizando tarea" });
@@ -143,9 +157,16 @@ tasksRouter.patch("/:id", canManage, validate(schemas.taskPatch), async (req, re
 // ─── DELETE /api/tasks/:id ───────────────────────────────
 tasksRouter.delete("/:id", canManage, async (req, res) => {
   try {
+    // Leemos antes de borrar para poder limpiar jobs programados.
+    const { rows: prevRows } = await query("select * from tasks where id = $1", [req.params.id]);
+    const prev = prevRows[0] || null;
+
     await query("delete from tasks where id = $1", [req.params.id]);
     emit("tasks:change", { type: "delete", id: req.params.id });
     res.json({ ok: true });
+    if (prev) {
+      dispatchTaskNotifications({ prev, next: null, actorId: req.user.id });
+    }
   } catch (err) {
     logger.error({ err }, "[tasks/delete]");
     res.status(500).json({ error: "Error borrando tarea" });

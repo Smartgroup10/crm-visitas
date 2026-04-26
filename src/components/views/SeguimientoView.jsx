@@ -43,6 +43,9 @@ function TaskPill({ task, canManage, setDraggedTaskId, onEditTask, clients, tech
       }}
     >
       <div className="task-pill-content">
+        {task.startTime && (
+          <span className="task-pill-time">{task.startTime}</span>
+        )}
         <span className="task-pill-text">{task.title}</span>
       </div>
       {showTooltip && <TaskTooltip task={task} clients={clients} technicians={technicians} />}
@@ -429,6 +432,9 @@ function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, 
               onClick={() => onEditTask(task)}
             >
               <div className="day-view-card-top">
+                {task.startTime && (
+                  <span className="day-view-card-time">{task.startTime}</span>
+                )}
                 <strong className="day-view-card-title">{task.title}</strong>
                 <span className={`mini-status ${statusSlug(task.status)}`}>
                   {task.status}
@@ -518,6 +524,7 @@ function TableView({
             <th>Teléfono</th>
             <th>Tipo</th>
             <th>Fecha</th>
+            <th>Hora</th>
             <th>Técnicos</th>
             <th>Estado</th>
             <th>Prioridad</th>
@@ -538,6 +545,7 @@ function TableView({
                   <td>{task.phone || "-"}</td>
                   <td>{TASK_TYPES[task.type]?.label || task.type}</td>
                   <td>{formatShortDate(task.date)}</td>
+                  <td>{task.startTime || "-"}</td>
                   <td>{peopleFromIds(task.technicianIds, technicians)}</td>
                   <td>
                     <span className={`mini-status ${statusSlug(task.status)}`}>

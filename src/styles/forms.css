@@ -43,6 +43,10 @@
 
 .chips-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
 
+/* Atajos rápidos para "hora de inicio". Pegado al input para que se entienda
+   visualmente como sugerencias del campo, no como un control independiente. */
+.time-presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+
 .chip {
   width: auto;
   border-radius: 999px;

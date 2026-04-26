@@ -189,6 +189,10 @@ export function taskAssignedEmail({ user, task, clientName, assignerName }) {
 }
 
 // ─── Email: recordatorio antes del inicio de una tarea ────────────
+// `user` se acepta por simetría con el resto de plantillas (la firma uniforme
+// facilita pasar el destinatario sin pensar en cuál usa qué); el cuerpo no lo
+// necesita porque el "to" lo añade el caller en `sendMail`.
+// eslint-disable-next-line no-unused-vars
 export function taskReminderEmail({ user, task, clientName, leadMinutes }) {
   const when = taskWhen(task);
   const title = `⏰ Próxima tarea: ${task.title}`;
@@ -215,6 +219,9 @@ export function taskReminderEmail({ user, task, clientName, leadMinutes }) {
 }
 
 // ─── Email: cambios en una tarea ya asignada ──────────────────────
+// Igual que `taskReminderEmail`: `user` se acepta para que las llamadas
+// queden uniformes desde `taskNotifs.js`, aunque el render no lo use.
+// eslint-disable-next-line no-unused-vars
 export function taskChangedEmail({ user, task, clientName, changes }) {
   const when = taskWhen(task);
   const title = `✏️ Cambios en tu tarea: ${task.title}`;
