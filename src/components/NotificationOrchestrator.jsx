@@ -4,7 +4,7 @@ import { getSocket } from "../lib/socket";
 import { useReminders } from "../hooks/useReminders";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { useDueWatcher } from "../hooks/useDueWatcher";
-import { useToast } from "../hooks/useToast";
+import { useNotificationStack } from "../hooks/useNotificationStack";
 
 /**
  * Orquesta las notificaciones in-app del usuario:
@@ -14,16 +14,20 @@ import { useToast } from "../hooks/useToast";
  *   │ (pg-boss)      │                       │ component   │
  *   └────────────────┘                       │             │
  *                                            │ ┌─────────┐ │
- *   ┌────────────────┐    setInterval 30s   │ │ Toast   │ │
- *   │ Watcher local  │──────────────────────▶│ │ Browser │ │
- *   │ (red de seg.)  │                       │ │  API    │ │
- *   └────────────────┘                       │ └─────────┘ │
+ *   ┌────────────────┐    setInterval 30s   │ │ Card    │ │
+ *   │ Watcher local  │──────────────────────▶│ │ in-app  │ │
+ *   │ (red de seg.)  │                       │ │ + Browser│ │
+ *   └────────────────┘                       │ │  API    │ │
+ *                                            │ └─────────┘ │
  *                                            └─────────────┘
  *
  * Tres entradas (socket, watcher local, llamada manual) que terminan en
  * el mismo `dispatch()`, que dedupica por `tag` y dispara:
  *   - `Notification` del navegador (si permiso + toggle local).
- *   - Toast in-app (siempre, como refuerzo si la pestaña está activa).
+ *   - Card "rich" del stack in-app (con icono branded, sonido, acción
+ *     primaria "Ver tarea"). Sustituye al toast plano de la v1: el toast
+ *     era feedback efímero genérico; las notificaciones de agenda son
+ *     un canal separado y merecen su propio look-and-feel.
  *
  * No renderiza nada propio: vive como hijo de `App` y trabaja en efectos.
  */
@@ -33,7 +37,7 @@ import { useToast } from "../hooks/useToast";
 const DEDUP_WINDOW_MS = 2 * 60 * 1000;
 
 export default function NotificationOrchestrator({ userId, tasks, leadMinutes }) {
-  const toast = useToast();
+  const notifStack = useNotificationStack();
   const browser = useBrowserNotifications();
   const { reminders } = useReminders({ status: "pending" });
 
@@ -50,38 +54,64 @@ export default function NotificationOrchestrator({ userId, tasks, leadMinutes })
     if (prev && now - prev < DEDUP_WINDOW_MS) return;
     lastDispatch.current.set(payload.tag, now);
 
+    // Acción de "abrir la tarea" reutilizable: la usamos tanto desde el
+    //   click en la Notification del navegador como desde el botón
+    //   primario de la card in-app, así nos aseguramos de que ambos
+    //   destinos hacen exactamente lo mismo.
+    const openTask = () => {
+      try { window.focus(); } catch { /* ignore */ }
+      if (payload.kind === "task" && payload.id) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("task", payload.id);
+        window.history.replaceState({}, "", url.toString());
+        window.dispatchEvent(new CustomEvent("crm:open-task", { detail: { id: payload.id } }));
+      }
+    };
+
+    // Branded title: prefijo con un emoji que identifica el tipo de
+    //   evento incluso al verlo de un vistazo en la esquina del SO.
+    //   No metemos "SMARTGROUP" en el título porque la mayoría de
+    //   navegadores ya pintan el origen ("crm-visitas.api2smart.com")
+    //   debajo, y duplicar texto reduce la legibilidad.
+    const brandedTitle = payload.kind === "task"
+      ? `⏰ ${payload.title}`
+      : `🔔 ${payload.title}`;
+
     // 1) Notificación del navegador (sale aunque la pestaña esté en
     //    background o en otra ventana — es el caso de uso principal).
+    //    requireInteraction sólo para tareas: el usuario puede estar
+    //    en otra app y queremos que la notificación se quede hasta que
+    //    la atienda. Los reminders genéricos pueden auto-cerrarse.
     const n = browser.notify({
-      title: payload.title,
+      title: brandedTitle,
       body: payload.body,
       tag: payload.tag,
       data: { kind: payload.kind, id: payload.id },
+      requireInteraction: payload.kind === "task",
     });
     if (n) {
       n.onclick = () => {
-        // Traer la pestaña al frente y, si es una tarea, abrir su modal
-        // vía el deep link. Para reminders no hay un modal específico,
-        // así que sólo enfocamos.
-        try { window.focus(); } catch { /* ignore */ }
-        if (payload.kind === "task" && payload.id) {
-          const url = new URL(window.location.href);
-          url.searchParams.set("task", payload.id);
-          window.history.replaceState({}, "", url.toString());
-          // Trigger un evento para que App reabra el modal sin recargar.
-          window.dispatchEvent(new CustomEvent("crm:open-task", { detail: { id: payload.id } }));
-        }
+        openTask();
         n.close();
       };
     }
 
-    // 2) Toast in-app: refuerzo visual cuando la pestaña está activa.
-    //    Si NO está activa, las notifications del navegador ya hacen
-    //    el trabajo; el toast esperará en pantalla a que vuelva.
-    const toastBody = payload.body
-      ? `${payload.title} · ${payload.body}`
-      : payload.title;
-    toast.info(toastBody, { duration: 8000 });
+    // 2) Card rich del stack in-app: refuerzo visual cuando la pestaña
+    //    está activa, y único canal cuando el navegador no tiene
+    //    permiso o el toggle local está apagado.
+    notifStack.push({
+      kind: payload.kind,
+      title: payload.title,
+      body: payload.body,
+      when: payload.when,
+      tag: payload.tag,
+      actionLabel: payload.kind === "task" && payload.id ? "Ver tarea" : null,
+      onAction: payload.kind === "task" && payload.id ? openTask : null,
+      // Si es tarea próxima, dejamos la card pegada hasta que el
+      // usuario interactúe — coherente con requireInteraction de la
+      // Notification del navegador.
+      requireInteraction: payload.kind === "task",
+    });
   }
 
   // ── Socket: el backend emite "notify" a la sala user:<id> ─────

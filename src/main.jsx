@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import { UIProvider } from './context/UIProvider'
 import { ToastProvider } from './context/ToastProvider'
 import { ConfirmProvider } from './context/ConfirmProvider'
+import { NotificationStackProvider } from './context/NotificationStackProvider'
 import { useAuth } from './hooks/useAuth'
 import App from './App'
 import LoginPage from './components/LoginPage'
@@ -35,11 +36,13 @@ function Root() {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ToastProvider>
-      <ConfirmProvider>
-        <AuthProvider>
-          <Root />
-        </AuthProvider>
-      </ConfirmProvider>
+      <NotificationStackProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <Root />
+          </AuthProvider>
+        </ConfirmProvider>
+      </NotificationStackProvider>
     </ToastProvider>
   </StrictMode>,
 )

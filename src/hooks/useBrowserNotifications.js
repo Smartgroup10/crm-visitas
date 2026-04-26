@@ -101,8 +101,11 @@ export function useBrowserNotifications() {
         const n = new window.Notification(title, {
           body: body || "",
           tag: tag || undefined,
-          icon: "/favicon.ico",
-          badge: "/favicon.ico",
+          // Icono branded de la app (SVG 192px). Si el navegador no lo
+          // soporta — Safari macOS p. ej. — cae al favicon del sitio
+          // automáticamente, así que no perdemos nada.
+          icon: "/notif-icon.svg",
+          badge: "/notif-icon.svg",
           data: data || {},
           requireInteraction,
           // renotify forzaría sonido aunque la tag sea la misma; no
