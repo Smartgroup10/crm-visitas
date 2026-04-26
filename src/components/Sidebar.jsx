@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useUI } from "../hooks/useUI";
 import { useAuth } from "../hooks/useAuth";
 import {
   IconHome, IconCheckSquare, IconClipboard, IconUsers,
-  IconWrench, IconBarChart, IconLogOut,
+  IconWrench, IconBarChart, IconLogOut, IconBell,
 } from "./Icon";
+import PreferencesModal from "./PreferencesModal";
 
 function getInitials(name) {
   if (!name) return "??";
@@ -30,7 +31,8 @@ function NavItem({ icon: Icon, label, active, onClick, disabled }) {
 
 export default function Sidebar() {
   const { section, setSection, drawerOpen, setDrawerOpen } = useUI();
-  const { profile, logout }     = useAuth();
+  const { profile, logout, updateProfile } = useAuth();
+  const [prefsOpen, setPrefsOpen] = useState(false);
 
   const displayName = profile?.name || "Usuario";
   const initials    = getInitials(displayName);
@@ -118,6 +120,14 @@ export default function Sidebar() {
             </div>
             <button
               className="logout-btn"
+              onClick={() => setPrefsOpen(true)}
+              title="Preferencias y notificaciones"
+              aria-label="Preferencias y notificaciones"
+            >
+              <IconBell />
+            </button>
+            <button
+              className="logout-btn"
               onClick={logout}
               title="Cerrar sesión"
               aria-label="Cerrar sesión"
@@ -127,6 +137,13 @@ export default function Sidebar() {
           </div>
         </div>
       </aside>
+
+      <PreferencesModal
+        open={prefsOpen}
+        profile={profile}
+        onClose={() => setPrefsOpen(false)}
+        onUpdated={(updated) => updateProfile(updated)}
+      />
     </>
   );
 }

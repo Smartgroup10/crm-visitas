@@ -51,10 +51,19 @@ export function AuthProvider({ children }) {
     doLogout();
   }
 
+  // Hace merge de los campos devueltos por el backend (p.ej. tras actualizar
+  // preferencias) con el `user` actual, para que la UI vea los cambios sin
+  // necesidad de re-llamar a /auth/me.
+  const updateProfile = useCallback((patch) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   // Mantenemos `profile` en el contexto para no tener que tocar los consumidores
   // existentes: en este backend el perfil y el usuario son lo mismo.
   return (
-    <AuthContext.Provider value={{ user, profile: user, authLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, profile: user, authLoading, login, logout, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );

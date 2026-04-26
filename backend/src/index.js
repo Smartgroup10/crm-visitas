@@ -11,6 +11,8 @@ import { setIO } from "./io.js";
 import { pool } from "./db.js";
 import { applySchema, seedAdmin, waitForDb } from "./seed.js";
 import { logger } from "./logger.js";
+import { startQueue, stopQueue } from "./queue.js";
+import { registerWorkers } from "./workers.js";
 
 import { authRouter }        from "./routes/auth.js";
 import { tasksRouter }       from "./routes/tasks.js";
@@ -148,6 +150,13 @@ const PORT = Number(process.env.PORT) || 3001;
     await waitForDb();
     await applySchema();
     await seedAdmin();
+
+    // pg-boss reusa la misma BD. Si falla, no tumbamos el backend: los
+    // emails simplemente no se enviarán hasta que el operador resuelva
+    // el problema. La función ya loguea el error.
+    await startQueue();
+    await registerWorkers();
+
     server.listen(PORT, () => {
       logger.info(
         { port: PORT, corsOrigin: allowAnyOrigin ? "*" : corsOrigin },
@@ -180,6 +189,7 @@ async function shutdown(signal) {
   try {
     io.close();
     await new Promise((resolve) => server.close(resolve));
+    await stopQueue();
     await pool.end();
     logger.info("[backend] cerrado limpiamente");
     process.exit(0);

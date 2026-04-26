@@ -27,6 +27,13 @@ create table if not exists users (
 alter table users add column if not exists phone     text not null default '';
 alter table users add column if not exists specialty text not null default '';
 
+-- Preferencias de notificación por email. Se rellenan con defaults seguros
+-- (envío activado, 60 min de antelación) para que los usuarios existentes no
+-- se queden sin avisos al promocionar la feature, pero pueden desactivarlo
+-- desde su panel de preferencias.
+alter table users add column if not exists notify_email_enabled boolean      not null default true;
+alter table users add column if not exists notify_lead_minutes  integer      not null default 60;
+
 update users set role = 'tecnico'
   where role not in ('admin','supervisor','tecnico');
 

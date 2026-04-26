@@ -92,6 +92,19 @@ export const schemas = {
   passwordChange: z.object({
     password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(200),
   }),
+
+  // Preferencias del usuario actual. Ambos campos opcionales: el endpoint
+  // sólo actualiza los que llegan, dejando los demás intactos.
+  preferencesUpdate: z
+    .object({
+      notify_email_enabled: z.boolean().optional(),
+      // Antelación del recordatorio para tareas programadas (en minutos).
+      // 0 = "al empezar". Cap a 24h para no programar jobs absurdos.
+      notify_lead_minutes: z.number().int().min(0).max(24 * 60).optional(),
+    })
+    .refine((d) => Object.keys(d).length > 0, {
+      message: "Nada que actualizar",
+    }),
 };
 
 // Middleware -------------------------------------------------------

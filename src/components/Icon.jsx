@@ -27,3 +27,4 @@ export function IconLogOut(p)     { return <svg {...base} {...p}><path d="M9 21H
 export function IconAlert(p)      { return <svg {...base} {...p}><path d="M10.3 3.85 1.8 18.5A2 2 0 0 0 3.5 21.5h17a2 2 0 0 0 1.7-3L13.7 3.85a2 2 0 0 0-3.4 0z" /><path d="M12 9v4" /><circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none" /></svg>; }
 export function IconPlus(p)       { return <svg {...base} {...p}><path d="M12 5v14" /><path d="M5 12h14" /></svg>; }
 export function IconSearch(p)     { return <svg {...base} {...p}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>; }
+export function IconBell(p)       { return <svg {...base} {...p}><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a2 2 0 0 0 3.4 0" /></svg>; }
