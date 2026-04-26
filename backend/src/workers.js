@@ -11,6 +11,7 @@ import { logger } from "./logger.js";
 import { sendMail } from "./mailer.js";
 import { reminderEmail, taskReminderEmail } from "./templates.js";
 import { QUEUES, getQueue } from "./queue.js";
+import { emitToUser } from "./io.js";
 
 export async function registerWorkers() {
   const boss = getQueue();
@@ -84,18 +85,41 @@ async function handleReminderFire(reminderId) {
     logger.debug({ reminderId, status: reminder.status }, "[reminder-fire] ya procesado");
     return;
   }
+
+  // Notificación in-app: la lanzamos SIEMPRE (independiente de la
+  // preferencia de email). Si el usuario tiene la app abierta verá el
+  // toast y la notificación del navegador; si no, su frontend la
+  // recogerá cuando vuelva (watcher local sobre la lista de reminders).
+  const notifyPayload = {
+    kind: "reminder",
+    id: reminder.id,
+    title: reminder.title,
+    body: reminder.body || "",
+    when: reminder.remind_at,
+    tag: `reminder:${reminder.id}`,
+  };
+
   if (!reminder.notify_email_enabled) {
-    // El usuario tiene desactivados los avisos: marcamos como sent igual
-    // para no volver a procesarlo, pero sin enviar nada.
+    // El usuario tiene desactivados los avisos por email: marcamos como
+    // sent para no volver a procesarlo, pero la notificación in-app sí
+    // sale (es independiente: vive en la sesión del usuario).
     await query(
       "update reminders set status = 'sent', sent_at = now() where id = $1",
       [reminderId]
     );
-    logger.info({ reminderId }, "[reminder-fire] usuario con avisos desactivados; saltado");
+    emitToUser(reminder.user_id, "notify", notifyPayload);
+    logger.info({ reminderId }, "[reminder-fire] sin email; in-app enviado");
     return;
   }
   if (!reminder.email) {
-    logger.warn({ reminderId }, "[reminder-fire] usuario sin email; saltado");
+    // Sin dirección de correo. Igual que arriba: in-app sí, marcar sent
+    // para no reintentar eternamente.
+    await query(
+      "update reminders set status = 'sent', sent_at = now() where id = $1",
+      [reminderId]
+    );
+    emitToUser(reminder.user_id, "notify", notifyPayload);
+    logger.warn({ reminderId }, "[reminder-fire] usuario sin email; in-app enviado");
     return;
   }
 
@@ -121,6 +145,7 @@ async function handleReminderFire(reminderId) {
     "update reminders set status = 'sent', sent_at = now() where id = $1 and status = 'pending'",
     [reminderId]
   );
+  emitToUser(reminder.user_id, "notify", notifyPayload);
   logger.info({ reminderId, to: reminder.email }, "[reminder-fire] enviado");
 }
 
@@ -160,6 +185,25 @@ async function handleTaskReminderFire({ taskId, userId }) {
     logger.debug({ taskId, userId }, "[task-reminder] usuario ya no asignado; saltado");
     return;
   }
+
+  const leadMinutes = Number(row.notify_lead_minutes ?? 60);
+
+  // Notificación in-app: independiente del email. Si la pestaña está
+  // cerrada, el watcher local del frontend la disparará cuando vuelva
+  // (mientras la fecha-hora siga siendo "próxima").
+  const notifyPayload = {
+    kind: "task",
+    id: row.id,
+    title: row.title,
+    body: row.client_name
+      ? `${row.client_name} · empieza ${leadMinutes ? `en ${leadMinutes} min` : "ahora"}`
+      : `Tu tarea empieza ${leadMinutes ? `en ${leadMinutes} min` : "ahora"}`,
+    when: row.date && row.start_time ? `${row.date}T${row.start_time}:00` : null,
+    tag: `task:${row.id}`,
+  };
+  emitToUser(userId, "notify", notifyPayload);
+
+  // Si el usuario apagó el email, ya está: el aviso in-app salió. Salir.
   if (!row.notify_email_enabled) return;
   if (!row.user_email) return;
 
@@ -170,7 +214,7 @@ async function handleTaskReminderFire({ taskId, userId }) {
       priority: row.priority, status: row.status, notes: row.notes,
     },
     clientName: row.client_name,
-    leadMinutes: Number(row.notify_lead_minutes ?? 60),
+    leadMinutes,
   });
 
   const result = await sendMail({

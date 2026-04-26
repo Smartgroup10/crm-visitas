@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { api, ApiError } from "../lib/api";
 import { useToast } from "../hooks/useToast";
+import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 
 /**
  * Modal de preferencias del usuario actual.
@@ -26,6 +27,7 @@ const LEAD_PRESETS = [
 
 export default function PreferencesModal({ open, profile, onClose, onUpdated }) {
   const toast = useToast();
+  const browser = useBrowserNotifications();
   const [enabled, setEnabled] = useState(true);
   const [lead, setLead] = useState(60);
   const [busy, setBusy] = useState(false);
@@ -134,6 +136,95 @@ export default function PreferencesModal({ open, profile, onClose, onUpdated }) 
               ))}
             </select>
           </div>
+        </div>
+
+        {/*
+          ─── Notificaciones del navegador ───────────────────────────
+          Independiente del email: salen como pop-up del SO (esquina) y
+          se ven aunque la pestaña no esté en primer plano. Requieren
+          permiso explícito del usuario (Notification API).
+        */}
+        <div className="form-section">
+          <div className="form-row">
+            <label className="prefs-toggle">
+              <input
+                type="checkbox"
+                checked={browser.enabled}
+                disabled={!browser.supported || browser.permission === "denied"}
+                onChange={(e) => browser.setEnabled(e.target.checked)}
+              />
+              <span>
+                <strong>Notificaciones en este navegador</strong>
+                <small>
+                  Pop-up emergente al llegar la hora de una tarea o recordatorio,
+                  aunque tengas otra pestaña abierta.
+                </small>
+              </span>
+            </label>
+          </div>
+
+          {!browser.supported && (
+            <div className="form-row">
+              <small style={{ color: "var(--text-soft)" }}>
+                Tu navegador no soporta notificaciones del sistema.
+              </small>
+            </div>
+          )}
+
+          {browser.supported && browser.permission === "default" && (
+            <div className="form-row">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={async () => {
+                  const result = await browser.request();
+                  if (result === "granted") {
+                    toast.success("Notificaciones del navegador activadas");
+                  } else if (result === "denied") {
+                    toast.error("Permiso denegado. Puedes activarlo desde los ajustes del navegador.");
+                  }
+                }}
+              >
+                Activar permiso del navegador
+              </button>
+              <small style={{ display: "block", color: "var(--text-soft)", marginTop: 6 }}>
+                El navegador te pedirá confirmación.
+              </small>
+            </div>
+          )}
+
+          {browser.supported && browser.permission === "denied" && (
+            <div className="form-row">
+              <small style={{ color: "var(--danger, #c53b3b)" }}>
+                Permiso bloqueado. Para activarlo: icono del candado en la barra de
+                direcciones → Notificaciones → Permitir.
+              </small>
+            </div>
+          )}
+
+          {browser.supported && browser.permission === "granted" && (
+            <div className="form-row">
+              <small style={{ color: "var(--text-soft)" }}>
+                Permiso concedido. {browser.enabled ? "Recibirás avisos." : "Activa el interruptor para recibir avisos."}
+              </small>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ marginTop: 6, alignSelf: "flex-start" }}
+                onClick={() => {
+                  const n = browser.notify({
+                    title: "Notificación de prueba",
+                    body: "Funciona. Así te avisaremos de tus tareas y recordatorios.",
+                    tag: "test",
+                  });
+                  if (!n) toast.error("No se pudo lanzar la notificación de prueba.");
+                }}
+                disabled={!browser.enabled}
+              >
+                Enviar prueba
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="modal-footer" style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "14px 20px", borderTop: "1.5px solid var(--line-soft)", background: "var(--bg-surface)", position: "sticky", bottom: 0 }}>

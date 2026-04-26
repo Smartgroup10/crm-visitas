@@ -140,6 +140,11 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const user = socket.data.user;
+  // Cada socket entra en su sala personal. Esto permite a los workers
+  // (recordatorios, task-reminder) emitir notificaciones dirigidas sólo
+  // al destinatario sin necesidad de mantener un mapa userId→socketId
+  // (que se rompería con varias pestañas / reconexiones).
+  if (user?.id) socket.join(`user:${user.id}`);
   logger.info({ user: user?.email || user?.id }, "[socket] conectado");
   socket.on("disconnect", () => {
     logger.info({ user: user?.email || user?.id }, "[socket] desconectado");

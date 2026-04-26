@@ -17,6 +17,7 @@ import Topbar from "./components/Topbar";
 import CounterModal from "./components/CounterModal";
 import ShortcutsHelp from "./components/ShortcutsHelp";
 import AppSkeleton from "./components/AppSkeleton";
+import NotificationOrchestrator from "./components/NotificationOrchestrator";
 import ClientsView from "./components/views/ClientsView";
 import InicioView from "./components/views/InicioView";
 import MiTrabajoView from "./components/views/MiTrabajoView";
@@ -132,6 +133,24 @@ export default function App() {
       disconnectSocket();
     };
   }, [loadTasks, loadClients, loadUsers, toast]);
+
+  // ── Apertura por evento (clic en Notification del navegador) ──
+  // El NotificationOrchestrator emite `crm:open-task` cuando el usuario
+  // hace clic en una notificación de tarea. Lo escuchamos aquí para
+  // abrir el TaskModal sin recargar la página.
+  useEffect(() => {
+    function onOpenTask(e) {
+      const id = e?.detail?.id;
+      if (!id) return;
+      const task = tasks.find((t) => t.id === id);
+      if (!task) return;
+      setDraft({ ...task });
+      setIsModalOpen(true);
+      if (task.date) setSelectedDate(task.date);
+    }
+    window.addEventListener("crm:open-task", onOpenTask);
+    return () => window.removeEventListener("crm:open-task", onOpenTask);
+  }, [tasks]);
 
   // ── Deep link ?task=<id> ────────────────────────────────
   // Cuando un email contiene un enlace tipo `https://crm/?task=<uuid>`,
@@ -522,6 +541,20 @@ export default function App() {
       />
 
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/*
+        Orquestador de notificaciones in-app. No renderiza UI: escucha
+        el socket "notify" del backend y vigila localmente las tareas
+        + recordatorios para disparar Notification del navegador y
+        toast cuando llega el momento.
+      */}
+      {user?.id && (
+        <NotificationOrchestrator
+          userId={user.id}
+          tasks={tasks}
+          leadMinutes={user.notify_lead_minutes ?? 60}
+        />
+      )}
     </div>
   );
 }
