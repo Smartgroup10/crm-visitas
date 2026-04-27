@@ -148,9 +148,12 @@ authRouter.post("/me/preferences/test-email", authMiddleware, async (req, res) =
     }
 
     const mode = getMailerMode();
-    if (mode !== "smtp") {
+    // Aceptamos cualquier modo que sí mande correo: SMTP nativo o Brevo HTTP.
+    // Sólo bloqueamos los modos en los que sabemos que el sendMail no va a
+    // salir (dry-run / disabled) para no mentir al usuario con un toast OK.
+    if (mode !== "smtp" && mode !== "brevo") {
       return res.status(503).json({
-        error: `El servidor está en modo "${mode}" — no hay SMTP configurado.`,
+        error: `El servidor está en modo "${mode}" — no hay proveedor de correo configurado.`,
       });
     }
 
