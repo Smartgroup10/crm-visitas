@@ -65,6 +65,15 @@ if (MAIL_HOST && MAIL_USER && MAIL_PASS) {
     // no se permite TLS 1.2+ explícitamente. Forzamos minVersion para evitar
     // sustos con servidores antiguos en proxies intermedios.
     tls: { minVersion: "TLSv1.2" },
+    // Timeouts agresivos: el default de nodemailer es ~10 min, lo que
+    // significa que cuando un firewall bloquea outbound SMTP la app se
+    // queda 10 min con la request en espera y los workers de pg-boss
+    // bloqueados. Bajamos a 8s para que falle rápido — entre 8 y 10s ya
+    // sabemos si la conexión va o no, y el usuario ve el error pronto
+    // en lugar de un spinner eterno.
+    connectionTimeout: 8_000,
+    greetingTimeout:   8_000,
+    socketTimeout:    15_000,
   });
   mode = "smtp";
   logger.info({ host: MAIL_HOST, port: MAIL_PORT, user: MAIL_USER }, "[mailer] SMTP listo");
