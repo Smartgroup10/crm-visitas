@@ -214,8 +214,26 @@ export async function dispatchTaskNotifications({ prev, next, actorId }) {
     // 1) Asignación inicial (a los nuevos técnicos)
     if (newAssignees.length > 0) {
       const recipients = await getRecipients(newAssignees);
+      // Log diagnóstico: ayuda a explicar "por qué no llega el email" cuando
+      // todo parece estar configurado. La causa real suele ser un técnico
+      // con notify_email_enabled=false en BD (a pesar del toggle UI) o sin
+      // dirección de email asociada (asignados sin email se descartan en
+      // getRecipients antes de llegar aquí).
+      logger.info(
+        {
+          taskId: next.id,
+          newAssignees: newAssignees.length,
+          recipientsWithEmail: recipients.length,
+          willSend: recipients.filter((r) => r.notify_email_enabled).length,
+          skippedNoToggle: recipients.filter((r) => !r.notify_email_enabled).length,
+        },
+        "[taskNotifs] asignación: candidatos a recibir email"
+      );
       for (const r of recipients) {
-        if (!r.notify_email_enabled) continue;
+        if (!r.notify_email_enabled) {
+          logger.debug({ userId: r.id, email: r.email }, "[taskNotifs] saltado: toggle off");
+          continue;
+        }
         const tpl = taskAssignedEmail({
           user: r,
           task: next,
@@ -223,6 +241,10 @@ export async function dispatchTaskNotifications({ prev, next, actorId }) {
           assignerName: actorName || "Un compañero",
         });
         await scheduleEmail({ to: r.email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+        logger.info(
+          { userId: r.id, email: r.email, taskId: next.id },
+          "[taskNotifs] email de asignación encolado"
+        );
       }
     }
 

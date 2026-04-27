@@ -31,6 +31,24 @@ export default function PreferencesModal({ open, profile, onClose, onUpdated }) 
   const [enabled, setEnabled] = useState(true);
   const [lead, setLead] = useState(60);
   const [busy, setBusy] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+
+  // Botón "Enviar prueba" del email: pega directamente al backend que
+  // dispara un correo al buzón del usuario actual saltándose toggles y
+  // colas. Útil para verificar SMTP / DNS / spam sin tener que crear o
+  // programar tareas reales.
+  async function handleTestEmail() {
+    setTestingEmail(true);
+    try {
+      const res = await api.post("/auth/me/preferences/test-email");
+      toast.success(`Prueba enviada a ${res.to}. Revisa la bandeja (y spam).`);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "No se pudo enviar la prueba";
+      toast.error(msg);
+    } finally {
+      setTestingEmail(false);
+    }
+  }
 
   // Cuando el modal se abre, sincronizamos con el profile actual.
   useEffect(() => {
@@ -116,6 +134,17 @@ export default function PreferencesModal({ open, profile, onClose, onUpdated }) 
                 </small>
               </span>
             </label>
+            {profile?.email && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ marginTop: 6, alignSelf: "flex-start" }}
+                onClick={handleTestEmail}
+                disabled={testingEmail}
+              >
+                {testingEmail ? "Enviando..." : "Enviar prueba"}
+              </button>
+            )}
           </div>
 
           <div className="form-row">
