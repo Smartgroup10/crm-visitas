@@ -41,7 +41,10 @@ const taskShape = {
   materials:       optionalString(10_000),
   estimated_time:  optionalString(100),
   attachments:     z.array(z.any()).max(50).optional(),
-  type_fields:     z.record(z.any()).optional(),
+  // zod v4: `z.record()` exige firma de dos argumentos `(keyType, valueType)`.
+  // En v3 bastaba con pasar el valueType. Como las claves de `type_fields`
+  // son nombres libres (camelCase del frontend), validamos string → any.
+  type_fields:     z.record(z.string(), z.any()).optional(),
 };
 
 // Esquemas públicos ------------------------------------------------
