@@ -17,7 +17,15 @@ import { z } from "zod";
 // Helpers ----------------------------------------------------------
 const trimmed = (max) => z.string().trim().max(max);
 const optionalString = (max) => trimmed(max).optional();
-const uuid = z.string().uuid();
+
+// UUID: usamos regex plano en vez de `z.string().uuid()` porque la
+// validación nativa de zod v4 a veces rechaza UUIDs válidos generados
+// por Postgres `gen_random_uuid()` (espera versión específica). Este
+// regex acepta cualquier UUID RFC 4122 con guiones, que es justo el
+// formato canónico que devuelve la BD.
+const UUID_REGEX =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+const uuid = z.string().regex(UUID_REGEX, "UUID inválido");
 
 const ROLES = ["admin", "supervisor", "tecnico"];
 
