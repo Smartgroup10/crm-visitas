@@ -61,11 +61,22 @@
 [data-theme="dark"] .kpi-card.kpi-urgent { background: linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(239,68,68,0.20) 100%); }
 [data-theme="dark"] .kpi-card.kpi-total  { background: linear-gradient(135deg, rgba(79,139,255,0.10) 0%, rgba(79,139,255,0.20) 100%); }
 
-/* Inputs en dark: borde más visible y placeholder más legible */
+/* Inputs en dark: borde más visible y placeholder más legible.
+ *
+ * IMPORTANTE: usamos `background-color` y NO el shorthand `background`.
+ * El shorthand resetea todas las propiedades de background (image,
+ * repeat, position, size). Como los <select> tienen un chevron SVG
+ * como background-image (definido en base.css y modal.css), aplicar
+ * `background:` aquí destruye ese chevron y el `background-repeat:
+ * no-repeat`. Resultado visual: el SVG se renderiza tileado por todo
+ * el ancho del select como un patrón de zigzag — un bug que ya nos
+ * comió varias horas de diagnóstico. Con `background-color` sólo
+ * cambiamos el color y preservamos la flecha intacta.
+ */
 [data-theme="dark"] input,
 [data-theme="dark"] select,
 [data-theme="dark"] textarea {
-  background: var(--bg-soft);
+  background-color: var(--bg-soft);
   border-color: var(--line-main);
   color: var(--text-strong);
 }
@@ -76,9 +87,23 @@
 [data-theme="dark"] textarea:hover { border-color: var(--line-strong); }
 
 /* Flecha del select custom: el SVG inline usa el gris claro original.
-   En dark lo invertimos a un gris más claro para que se vea sobre fondo oscuro. */
+   En dark lo invertimos a un gris más claro para que se vea sobre
+   fondo oscuro. Reaplicamos también `background-repeat: no-repeat`
+   por defensa, aunque ya viene de base.css/modal.css — así si en el
+   futuro alguien añade otro shorthand sin querer, esto sigue
+   funcionando. */
 [data-theme="dark"] select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a8b1c5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+/* La toolbar-filter-select del topbar usa una flecha más pequeña y
+   un offset distinto. Le damos su propia versión dark explícita
+   para mantener el mismo tamaño que en light. */
+[data-theme="dark"] select.toolbar-filter-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8b1c5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
 }
 
 /* Task type tags en dark: bajamos saturación y subimos legibilidad. Se
