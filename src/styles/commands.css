@@ -1,0 +1,285 @@
+/* ============================================================
+   Command palette (Cmd+K)
+   ============================================================
+   Modal centrado con input grande arriba, lista de resultados
+   en el medio, y footer con shortcuts. Fondo oscuro semi-
+   transparente sobre el resto de la app.
+   ============================================================ */
+
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;          /* por encima de modales (1000) y notifs (1100) */
+  background: rgba(15,23,42,0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 16px 16px;
+  animation: cmd-fade 0.16s ease-out;
+}
+@keyframes cmd-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cmd-palette {
+  width: 100%;
+  max-width: 640px;
+  background: var(--bg-surface, #ffffff);
+  border-radius: 12px;
+  box-shadow:
+    0 20px 60px rgba(15,23,42,0.30),
+    0 4px 12px rgba(15,23,42,0.12);
+  border: 1px solid var(--line-soft, #eef1f6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 96px);
+  animation: cmd-pop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes cmd-pop {
+  from { transform: translateY(-8px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* ─── Input ──────────────────────────────────────────── */
+.cmd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, #eef1f6);
+}
+.cmd-search-icon {
+  color: var(--text-soft, #64748b);
+  flex: 0 0 auto;
+}
+.cmd-input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 16px;
+  color: var(--text-strong);
+  font-family: inherit;
+  line-height: 1.4;
+  /* Override de las reglas globales de input que pintan border y bg */
+  border-radius: 0;
+  width: auto;
+}
+.cmd-input::placeholder {
+  color: var(--text-muted, #94a0b4);
+  font-weight: 400;
+}
+.cmd-input-kbd {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  background: var(--bg-soft, #f5f7fb);
+  border: 1px solid var(--line-main, #e3e8f0);
+  border-radius: 5px;
+  color: var(--text-soft);
+  letter-spacing: 0.5px;
+}
+
+/* ─── Lista de resultados ───────────────────────────── */
+.cmd-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-main, #cdd5e8) transparent;
+}
+.cmd-results::-webkit-scrollbar { width: 6px; }
+.cmd-results::-webkit-scrollbar-thumb {
+  background: var(--line-main, #cdd5e8);
+  border-radius: 3px;
+}
+
+.cmd-group + .cmd-group { margin-top: 8px; }
+
+.cmd-group-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text-soft, #64748b);
+  padding: 8px 18px 4px;
+}
+
+.cmd-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.08s;
+  position: relative;
+}
+.cmd-item.is-selected {
+  background: var(--brand-soft, #eaf1ff);
+}
+.cmd-item.is-selected::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--brand, #2563eb);
+}
+
+.cmd-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-soft, #f5f7fb);
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+.cmd-item.is-selected .cmd-item-icon {
+  background: rgba(255,255,255,0.7);
+}
+.cmd-item-icon-task   { background: var(--brand-soft);   }
+.cmd-item-icon-client { background: var(--success-soft, #ecfdf5); }
+.cmd-item-icon-tech   { background: var(--warning-soft, #fff8e1); }
+
+.cmd-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cmd-item-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmd-item-sub {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-item-kbd {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--line-main, #e3e8f0);
+  border-radius: 4px;
+  color: var(--text-soft);
+  flex: 0 0 auto;
+}
+
+.cmd-empty {
+  padding: 36px 18px;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+/* ─── Footer con leyenda de teclas ──────────────────── */
+.cmd-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--bg-soft, #fafbfc);
+  font-size: 11.5px;
+  color: var(--text-soft);
+  flex: 0 0 auto;
+}
+.cmd-footer kbd {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--line-main, #e3e8f0);
+  border-radius: 3px;
+  color: var(--text-strong);
+  margin-right: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ─── Botón "shortcut" en el topbar ─────────────────── */
+.topbar-cmd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px 0 12px;
+  border-radius: 6px;
+  background: var(--bg-soft, #f5f7fb);
+  border: 1px solid var(--line-main, #e3e8f0);
+  color: var(--text-soft);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  font-family: inherit;
+}
+.topbar-cmd-btn:hover {
+  background: var(--bg-surface, #fff);
+  border-color: var(--line-strong, #c4cedf);
+  color: var(--text-strong);
+}
+.topbar-cmd-btn-text {
+  /* Ocultable en mobile */
+}
+.topbar-cmd-btn-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 5px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--line-main, #e3e8f0);
+  border-radius: 4px;
+  color: var(--text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* En mobile escondemos el texto, dejamos sólo la lupa */
+@media (max-width: 720px) {
+  .topbar-cmd-btn-text,
+  .topbar-cmd-btn-kbd { display: none; }
+  .topbar-cmd-btn {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* ─── Dark mode ──────────────────────────────────────── */
+[data-theme="dark"] .cmd-overlay {
+  background: rgba(2,6,15,0.65);
+}
+[data-theme="dark"] .cmd-item.is-selected {
+  background: rgba(79,139,255,0.15);
+}
+[data-theme="dark"] .cmd-item.is-selected .cmd-item-icon {
+  background: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] .cmd-item-icon-task   { background: rgba(79,139,255,0.18); }
+[data-theme="dark"] .cmd-item-icon-client { background: rgba(16,185,129,0.18); }
+[data-theme="dark"] .cmd-item-icon-tech   { background: rgba(245,158,11,0.18); }

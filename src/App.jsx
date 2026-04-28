@@ -18,6 +18,8 @@ import CounterModal from "./components/CounterModal";
 import ShortcutsHelp from "./components/ShortcutsHelp";
 import AppSkeleton from "./components/AppSkeleton";
 import NotificationOrchestrator from "./components/NotificationOrchestrator";
+import CommandPalette from "./components/CommandPalette";
+import ClientDetailModal from "./components/ClientDetailModal";
 import ClientsView from "./components/views/ClientsView";
 import InicioView from "./components/views/InicioView";
 import MiTrabajoView from "./components/views/MiTrabajoView";
@@ -72,6 +74,14 @@ export default function App() {
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [newClientName, setNewClientName] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+
+  // Command palette y modal de cliente al nivel App: abrirse desde
+  // cualquier sitio (paleta, deep-link, futuras integraciones) sin
+  // tener que estar en una vista concreta. Antes el modal vivía en
+  // ClientsView, lo que obligaba a navegar primero a Clientes para
+  // poder abrir un detalle.
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [detailClientId, setDetailClientId] = useState(null);
 
   // ── Carga inicial desde el backend ───────────────────────
   const loadTasks = useCallback(async () => {
@@ -432,6 +442,7 @@ export default function App() {
       const searchEl = document.querySelector(".search-input");
       if (searchEl) searchEl.focus();
     },
+    onCommandPalette: () => setPaletteOpen(true),
     onGoToday: goToday,
     onCalendarMode: (mode) => {
       // Solo tiene sentido cambiar modo de calendario si estamos en la vista
@@ -440,16 +451,27 @@ export default function App() {
     },
     onHelp: () => setHelpOpen(true),
     onEscape: () => {
-      if (helpOpen) {
-        setHelpOpen(false);
-        return;
-      }
+      if (paletteOpen)        return setPaletteOpen(false);
+      if (detailClientId)     return setDetailClientId(null);
+      if (helpOpen)           return setHelpOpen(false);
       if (isModalOpen || counterModalOpen) {
         setIsModalOpen(false);
         setCounterModalOpen(false);
       }
     },
   });
+
+  // Listener global para abrir el detalle de un cliente desde
+  // cualquier sitio (la paleta de comandos lo dispara). Mismo patrón
+  // que el `crm:open-task` del deep-link de email.
+  useEffect(() => {
+    function handler(e) {
+      const id = e.detail?.id;
+      if (id) setDetailClientId(id);
+    }
+    window.addEventListener("crm:open-client", handler);
+    return () => window.removeEventListener("crm:open-client", handler);
+  }, []);
 
   // ── Loading ──────────────────────────────────────────────
   if (loading) {
@@ -462,7 +484,12 @@ export default function App() {
       <Sidebar />
 
       <div className="main-shell">
-        <Topbar stats={stats} technicians={technicians} openNewTask={openNewTask} />
+        <Topbar
+          stats={stats}
+          technicians={technicians}
+          openNewTask={openNewTask}
+          onOpenPalette={() => setPaletteOpen(true)}
+        />
 
         <div className="content-grid integrated-layout">
           {section === "instalaciones" ? (
@@ -565,6 +592,52 @@ export default function App() {
       />
 
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/*
+        Command palette global (Cmd/Ctrl + K). Vive aquí porque
+        necesita acceso a tasks, clients, technicians y a varios
+        callbacks (navegar, abrir modales). Las acciones que
+        ejecuta despachan eventos custom (crm:open-task,
+        crm:open-client) que sus listeners capturan; eso permite
+        abrir tareas/clientes desde cualquier ubicación.
+      */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        tasks={tasks}
+        clients={clients}
+        technicians={technicians}
+        canManage={user?.role === "admin" || user?.role === "supervisor"}
+        onNewTask={openNewTask}
+        onNavigate={(s) => setUi({ section: s })}
+        onOpenTask={(id) => {
+          window.dispatchEvent(new CustomEvent("crm:open-task", { detail: { id } }));
+        }}
+        onOpenClient={(id) => setDetailClientId(id)}
+        onToggleTheme={() => {
+          // El toggle real vive en useTheme (que lo usa Topbar).
+          // Disparamos un evento custom para no acoplar la paleta al
+          // estado interno del topbar; quien escuche cambia el tema.
+          window.dispatchEvent(new CustomEvent("crm:toggle-theme"));
+        }}
+        onOpenPrefs={() => {
+          // El PreferencesModal vive dentro del Sidebar. Le avisamos
+          // por evento para que él decida cuándo abrirlo.
+          window.dispatchEvent(new CustomEvent("crm:open-prefs"));
+        }}
+      />
+
+      {/*
+        Modal de detalle de cliente al nivel App: se puede abrir
+        desde la vista de Clientes (botón "Ver historial") o desde
+        la paleta de comandos (resultado clicado).
+      */}
+      <ClientDetailModal
+        open={!!detailClientId}
+        clientId={detailClientId}
+        technicians={technicians}
+        onClose={() => setDetailClientId(null)}
+      />
 
       {/*
         Orquestador de notificaciones in-app. No renderiza UI: escucha

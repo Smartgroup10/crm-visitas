@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../data/constants";
 import { TASK_TYPES, TASK_TYPE_KEYS } from "../data/taskTypes";
 import { useUI } from "../hooks/useUI";
@@ -22,9 +24,18 @@ const SUBTITLES = {
   informes: "Histórico, estadísticas y rendimiento",
 };
 
-export default function Topbar({ stats, technicians, openNewTask }) {
+export default function Topbar({ stats, technicians, openNewTask, onOpenPalette }) {
   const { canManage } = usePermissions();
   const { theme, toggleTheme } = useTheme();
+
+  // La paleta de comandos puede pedir cambiar el tema vía evento
+  // (porque el toggle real vive aquí en useTheme y el palette no lo
+  // tiene a mano). Escuchamos y delegamos.
+  useEffect(() => {
+    const handler = () => toggleTheme();
+    window.addEventListener("crm:toggle-theme", handler);
+    return () => window.removeEventListener("crm:toggle-theme", handler);
+  }, [toggleTheme]);
   const {
     section,
     activeView,
@@ -88,6 +99,28 @@ export default function Topbar({ stats, technicians, openNewTask }) {
                 <span className="stat-label">Listo</span>
               </button>
             </div>
+          )}
+
+          {/* Botón "atajo" que abre el command palette. La etiqueta
+              `Buscar · ⌘K` lo hace descubrible para usuarios que no
+              conocen el atajo de teclado. En mobile, sólo se ve la
+              lupa (CSS @media (max-width: 720px)). */}
+          {onOpenPalette && (
+            <button
+              type="button"
+              className="topbar-cmd-btn"
+              onClick={onOpenPalette}
+              aria-label="Abrir buscador y comandos (Ctrl+K)"
+              title="Buscar y comandos (Ctrl+K)"
+            >
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none"
+                   stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="9" cy="9" r="6"/>
+                <path d="M13.5 13.5L17 17" strokeLinecap="round"/>
+              </svg>
+              <span className="topbar-cmd-btn-text">Buscar</span>
+              <kbd className="topbar-cmd-btn-kbd">⌘K</kbd>
+            </button>
           )}
 
           {/* Toggle de tema. Aria-label dinámico para que el lector de pantalla

@@ -5,19 +5,27 @@ import { useEffect } from "react";
  *
  * Convención: los atajos "de un solo carácter" (N, G, /, 1, 2, 3, ?) solo
  * disparan cuando el foco NO está en un input/textarea/select/contenteditable.
- * Escape se procesa siempre (para cerrar modales desde dentro de inputs).
+ * Escape, Cmd/Ctrl+K se procesan siempre (cerrar modales o abrir el
+ * command palette aunque estés escribiendo).
  *
  * Handlers soportados:
- *  - onNew         → crear nueva tarea (N)
- *  - onSearchFocus → poner foco en búsqueda (/ o Ctrl/Cmd+K)
- *  - onGoToday     → ir al día de hoy (G)
+ *  - onNew             → crear nueva tarea (N)
+ *  - onSearchFocus     → poner foco en búsqueda del topbar (/)
+ *  - onCommandPalette  → abrir command palette (Cmd/Ctrl + K)
+ *  - onGoToday         → ir al día de hoy (G)
  *  - onCalendarMode(mode) → cambiar modo calendario: 1=mes, 2=semana, 3=dia
- *  - onHelp        → abrir ayuda de atajos (? o Shift+/)
- *  - onEscape      → cerrar modales
+ *  - onHelp            → abrir ayuda de atajos (? o Shift+/)
+ *  - onEscape          → cerrar modales
+ *
+ * Nota histórica: antes Cmd+K hacía onSearchFocus (mismo comportamiento
+ * que `/`). Ahora con la introducción del command palette, Cmd+K abre
+ * la paleta global; `/` sigue enfocando la búsqueda del topbar — son
+ * casos de uso distintos: búsqueda contextual vs. comando global.
  */
 export function useKeyboardShortcuts({
   onNew,
   onSearchFocus,
+  onCommandPalette,
   onGoToday,
   onCalendarMode,
   onHelp,
@@ -38,11 +46,12 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // Ctrl/Cmd + K enfoca la búsqueda (funciona también escribiendo, útil
-      // cuando el usuario está en otro input y quiere saltar a buscar).
+      // Ctrl/Cmd + K abre la paleta de comandos (búsqueda global +
+      // navegación). Funciona aunque estés escribiendo en un input —
+      // es la convención universal (Linear, Notion, Slack…).
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        onSearchFocus?.(e);
+        onCommandPalette?.(e);
         return;
       }
 
@@ -95,5 +104,5 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onNew, onSearchFocus, onGoToday, onCalendarMode, onHelp, onEscape]);
+  }, [onNew, onSearchFocus, onCommandPalette, onGoToday, onCalendarMode, onHelp, onEscape]);
 }

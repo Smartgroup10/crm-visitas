@@ -61,6 +61,16 @@ export default function Sidebar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [drawerOpen, setDrawerOpen]);
 
+  // Listener para que la paleta de comandos pueda abrir Preferencias
+  // sin tener que mover el modal a App.jsx (vive aquí porque
+  // conceptualmente pertenece al usuario logueado, igual que el botón
+  // del icono 🔔 que lo abre normalmente).
+  useEffect(() => {
+    const handler = () => setPrefsOpen(true);
+    window.addEventListener("crm:open-prefs", handler);
+    return () => window.removeEventListener("crm:open-prefs", handler);
+  }, []);
+
   // Helper: navegar Y cerrar drawer (en desktop el cierre no hace nada).
   const go = (next) => {
     setSection(next);
