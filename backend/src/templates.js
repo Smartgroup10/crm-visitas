@@ -50,13 +50,35 @@ function fmtDate(d) {
   } catch { return String(d); }
 }
 
+/**
+ * CTA button: el corazón del email — un botón grande y obvio que
+ * lleva a la tarea concreta en el CRM. Diseño:
+ *   - Centrado (envuelto en una <table> para Outlook que no respeta
+ *     `text-align:center` en algunos casos).
+ *   - Padding generoso (16x32) y radio 8px → "tap target" cómodo
+ *     también en móvil (~44px alto, regla iOS).
+ *   - Sombra suave + tono azul de marca → contraste alto contra
+ *     fondo blanco. Funciona también en dark mode (el azul es
+ *     visible sobre cualquier fondo).
+ *   - Flecha "→" como sufijo: sutil pero refuerza el sentido de
+ *     "ir a algo" (opcional, sólo si el label lo pide).
+ */
 function btn(href, label) {
   if (!href) return "";
-  return `<a href="${escapeHtml(href)}"
-    style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;
-           padding:10px 18px;border-radius:6px;font-weight:600;font-size:14px;">
-    ${escapeHtml(label)}
-  </a>`;
+  const safeHref = escapeHtml(href);
+  const safeLabel = escapeHtml(label);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+    <tr><td align="center" style="border-radius:8px;background:#2563eb;
+                                  box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+      <a href="${safeHref}"
+         style="display:inline-block;background:#2563eb;color:#ffffff;
+                text-decoration:none;padding:14px 32px;border-radius:8px;
+                font-weight:700;font-size:15px;font-family:inherit;
+                letter-spacing:0.2px;line-height:1;">
+        ${safeLabel} <span style="display:inline-block;margin-left:4px;">→</span>
+      </a>
+    </td></tr>
+  </table>`;
 }
 
 function layout({ title, intro, lines, ctaHref, ctaLabel, footerNote }) {
@@ -70,8 +92,20 @@ function layout({ title, intro, lines, ctaHref, ctaLabel, footerNote }) {
     )
     .join("");
 
+  // Bloque CTA:
+  //   - Botón grande centrado (ver `btn`).
+  //   - URL en texto plano debajo: para clientes que bloquean
+  //     estilos / imágenes (Outlook corporativo, Apple Mail con
+  //     "modo simplificado") o usuarios que prefieren copiar-pegar.
+  //     La URL se ve coloreada en azul como link, pero sin botón.
   const cta = ctaHref
-    ? `<div style="margin:24px 0 8px;">${btn(ctaHref, ctaLabel || "Abrir en el CRM")}</div>`
+    ? `<div style="margin:28px 0 4px;text-align:center;">
+        ${btn(ctaHref, ctaLabel || "Abrir en el CRM")}
+       </div>
+       <p style="margin:10px 0 0;text-align:center;color:#9ca3af;font-size:11.5px;line-height:1.5;">
+         ¿No funciona el botón? Copia y pega esta URL en tu navegador:<br>
+         <a href="${escapeHtml(ctaHref)}" style="color:#2563eb;text-decoration:underline;word-break:break-all;">${escapeHtml(ctaHref)}</a>
+       </p>`
     : "";
 
   return `<!DOCTYPE html>
@@ -92,8 +126,11 @@ function layout({ title, intro, lines, ctaHref, ctaLabel, footerNote }) {
           ${linesHtml ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:6px;">${linesHtml}</table>` : ""}
           ${cta}
         </td></tr>
-        <tr><td style="padding:14px 24px 22px;color:#9ca3af;font-size:12px;border-top:1px solid #f1f5f9;">
-          ${escapeHtml(footerNote || "Recibes este correo porque tienes notificaciones activas en el CRM. Puedes desactivarlas desde tu perfil.")}
+        <tr><td style="padding:14px 24px 22px;color:#9ca3af;font-size:12px;border-top:1px solid #f1f5f9;line-height:1.5;">
+          ${escapeHtml(footerNote || "Recibes este correo porque tienes notificaciones activas en el CRM.")}
+          ${APP_BASE_URL
+            ? ` <a href="${escapeHtml(APP_BASE_URL)}" style="color:#6b7280;text-decoration:underline;">Gestionar mis preferencias</a>.`
+            : ""}
         </td></tr>
       </table>
     </td></tr>
