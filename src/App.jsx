@@ -285,13 +285,36 @@ export default function App() {
 
   async function handleDropOnDate(date) {
     if (!draggedTaskId) return;
-    try {
-      await api.patch(`/tasks/${draggedTaskId}`, { date });
+    const taskId = draggedTaskId;
+    setDraggedTaskId(null);
+
+    // Optimistic update: actualizamos el estado local primero para
+    // que la pill aparezca en la celda destino al instante. Si el
+    // PATCH falla, hacemos rollback con el snapshot previo. Si la
+    // tarea cae en el mismo día de antes (drop sin cambio real),
+    // ahorramos el round-trip al backend.
+    const prevTask = tasks.find((t) => t.id === taskId);
+    if (!prevTask) return;
+    if (prevTask.date === date) {
       setSelectedDate(date);
+      return;
+    }
+
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, date } : t)));
+    setSelectedDate(date);
+
+    try {
+      await api.patch(`/tasks/${taskId}`, { date });
+      // El socket emitirá tasks:change con la fila actualizada (más
+      // los cambios de updated_at, etc.) y el listener del estado
+      // global la mergeará. El optimistic update de arriba ya nos da
+      // la respuesta visual inmediata, así que aquí no hace falta
+      // tocar nada más.
     } catch (err) {
+      // Rollback: restauramos la fila original. El usuario ve la
+      // pill volver a su sitio + un toast con el motivo.
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? prevTask : t)));
       toast.error(err?.message || "No se pudo mover la tarea.");
-    } finally {
-      setDraggedTaskId(null);
     }
   }
 

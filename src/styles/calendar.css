@@ -127,6 +127,42 @@
 }
 .task-pill:hover { filter: brightness(1.07); transform: translateY(-1px); z-index: 40; }
 
+/* ─── Drag & drop: feedback visual ──────────────────────────
+   Dos modos:
+     · is-dragging        → desktop / HTML5 native drag (también lo
+                            usamos para touch mientras dura).
+     · is-touch-dragging  → estado adicional cuando se inició por
+                            long-press en touch — añade un tinte más
+                            evidente porque en móvil no hay puntero
+                            visible y el usuario necesita más feedback.
+   El cursor "grabbing" ayuda a entender que está en modo arrastrar
+   (se ignora silenciosamente en touch).                         */
+.task-pill.is-dragging {
+  opacity: 0.55;
+  transform: scale(0.97);
+  cursor: grabbing;
+  filter: brightness(0.96) saturate(0.92);
+}
+.task-pill.is-touch-dragging {
+  opacity: 0.85;
+  transform: scale(1.04);
+  box-shadow: 0 8px 24px rgba(15,23,42,0.25);
+  outline: 2px solid var(--brand, #2563eb);
+  outline-offset: 2px;
+  z-index: 60;
+}
+
+/* Cell / column resaltada cuando el cursor (o el dedo) está encima
+   con un drag activo. Color de marca con un poco de fondo para que
+   "se vea de lejos" cuál es el destino. */
+.calendar-cell.drop-target-active,
+.week-column.drop-target-active {
+  background: var(--brand-soft, #eaf1ff) !important;
+  outline: 2px dashed var(--brand, #2563eb);
+  outline-offset: -3px;
+  z-index: 30;
+}
+
 .task-pill-content { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .task-type-icon { flex: 0 0 auto; font-size: 10px; line-height: 1; }
 .task-pill-text {

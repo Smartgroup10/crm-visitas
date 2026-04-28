@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { TASK_TYPES } from "../../data/taskTypes";
 import {
   toISO,
@@ -11,6 +13,7 @@ import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getStatusClass, getPriorityClass } from "../../utils/status";
 import { useUI } from "../../hooks/useUI";
 import { usePermissions } from "../../hooks/usePermissions";
+import { useTouchDrag } from "../../hooks/useTouchDrag";
 import EmptyState from "../EmptyState";
 
 const WEEKDAY_LABELS = ["lun.", "mar.", "mié.", "jue.", "vie.", "sáb.", "dom."];
@@ -30,15 +33,59 @@ function TaskTooltip({ task, clients, technicians }) {
   );
 }
 
-function TaskPill({ task, canManage, setDraggedTaskId, onEditTask, clients, technicians, showTooltip = true }) {
+function TaskPill({
+  task,
+  canManage,
+  setDraggedTaskId,
+  handleDropOnDate,
+  onEditTask,
+  clients,
+  technicians,
+  showTooltip = true,
+}) {
+  // Estado local "esta pill se está arrastrando ahora mismo". Se usa
+  // tanto en desktop (HTML5 drag) como en touch para aplicar el look
+  // & feel de "estoy en modo drag" — opacidad, escala, etc.
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Hook de drag por touch (móvil/tablet). En desktop el HTML5 nativo
+  // se encarga; este hook NO interfiere porque sólo escucha eventos
+  // touch*, no mouse*.
+  const touchRef = useTouchDrag({
+    enabled: canManage,
+    onStart: () => {
+      setIsDragging(true);
+      setDraggedTaskId(task.id);
+    },
+    onDrop: (date) => {
+      setIsDragging(false);
+      // El draggedTaskId se gestiona en App; lo pasamos por
+      // handleDropOnDate que ya lo recoge y resetea.
+      handleDropOnDate?.(date);
+    },
+    onCancel: () => {
+      setIsDragging(false);
+      setDraggedTaskId(null);
+    },
+  });
+
   return (
     <div
-      className={`task-pill ${getStatusClass(task.status)} ${getPriorityClass(task.priority)}`}
+      ref={touchRef}
+      className={`task-pill ${getStatusClass(task.status)} ${getPriorityClass(task.priority)} ${isDragging ? "is-dragging" : ""}`}
       data-type={task.type}
       draggable={canManage}
-      onDragStart={canManage ? () => setDraggedTaskId(task.id) : undefined}
+      onDragStart={canManage ? () => {
+        setIsDragging(true);
+        setDraggedTaskId(task.id);
+      } : undefined}
+      onDragEnd={canManage ? () => {
+        setIsDragging(false);
+      } : undefined}
       onClick={(e) => {
         e.stopPropagation();
+        // Si veníamos de un drag, no abrimos el modal por error.
+        if (isDragging) return;
         onEditTask(task);
       }}
     >
@@ -300,8 +347,18 @@ function MonthView({
               key={iso}
               className={`calendar-cell ${!isCurrentMonth ? "outside" : ""} ${isSelected ? "selected" : ""}`}
               onClick={() => setSelectedDate(iso)}
-              onDragOver={canManage ? (e) => e.preventDefault() : undefined}
-              onDrop={canManage ? () => handleDropOnDate(iso) : undefined}
+              onDragOver={canManage ? (e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add("drop-target-active");
+              } : undefined}
+              onDragLeave={canManage ? (e) => {
+                e.currentTarget.classList.remove("drop-target-active");
+              } : undefined}
+              onDrop={canManage ? (e) => {
+                e.currentTarget.classList.remove("drop-target-active");
+                handleDropOnDate(iso);
+              } : undefined}
+              data-drop-date={iso}
             >
               <div className="cell-header">
                 <span className={`cell-day ${isToday ? "today" : ""}`}>
@@ -316,6 +373,7 @@ function MonthView({
                     task={task}
                     canManage={canManage}
                     setDraggedTaskId={setDraggedTaskId}
+                    handleDropOnDate={handleDropOnDate}
                     onEditTask={onEditTask}
                     clients={clients}
                     technicians={technicians}
@@ -358,8 +416,18 @@ function WeekView({
           <div
             key={iso}
             className={`week-column ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}`}
-            onDragOver={canManage ? (e) => e.preventDefault() : undefined}
-            onDrop={canManage ? () => handleDropOnDate(iso) : undefined}
+            onDragOver={canManage ? (e) => {
+              e.preventDefault();
+              e.currentTarget.classList.add("drop-target-active");
+            } : undefined}
+            onDragLeave={canManage ? (e) => {
+              e.currentTarget.classList.remove("drop-target-active");
+            } : undefined}
+            onDrop={canManage ? (e) => {
+              e.currentTarget.classList.remove("drop-target-active");
+              handleDropOnDate(iso);
+            } : undefined}
+            data-drop-date={iso}
           >
             <button
               type="button"
@@ -382,6 +450,7 @@ function WeekView({
                     task={task}
                     canManage={canManage}
                     setDraggedTaskId={setDraggedTaskId}
+                    handleDropOnDate={handleDropOnDate}
                     onEditTask={onEditTask}
                     clients={clients}
                     technicians={technicians}
