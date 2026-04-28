@@ -1,0 +1,168 @@
+/* ============================================================
+   Timeline de actividad de tareas (audit log)
+   ============================================================
+   Pintamos una lista vertical "estilo GitHub Issues / Linear":
+   un dot coloreado por tipo a la izquierda + cuerpo a la derecha.
+   El borde izquierdo del .task-activity-list dibuja la línea
+   continua entre dots para reforzar la secuencia temporal.
+   ============================================================ */
+
+.task-activity {
+  margin-top: 16px;
+  padding: 14px 16px 16px;
+  background: var(--bg-soft, #f5f7fb);
+  border: 1px solid var(--line-soft, #eef1f6);
+  border-radius: var(--radius-lg, 10px);
+}
+
+.task-activity-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.task-activity-header h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.task-activity-status {
+  font-size: 11px;
+  color: var(--text-soft);
+  font-style: italic;
+}
+
+.task-activity-empty,
+.task-activity-error {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  padding: 8px 4px;
+}
+.task-activity-error {
+  color: var(--danger, #ef4444);
+}
+
+.task-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* Línea vertical continua que une todos los dots.
+   La trazamos con un ::before del UL — más eficiente que
+   dibujar un border-left en cada item (que se rompería al
+   esconder algunos). */
+.task-activity-list::before {
+  content: "";
+  position: absolute;
+  left: 11px;        /* alinea con el centro del dot (24px ancho) */
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: var(--line-main, #e3e8f0);
+  border-radius: 1px;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 12px;
+  padding: 6px 0 10px;
+  position: relative;
+}
+
+.activity-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg-surface, #fff);
+  border: 2px solid var(--line-main, #e3e8f0);
+  color: var(--text-soft, #64748b);
+  z-index: 1;       /* sobre la línea vertical */
+  flex: 0 0 auto;
+}
+
+/* Color del dot según tipo de evento. Usamos los mismos tokens que
+   el resto de la app para mantener coherencia visual. */
+.activity-dot-created {
+  background: var(--success-soft, #ecfdf5);
+  border-color: var(--success-border, #d1fae5);
+  color: var(--success, #10b981);
+}
+.activity-dot-updated {
+  background: var(--brand-soft, #eaf1ff);
+  border-color: var(--brand-border, #d6e4ff);
+  color: var(--brand, #2563eb);
+}
+.activity-dot-deleted {
+  background: var(--danger-soft, #fef2f2);
+  border-color: var(--danger-border, #fee2e2);
+  color: var(--danger, #ef4444);
+}
+
+.activity-body {
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.activity-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.activity-actor {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+.activity-time {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  cursor: help;       /* hint de que el title trae el timestamp completo */
+}
+
+.activity-detail {
+  font-size: 12.5px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+.activity-summary {
+  color: var(--text-soft);
+}
+
+.activity-changes {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.activity-changes li {
+  font-size: 12.5px;
+  color: var(--text-main);
+}
+
+.activity-from {
+  color: var(--text-soft);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+  margin-right: 2px;
+}
+.activity-arrow {
+  color: var(--text-muted);
+  margin: 0 6px;
+  font-weight: 600;
+}
+.activity-to {
+  color: var(--text-strong);
+  font-weight: 500;
+}

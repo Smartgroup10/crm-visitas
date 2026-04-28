@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
-import { requireRole } from "../auth.js";
+import { requireRole, authMiddleware } from "../auth.js";
 import { logger } from "../logger.js";
 import { schemas, validate } from "../schemas.js";
 import { dispatchTaskNotifications } from "../taskNotifs.js";
+import { recordTaskChange, getTaskActivity } from "../taskActivity.js";
 
 export const tasksRouter = Router();
 
@@ -66,8 +67,9 @@ tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) 
     );
     emit("tasks:change", { type: "insert", task: rows[0] });
     res.json(rows[0]);
-    // Notificaciones en background: no bloquean la respuesta.
+    // Notificaciones + activity log en background: no bloquean la respuesta.
     dispatchTaskNotifications({ prev: null, next: rows[0], actorId: req.user.id });
+    recordTaskChange({ prev: null, next: rows[0], actorId: req.user.id });
   } catch (err) {
     logger.error({ err }, "[tasks/create]");
     res.status(500).json({ error: "Error creando tarea" });
@@ -113,6 +115,7 @@ tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res
     emit("tasks:change", { type: "update", task: rows[0] });
     res.json(rows[0]);
     dispatchTaskNotifications({ prev, next: rows[0], actorId: req.user.id });
+    recordTaskChange({ prev, next: rows[0], actorId: req.user.id });
   } catch (err) {
     logger.error({ err }, "[tasks/update]");
     res.status(500).json({ error: "Error actualizando tarea" });
@@ -148,6 +151,7 @@ tasksRouter.patch("/:id", canManage, validate(schemas.taskPatch), async (req, re
     emit("tasks:change", { type: "update", task: rows[0] });
     res.json(rows[0]);
     dispatchTaskNotifications({ prev, next: rows[0], actorId: req.user.id });
+    recordTaskChange({ prev, next: rows[0], actorId: req.user.id });
   } catch (err) {
     logger.error({ err }, "[tasks/patch]");
     res.status(500).json({ error: "Error actualizando tarea" });
@@ -166,9 +170,31 @@ tasksRouter.delete("/:id", canManage, async (req, res) => {
     res.json({ ok: true });
     if (prev) {
       dispatchTaskNotifications({ prev, next: null, actorId: req.user.id });
+      // Nota: el INSERT en task_activity falla por el FK (la tarea ya
+      // no existe) salvo que lo hagamos antes del delete; pero el
+      // cascade lo borraría inmediatamente. Lo dejamos como no-op:
+      // borrar una tarea no deja rastro persistente. Si en el futuro
+      // se quiere historial de borradas, hay que (1) registrar antes
+      // del delete y (2) quitar el cascade en la tabla.
     }
   } catch (err) {
     logger.error({ err }, "[tasks/delete]");
     res.status(500).json({ error: "Error borrando tarea" });
+  }
+});
+
+// ─── GET /api/tasks/:id/activity ─────────────────────────
+// Devuelve el timeline de cambios de la tarea, ordenado más reciente
+// primero. Cualquier usuario autenticado puede consultarlo (no es
+// info sensible — es metadato de quién tocó qué). Si en el futuro
+// queremos restringirlo a admins/supervisors, basta con cambiar el
+// middleware.
+tasksRouter.get("/:id/activity", authMiddleware, async (req, res) => {
+  try {
+    const rows = await getTaskActivity(req.params.id);
+    res.json(rows);
+  } catch (err) {
+    logger.error({ err }, "[tasks/activity]");
+    res.status(500).json({ error: "Error obteniendo actividad" });
   }
 });

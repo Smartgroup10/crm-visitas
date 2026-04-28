@@ -198,6 +198,30 @@ create table if not exists task_reminder_jobs (
   primary key (task_id, user_id)
 );
 
+-- ─── ACTIVITY LOG DE TAREAS ───────────────────────────────
+-- Registramos cada cambio relevante (create / update con diff / delete)
+-- para tener un timeline visible en el modal de la tarea: quién, qué y
+-- cuándo. El payload va en jsonb por flexibilidad — en `updated`
+-- contiene un array `changes` con el diff legible (label, from, to);
+-- en `created` y `deleted` basta con saber actor y timestamp.
+--
+-- ON DELETE CASCADE: si la tarea se borra, su historial también. La
+-- alternativa (mantener historial de tareas borradas) implicaría
+-- desnormalizar el title a la activity row. Para v1 elegimos la
+-- simplicidad — si en el futuro hace falta auditoría permanente, se
+-- añade snapshot al payload de `deleted` y se quita el cascade.
+create table if not exists task_activity (
+  id          uuid primary key default gen_random_uuid(),
+  task_id     uuid not null references tasks(id) on delete cascade,
+  actor_id    uuid references users(id) on delete set null,
+  type        text not null,                   -- "created" | "updated" | "deleted"
+  payload     jsonb not null default '{}'::jsonb,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists idx_task_activity_task_time
+  on task_activity (task_id, created_at desc);
+
 -- ─── RECORDATORIOS PERSONALES ─────────────────────────────
 -- Cada usuario crea sus propios recordatorios (privados). El backend
 -- programa un job en pg-boss para `remind_at`; al disparar, el worker

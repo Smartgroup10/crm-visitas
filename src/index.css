@@ -40,6 +40,7 @@
 @import "./styles/login.css";
 @import "./styles/toasts.css";
 @import "./styles/notifications.css";
+@import "./styles/activity.css";
 @import "./styles/empty-state.css";
 @import "./styles/app-loading.css";
 @import "./styles/dark-overrides.css";

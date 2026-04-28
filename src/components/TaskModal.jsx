@@ -9,6 +9,7 @@ import {
 } from "../data/taskTypes";
 import { validateTask } from "../utils/validation";
 import { usePermissions } from "../hooks/usePermissions";
+import TaskActivityTimeline from "./TaskActivityTimeline";
 
 /**
  * Construye el objeto que se enviará al backend al guardar. Conservamos los
@@ -373,6 +374,13 @@ export default function TaskModal({
               </div>
             </div>
           </fieldset>
+
+          {/* Timeline de actividad — sólo en edición (necesitamos un id
+              para consultarlo). En "Nueva tarea" no tiene sentido pintar
+              "Sin actividad" porque la tarea aún no existe. */}
+          {isEditing && draft?.id && (
+            <TaskActivityTimeline taskId={draft.id} />
+          )}
 
           {/* Footer sticky con las acciones */}
           <div className="form-actions">
