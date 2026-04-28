@@ -3,12 +3,31 @@
 // ============================================================
 // Todo el HTML usa estilos inline porque la mayoría de clientes (Outlook,
 // Gmail) ignoran `<style>` o lo procesan de forma inconsistente. Mantén las
-// plantillas simples: la fiabilidad pesa más que la estética.
+// plantillas simples: la fiabilidad pesa más que la estética. Pero se
+// pueden hacer cosas elegantes con tablas + estilos inline si te ciñes a
+// los subset que respetan los grandes clientes.
+//
+// Filosofía de diseño:
+//   - Brand strip de 4px arriba (azul de marca) para identidad visual.
+//   - Header con nombre de la app + tagline.
+//   - Kicker (etiqueta UPPERCASE pequeña) sobre el título grande,
+//     pattern habitual en correos de SaaS modernos (Linear, Notion,
+//     Stripe). Ayuda a entender "de qué va este email" en 1s.
+//   - Data card con fondo gris suave para destacar los datos clave;
+//     status y priority como BADGES coloreados (no texto plano).
+//   - CTA grande centrado + fallback URL en gris.
+//   - Footer minimal con enlace de preferencias.
+//
+// Se mantiene toda la lógica anterior (deepLink, escapeHtml, etc.)
+// para no romper consumidores; sólo cambia el HTML producido.
 // ============================================================
 
 import { APP_BASE_URL } from "./mailer.js";
 
-const BRAND = "CRM Visitas · Smartgroup";
+const BRAND        = "CRM Visitas · Smartgroup";
+const BRAND_TAG    = "Operaciones · Soporte técnico";
+const BRAND_COLOR  = "#2563eb";
+const HEADER_BG    = "#0f172a";   // navy oscuro, mismo que el sidebar de la app
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -50,28 +69,47 @@ function fmtDate(d) {
   } catch { return String(d); }
 }
 
+// ─── Badge para status / priority ──────────────────────────────────
+// Mapeo de valor → colores semánticos. Los hex están elegidos para que
+// pasen WCAG AA contraste contra su propio bg incluso en clientes con
+// dark mode forzado (los grandes clientes de email NO respetan
+// prefers-color-scheme dentro del cuerpo HTML, así que no hay que
+// preocuparse de dos tonalidades — el "tema" del email se queda fijo).
+const BADGE_STYLES = {
+  // Prioridades
+  "Alta":        { bg: "#fee2e2", color: "#991b1b" },
+  "Media":       { bg: "#fef3c7", color: "#92400e" },
+  "Baja":        { bg: "#e0e7ef", color: "#475569" },
+  // Estados
+  "No iniciado": { bg: "#e5e7eb", color: "#374151" },
+  "En curso":    { bg: "#fef3c7", color: "#92400e" },
+  "Listo":       { bg: "#d1fae5", color: "#065f46" },
+  "Bloqueado":   { bg: "#fee2e2", color: "#991b1b" },
+};
+
+function badge(value) {
+  if (!value) return "—";
+  const s = BADGE_STYLES[value] || { bg: "#e5e7eb", color: "#374151" };
+  return `<span style="display:inline-block;padding:3px 10px;
+                       background:${s.bg};color:${s.color};
+                       border-radius:99px;font-size:12px;font-weight:600;
+                       letter-spacing:0.2px;">${escapeHtml(value)}</span>`;
+}
+
 /**
- * CTA button: el corazón del email — un botón grande y obvio que
- * lleva a la tarea concreta en el CRM. Diseño:
- *   - Centrado (envuelto en una <table> para Outlook que no respeta
- *     `text-align:center` en algunos casos).
- *   - Padding generoso (16x32) y radio 8px → "tap target" cómodo
- *     también en móvil (~44px alto, regla iOS).
- *   - Sombra suave + tono azul de marca → contraste alto contra
- *     fondo blanco. Funciona también en dark mode (el azul es
- *     visible sobre cualquier fondo).
- *   - Flecha "→" como sufijo: sutil pero refuerza el sentido de
- *     "ir a algo" (opcional, sólo si el label lo pide).
+ * CTA button: el corazón del email. Centrado vía <table align="center">
+ * (Outlook ignora a veces text-align en divs sueltos). Padding generoso
+ * para tap-target cómodo en móvil. Sufijo "→" para indicar acción.
  */
 function btn(href, label) {
   if (!href) return "";
-  const safeHref = escapeHtml(href);
+  const safeHref  = escapeHtml(href);
   const safeLabel = escapeHtml(label);
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
-    <tr><td align="center" style="border-radius:8px;background:#2563eb;
+    <tr><td align="center" style="border-radius:8px;background:${BRAND_COLOR};
                                   box-shadow:0 2px 6px rgba(37,99,235,0.25);">
       <a href="${safeHref}"
-         style="display:inline-block;background:#2563eb;color:#ffffff;
+         style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;
                 text-decoration:none;padding:14px 32px;border-radius:8px;
                 font-weight:700;font-size:15px;font-family:inherit;
                 letter-spacing:0.2px;line-height:1;">
@@ -81,57 +119,170 @@ function btn(href, label) {
   </table>`;
 }
 
-function layout({ title, intro, lines, ctaHref, ctaLabel, footerNote }) {
-  const linesHtml = (lines || [])
+/**
+ * Renderiza una fila de datos del cuerpo (label + valor). El valor
+ * puede venir ya como HTML (badge) o como texto plano que escapamos.
+ */
+function dataRow(label, value, isHtml = false) {
+  return `<tr>
+    <td style="color:#6b7280;font-size:12.5px;font-weight:500;
+               padding:9px 14px 9px 0;width:110px;vertical-align:top;
+               border-bottom:1px solid #f1f5f9;">${escapeHtml(label)}</td>
+    <td style="color:#111827;font-size:14px;
+               padding:9px 0;vertical-align:top;
+               border-bottom:1px solid #f1f5f9;line-height:1.5;">
+      ${isHtml ? value : escapeHtml(value || "—")}
+    </td>
+  </tr>`;
+}
+
+/**
+ * Layout principal de los correos.
+ *
+ * Props:
+ *  - title    {string}   título grande (h1)
+ *  - kicker   {string?}  etiqueta UPPERCASE pequeña sobre el título
+ *  - intro    {string?}  párrafo introductorio
+ *  - lines    {Array<{label, value, html, badge}>?}
+ *                         label: nombre del campo
+ *                         value: valor en texto plano
+ *                         html:  reemplazo HTML del valor (tiene
+ *                                preferencia sobre value)
+ *                         badge: si true, valor se renderiza como
+ *                                badge coloreado (status/priority)
+ *  - notes    {string?}   notas largas que se muestran como párrafo
+ *                         debajo de la data card (por su tamaño no
+ *                         encajan bien como fila)
+ *  - ctaHref  {string?}   URL del botón principal
+ *  - ctaLabel {string?}   texto del botón
+ *  - footerNote {string?} sustituye el texto del footer
+ */
+function layout({ title, kicker, intro, lines, notes, ctaHref, ctaLabel, footerNote }) {
+  const dataLines = (lines || [])
     .filter(Boolean)
-    .map(
-      (l) => `<tr>
-        <td style="color:#6b7280;font-size:13px;padding:4px 0;width:120px;vertical-align:top;">${escapeHtml(l.label)}</td>
-        <td style="color:#111827;font-size:14px;padding:4px 0;">${l.html ?? escapeHtml(l.value || "")}</td>
-      </tr>`
-    )
+    .map((l) => {
+      if (l.html)  return dataRow(l.label, l.html, true);
+      if (l.badge) return dataRow(l.label, badge(l.value), true);
+      return dataRow(l.label, l.value);
+    })
     .join("");
 
-  // Bloque CTA:
-  //   - Botón grande centrado (ver `btn`).
-  //   - URL en texto plano debajo: para clientes que bloquean
-  //     estilos / imágenes (Outlook corporativo, Apple Mail con
-  //     "modo simplificado") o usuarios que prefieren copiar-pegar.
-  //     La URL se ve coloreada en azul como link, pero sin botón.
+  const dataCard = dataLines
+    ? `<div style="background:#f9fafb;border:1px solid #f1f5f9;
+                   border-radius:10px;padding:4px 16px;margin:18px 0 0;">
+         <table role="presentation" cellpadding="0" cellspacing="0"
+                style="width:100%;border-collapse:collapse;">
+           ${dataLines}
+         </table>
+       </div>`
+    : "";
+
+  // Bloque de notas largas (si lo pasamos): cita con borde lateral
+  // azul, para diferenciarlo del resto del contenido.
+  const notesBlock = notes
+    ? `<div style="margin:16px 0 0;padding:12px 14px;
+                   background:#f8fafc;border-left:3px solid ${BRAND_COLOR};
+                   border-radius:0 6px 6px 0;color:#374151;font-size:13.5px;
+                   line-height:1.55;white-space:pre-wrap;">
+         ${escapeHtml(notes)}
+       </div>`
+    : "";
+
+  // CTA: botón grande + fallback URL en pequeño debajo. Sólo se
+  // renderiza si hay ctaHref (si APP_BASE_URL no está definida,
+  // deepLink devuelve "" y el bloque se omite limpiamente).
   const cta = ctaHref
-    ? `<div style="margin:28px 0 4px;text-align:center;">
-        ${btn(ctaHref, ctaLabel || "Abrir en el CRM")}
+    ? `<div style="margin:30px 0 6px;text-align:center;">
+         ${btn(ctaHref, ctaLabel || "Abrir en el CRM")}
        </div>
-       <p style="margin:10px 0 0;text-align:center;color:#9ca3af;font-size:11.5px;line-height:1.5;">
-         ¿No funciona el botón? Copia y pega esta URL en tu navegador:<br>
-         <a href="${escapeHtml(ctaHref)}" style="color:#2563eb;text-decoration:underline;word-break:break-all;">${escapeHtml(ctaHref)}</a>
+       <p style="margin:12px 0 0;text-align:center;color:#9ca3af;
+                 font-size:11.5px;line-height:1.5;">
+         ¿No funciona el botón? Copia y pega esta URL:<br>
+         <a href="${escapeHtml(ctaHref)}" style="color:#6b7280;
+              text-decoration:underline;word-break:break-all;">${escapeHtml(ctaHref)}</a>
+       </p>`
+    : "";
+
+  const kickerHtml = kicker
+    ? `<p style="margin:0 0 4px;color:${BRAND_COLOR};font-size:11.5px;
+                 font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+         ${escapeHtml(kicker)}
        </p>`
     : "";
 
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 12px;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
+  <title>${escapeHtml(title)}</title>
+</head>
+<body style="margin:0;padding:0;background:#eef2f7;
+             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+             color:#0f172a;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background:#eef2f7;padding:32px 12px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-             style="max-width:560px;background:#ffffff;border-radius:10px;
-                    box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;">
-        <tr><td style="background:#0f172a;color:#fff;padding:14px 20px;font-weight:700;font-size:14px;letter-spacing:.4px;">
-          ${escapeHtml(BRAND)}
+             style="max-width:580px;background:#ffffff;border-radius:12px;
+                    box-shadow:0 4px 16px rgba(15,23,42,0.06),
+                               0 1px 3px rgba(15,23,42,0.04);
+                    overflow:hidden;">
+
+        <!-- Brand strip arriba: 4px de azul, marca de identidad
+             que distingue el correo "del CRM" de cualquier otro. -->
+        <tr><td style="height:4px;background:${BRAND_COLOR};line-height:4px;font-size:0;">&nbsp;</td></tr>
+
+        <!-- Header: nombre app + tagline. Fondo navy, mismo que la
+             sidebar de la app para coherencia visual.            -->
+        <tr><td style="background:${HEADER_BG};padding:18px 24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+            <tr>
+              <td style="vertical-align:middle;">
+                <div style="color:#ffffff;font-weight:700;font-size:15px;
+                            letter-spacing:0.4px;line-height:1.2;">
+                  ${escapeHtml(BRAND)}
+                </div>
+                <div style="color:rgba(255,255,255,0.55);font-size:11.5px;
+                            font-weight:500;margin-top:2px;letter-spacing:0.3px;">
+                  ${escapeHtml(BRAND_TAG)}
+                </div>
+              </td>
+            </tr>
+          </table>
         </td></tr>
-        <tr><td style="padding:24px 24px 16px;">
-          <h1 style="margin:0 0 12px;font-size:18px;color:#111827;">${escapeHtml(title)}</h1>
-          ${intro ? `<p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.5;">${escapeHtml(intro)}</p>` : ""}
-          ${linesHtml ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:6px;">${linesHtml}</table>` : ""}
+
+        <!-- Contenido principal -->
+        <tr><td style="padding:28px 28px 24px;">
+          ${kickerHtml}
+          <h1 style="margin:0 0 14px;font-size:22px;line-height:1.3;
+                     color:#0f172a;font-weight:700;letter-spacing:-0.2px;">
+            ${escapeHtml(title)}
+          </h1>
+          ${intro
+            ? `<p style="margin:0 0 6px;color:#374151;font-size:14px;line-height:1.55;">
+                 ${escapeHtml(intro)}
+               </p>`
+            : ""}
+          ${dataCard}
+          ${notesBlock}
           ${cta}
         </td></tr>
-        <tr><td style="padding:14px 24px 22px;color:#9ca3af;font-size:12px;border-top:1px solid #f1f5f9;line-height:1.5;">
+
+        <!-- Footer minimal. Si APP_BASE_URL existe, enlace inline
+             a "Gestionar mis preferencias" (lleva al home de la
+             app — desde ahí el usuario abre Preferencias).      -->
+        <tr><td style="padding:16px 28px 22px;background:#fafbfc;
+                       color:#9ca3af;font-size:11.5px;line-height:1.6;
+                       border-top:1px solid #f1f5f9;">
           ${escapeHtml(footerNote || "Recibes este correo porque tienes notificaciones activas en el CRM.")}
           ${APP_BASE_URL
             ? ` <a href="${escapeHtml(APP_BASE_URL)}" style="color:#6b7280;text-decoration:underline;">Gestionar mis preferencias</a>.`
             : ""}
         </td></tr>
+
       </table>
     </td></tr>
   </table>
@@ -139,7 +290,9 @@ function layout({ title, intro, lines, ctaHref, ctaLabel, footerNote }) {
 }
 
 function lineList(lines) {
-  // Versión texto plano de las mismas líneas
+  // Versión texto plano de las mismas líneas. Para clientes que sólo
+  // muestran multipart/alternative en text mode, o filtros de spam que
+  // pesan más cuando el text body coincide con el HTML.
   return (lines || [])
     .filter(Boolean)
     .map((l) => `${l.label}: ${l.text || l.value || ""}`)
@@ -151,42 +304,13 @@ function deepLink(path) {
   return APP_BASE_URL + path;
 }
 
-// ─── Recordatorios personales ─────────────────────────────────────
-export function reminderEmail({ user, reminder }) {
-  const when = fmtDateTime(reminder.remind_at);
-  const title = `🔔 Recordatorio: ${reminder.title}`;
-  const lines = [
-    { label: "Cuándo", value: when, text: when },
-    reminder.body
-      ? { label: "Notas", value: reminder.body, text: reminder.body }
-      : null,
-  ];
-  return {
-    subject: title,
-    html: layout({
-      title,
-      intro: `Hola${user?.name ? " " + user.name.split(" ")[0] : ""}, este es tu recordatorio personal.`,
-      lines,
-      ctaHref: deepLink("/?view=mitrabajo"),
-      ctaLabel: "Abrir el CRM",
-    }),
-    text:
-      `${title}\n\n` +
-      `Hola${user?.name ? " " + user.name.split(" ")[0] : ""}, este es tu recordatorio personal.\n\n` +
-      lineList(lines) +
-      (APP_BASE_URL ? `\n\n${deepLink("/?view=mitrabajo")}` : "") +
-      `\n\n— ${BRAND}`,
-  };
-}
-
 // ─── Tareas: helpers comunes ──────────────────────────────────────
 function taskLines(task, { clientName, when }) {
   return [
-    { label: "Cliente",    value: clientName || "—", text: clientName || "—" },
+    { label: "Cliente",   value: clientName || "—",     text: clientName || "—" },
     when ? { label: "Cuándo", value: when, text: when } : null,
-    task.priority ? { label: "Prioridad", value: task.priority, text: task.priority } : null,
-    task.status   ? { label: "Estado",    value: task.status,   text: task.status }   : null,
-    task.notes    ? { label: "Notas",     value: task.notes,    text: task.notes }    : null,
+    task.priority ? { label: "Prioridad", value: task.priority, text: task.priority, badge: true } : null,
+    task.status   ? { label: "Estado",    value: task.status,   text: task.status,   badge: true } : null,
   ];
 }
 
@@ -199,27 +323,58 @@ function taskWhen(task) {
   return "Sin fecha asignada";
 }
 
+// ─── Recordatorios personales ─────────────────────────────────────
+export function reminderEmail({ user, reminder }) {
+  const when = fmtDateTime(reminder.remind_at);
+  const title = reminder.title;
+  const lines = [
+    { label: "Cuándo", value: when, text: when },
+  ];
+  return {
+    subject: `🔔 Recordatorio: ${reminder.title}`,
+    html: layout({
+      title,
+      kicker: "🔔 Recordatorio personal",
+      intro: `Hola${user?.name ? " " + user.name.split(" ")[0] : ""}, este es el recordatorio que programaste.`,
+      lines,
+      notes: reminder.body || null,
+      ctaHref: deepLink("/?view=mitrabajo"),
+      ctaLabel: "Abrir el CRM",
+    }),
+    text:
+      `🔔 Recordatorio: ${title}\n\n` +
+      `Hola${user?.name ? " " + user.name.split(" ")[0] : ""}, este es el recordatorio que programaste.\n\n` +
+      lineList(lines) +
+      (reminder.body ? `\nNotas: ${reminder.body}` : "") +
+      (APP_BASE_URL ? `\n\n${deepLink("/?view=mitrabajo")}` : "") +
+      `\n\n— ${BRAND}`,
+  };
+}
+
 // ─── Email: tarea asignada ────────────────────────────────────────
 export function taskAssignedEmail({ user, task, clientName, assignerName }) {
   const when = taskWhen(task);
-  const title = `📝 Te han asignado: ${task.title}`;
+  const title = task.title;
   const intro =
     `Hola${user?.name ? " " + user.name.split(" ")[0] : ""}, ` +
     (assignerName ? `${assignerName} ` : "") +
     `te ha asignado una tarea.`;
   const lines = taskLines(task, { clientName, when });
   return {
-    subject: title,
+    subject: `📝 Te han asignado: ${task.title}`,
     html: layout({
       title,
+      kicker: "📝 Tarea asignada",
       intro,
       lines,
+      notes: task.notes || null,
       ctaHref: deepLink(`/?task=${encodeURIComponent(task.id)}`),
       ctaLabel: "Ver tarea",
     }),
     text:
-      `${title}\n\n${intro}\n\n` +
+      `📝 Te han asignado: ${title}\n\n${intro}\n\n` +
       lineList(lines) +
+      (task.notes ? `\nNotas: ${task.notes}` : "") +
       (APP_BASE_URL ? `\n\n${deepLink(`/?task=${task.id}`)}` : "") +
       `\n\n— ${BRAND}`,
   };
@@ -232,24 +387,27 @@ export function taskAssignedEmail({ user, task, clientName, assignerName }) {
 // eslint-disable-next-line no-unused-vars
 export function taskReminderEmail({ user, task, clientName, leadMinutes }) {
   const when = taskWhen(task);
-  const title = `⏰ Próxima tarea: ${task.title}`;
+  const title = task.title;
   const intro =
     leadMinutes
       ? `Tu tarea empieza en ${leadMinutes} minutos.`
       : `Tu tarea está a punto de empezar.`;
   const lines = taskLines(task, { clientName, when });
   return {
-    subject: title,
+    subject: `⏰ Próxima tarea: ${task.title}`,
     html: layout({
       title,
+      kicker: "⏰ Próxima tarea",
       intro,
       lines,
+      notes: task.notes || null,
       ctaHref: deepLink(`/?task=${encodeURIComponent(task.id)}`),
       ctaLabel: "Ver tarea",
     }),
     text:
-      `${title}\n\n${intro}\n\n` +
+      `⏰ Próxima tarea: ${title}\n\n${intro}\n\n` +
       lineList(lines) +
+      (task.notes ? `\nNotas: ${task.notes}` : "") +
       (APP_BASE_URL ? `\n\n${deepLink(`/?task=${task.id}`)}` : "") +
       `\n\n— ${BRAND}`,
   };
@@ -261,17 +419,23 @@ export function taskReminderEmail({ user, task, clientName, leadMinutes }) {
 // eslint-disable-next-line no-unused-vars
 export function taskChangedEmail({ user, task, clientName, changes }) {
   const when = taskWhen(task);
-  const title = `✏️ Cambios en tu tarea: ${task.title}`;
+  const title = task.title;
   const intro = `Se han actualizado detalles que te afectan.`;
+
+  // Cambios como lista bonita: cada uno con label en negrita + flecha
+  // visual entre el valor antiguo (tachado, gris) y el nuevo (negro).
   const changesHtml = (changes || [])
     .map(
       (c) =>
-        `<li style="margin:4px 0;color:#374151;">
-          <strong>${escapeHtml(c.label)}:</strong>
-          ${escapeHtml(c.from || "—")} <span style="color:#9ca3af;">→</span> ${escapeHtml(c.to || "—")}
+        `<li style="margin:6px 0;color:#374151;font-size:13.5px;line-height:1.5;">
+          <strong style="color:#0f172a;">${escapeHtml(c.label)}:</strong>
+          <span style="color:#9ca3af;text-decoration:line-through;text-decoration-color:#cbd5e1;">${escapeHtml(c.from || "—")}</span>
+          <span style="color:#9ca3af;margin:0 4px;">→</span>
+          <strong style="color:#0f172a;">${escapeHtml(c.to || "—")}</strong>
         </li>`
     )
     .join("");
+
   const lines = [
     ...(changesHtml
       ? [{
@@ -281,14 +445,24 @@ export function taskChangedEmail({ user, task, clientName, changes }) {
       : []),
     ...taskLines(task, { clientName, when }),
   ];
+
   return {
-    subject: title,
-    html: layout({ title, intro, lines, ctaHref: deepLink(`/?task=${encodeURIComponent(task.id)}`), ctaLabel: "Ver tarea" }),
+    subject: `✏️ Cambios en tu tarea: ${task.title}`,
+    html: layout({
+      title,
+      kicker: "✏️ Tarea actualizada",
+      intro,
+      lines,
+      notes: task.notes || null,
+      ctaHref: deepLink(`/?task=${encodeURIComponent(task.id)}`),
+      ctaLabel: "Ver tarea",
+    }),
     text:
-      `${title}\n\n${intro}\n\n` +
+      `✏️ Cambios en tu tarea: ${title}\n\n${intro}\n\n` +
       (changes || []).map((c) => `• ${c.label}: ${c.from || "—"} → ${c.to || "—"}`).join("\n") +
       "\n\n" +
       lineList(taskLines(task, { clientName, when })) +
+      (task.notes ? `\nNotas: ${task.notes}` : "") +
       (APP_BASE_URL ? `\n\n${deepLink(`/?task=${task.id}`)}` : "") +
       `\n\n— ${BRAND}`,
   };

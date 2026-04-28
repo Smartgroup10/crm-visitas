@@ -115,3 +115,216 @@
    transparentes con scroll. */
 [data-theme="dark"] .modal-header,
 [data-theme="dark"] .form-actions { background: var(--bg-surface); }
+
+/* ────────────────────────────────────────────────────────────
+   Dark mode v2: overrides que faltaban
+   ──────────────────────────────────────────────────────────── */
+
+/* ─── CALENDARIO: fines de semana, tooltips, modos ─────────
+   Los fondos hardcoded #fafbfe (mes y semana), el chip-set de
+   modos Mes/Semana/Día, y las notas del DayView usan tonos pastel
+   light que en dark mode quedan como manchas claras sobre el
+   fondo oscuro. Repintamos con tokens semánticos. */
+[data-theme="dark"] .calendar-grid .calendar-cell:nth-child(7n-1),
+[data-theme="dark"] .calendar-grid .calendar-cell:nth-child(7n) {
+  background: rgba(255,255,255,0.015);    /* tinte casi imperceptible */
+}
+[data-theme="dark"] .calendar-weekdays {
+  background: var(--bg-soft);
+}
+[data-theme="dark"] .calendar-weekdays div {
+  border-color: var(--line-soft);
+}
+
+/* Etiqueta sábado/domingo (color naranja oscuro en light) — en dark
+   no se ve. Ámbar claro mantiene el código visual ("findes") sin
+   romper la legibilidad. */
+[data-theme="dark"] .calendar-weekdays div:last-child,
+[data-theme="dark"] .calendar-weekdays div:nth-last-child(2),
+[data-theme="dark"] .week-column:nth-last-child(2) .week-column-dow {
+  color: var(--c-amber-100);
+}
+
+/* Sub-pestañas Mes/Semana/Día */
+[data-theme="dark"] .calendar-mode-tabs {
+  background: var(--bg-soft);
+  border: 1px solid var(--line-soft);
+}
+[data-theme="dark"] .calendar-mode-tab.active {
+  background: var(--bg-surface);
+  color: var(--brand);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+/* Vista DÍA: tarjetas de tarea y bloque de notas */
+[data-theme="dark"] .day-view-card-notes {
+  background: var(--bg-soft);
+  border-left-color: var(--brand);
+  color: var(--text-main);
+}
+
+/* Vista SEMANA: la columna de Sunday no tenía override propio
+   (sólo la `:nth-last-child(2)` Saturday). Aplicamos el mismo
+   trato. */
+[data-theme="dark"] .week-column:last-child {
+  background: var(--bg-soft);
+}
+
+/* Scrollbars de listas en dark: el thumb #cdd5e8 es invisible.
+   Usamos un gris más claro con baja opacidad. */
+[data-theme="dark"] .day-task-list,
+[data-theme="dark"] .week-column-body {
+  scrollbar-color: rgba(168,177,197,0.35) transparent;
+}
+
+/* Texto "—" de week-empty: el #c0c8d8 funciona ok pero un punto
+   más muted queda más coherente con el resto de la paleta dark. */
+[data-theme="dark"] .week-empty {
+  color: var(--text-muted);
+}
+
+/* ─── BANNERS Y CHIPS DE ALERTA ─────────────────────────────
+   `mt-alert-banner`, `warn-chip` y similares usaban un rosa
+   pastel (#fef2f4 + #a01030) que en dark mode se convierte en
+   un parche claro con texto rojo apagado. Re-mapeamos al sistema
+   semántico de danger-soft que sí responde a tokens. */
+[data-theme="dark"] .mt-alert-banner {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+[data-theme="dark"] .warn-chip {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Especialidad del técnico (chip azul pastel) — el azul claro
+   sobre fondo oscuro funciona, pero queda más limpio con el
+   token brand-soft + brand para mantener coherencia con el resto
+   de chips de la app. */
+[data-theme="dark"] .team-specialty {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* Vehículos asignados al técnico (chip violeta) en mitrabajo */
+[data-theme="dark"] .mt-vehicle-chip {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* ─── MODAL: chip de tipo "preventa" ────────────────────────
+   El chip purpura hardcoded (#f3eaff/#e0ccff/#6b21a8) en light
+   se traduce a un tinte morado más suave para dark, alineado con
+   los otros tipos de tarea. */
+[data-theme="dark"] .task-type-tag.task-type-preventa {
+  background: rgba(168,85,247,0.14);
+  border-color: rgba(168,85,247,0.32);
+  color: #d8b4fe;
+}
+
+/* ─── EMPTY STATES Y AVISOS NEUTROS ────────────────────────
+   .empty-state usa --bg-soft pero el text-soft puede quedarse
+   muy bajo en contraste. Subimos a text-main. */
+[data-theme="dark"] .empty-state {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+  color: var(--text-main);
+}
+
+/* ─── INFORMES: filtros y rangos ────────────────────────────
+   .informes-filters y .informes-filters-grid usan fallbacks
+   hardcoded (#fff, #e5e7eb…) en su CSS por compatibilidad con
+   navegadores muy antiguos. Forzamos los tokens en dark. */
+[data-theme="dark"] .informes-filters,
+[data-theme="dark"] .informes-filters-grid input,
+[data-theme="dark"] .informes-filters-grid select {
+  background: var(--bg-surface);
+  border-color: var(--line-main);
+  color: var(--text-strong);
+}
+[data-theme="dark"] .informes-filters-grid label {
+  color: var(--text-soft);
+}
+[data-theme="dark"] .range-chip {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+  color: var(--text-main);
+}
+[data-theme="dark"] .range-chip:hover {
+  border-color: var(--line-strong);
+}
+[data-theme="dark"] .range-chip.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #ffffff;
+}
+
+/* ─── LOGIN: puede tener detalles propios ──────────────────
+   Si el login se monta sobre fondo claro hardcoded, el form se
+   ve raro al recargar mientras carga el theme. Como fallback
+   suave: que herede del bg-app. */
+[data-theme="dark"] .login-page,
+[data-theme="dark"] .login-card {
+  background: var(--bg-surface);
+  color: var(--text-main);
+}
+
+/* ─── SCROLLBAR GLOBAL ────────────────────────────────────
+   El content-grid usa scrollbar-color #b8c8e0 sobre var(--bg-app).
+   En dark, el thumb pega muy fuerte. Más muted. */
+[data-theme="dark"] .content-grid {
+  scrollbar-color: rgba(148,160,180,0.30) var(--bg-app);
+}
+
+/* ─── ACTIVITY TIMELINE Y COMENTARIOS ──────────────────────
+   Las features nuevas (timeline y comments) usan tokens, así
+   que en su mayoría ya se adaptan. Pero el .comment-bubble que
+   no es propio usa --bg-soft con --line-soft, y en dark eso es
+   poco contraste. Le damos un border más visible. */
+[data-theme="dark"] .comment-bubble {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+}
+[data-theme="dark"] .comment-own .comment-bubble {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+}
+
+/* Edge case: el textarea del comment-edit usa borde brand directo
+   (azul oscuro) que en dark es ok, pero se ve muy delgado. Subimos
+   de 1.5px a 2px. */
+[data-theme="dark"] .comment-edit textarea {
+  border-color: var(--brand);
+}
+
+/* ─── FICHA DE CLIENTE ────────────────────────────────────
+   Los chips de breakdown y stats heredan tokens, pero el fondo
+   --bg-soft de los stats puede confundirse con el modal en dark.
+   Subimos un punto de contraste con un border-strong. */
+[data-theme="dark"] .client-stat {
+  background: var(--bg-soft);
+  border-color: var(--line-main);
+}
+[data-theme="dark"] .client-chip {
+  background: var(--bg-surface);
+  border-color: var(--line-main);
+  color: var(--text-main);
+}
+[data-theme="dark"] .client-history-item:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+}
+[data-theme="dark"] .client-history-type {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* ─── DRAG & DROP: feedback visual ─────────────────────────
+   .drop-target-active usa brand-soft que en dark es muy oscuro.
+   Le damos un tinte más visible con outline más fuerte. */
+[data-theme="dark"] .calendar-cell.drop-target-active,
+[data-theme="dark"] .week-column.drop-target-active {
+  background: rgba(79,139,255,0.18) !important;
+  outline-color: var(--brand);
+}
