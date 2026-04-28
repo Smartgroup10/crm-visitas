@@ -5,6 +5,7 @@ import { TASK_TYPES, TASK_TYPE_KEYS } from "../data/taskTypes";
 import { useUI } from "../hooks/useUI";
 import { usePermissions } from "../hooks/usePermissions";
 import { useTheme } from "../hooks/useTheme";
+import { modKeyLabel } from "../utils/platform";
 
 const TITLES = {
   inicio: "Inicio",
@@ -102,16 +103,16 @@ export default function Topbar({ stats, technicians, openNewTask, onOpenPalette 
           )}
 
           {/* Botón "atajo" que abre el command palette. La etiqueta
-              `Buscar · ⌘K` lo hace descubrible para usuarios que no
-              conocen el atajo de teclado. En mobile, sólo se ve la
-              lupa (CSS @media (max-width: 720px)). */}
+              del kbd cambia según el SO: en Windows/Linux muestra
+              "Ctrl K", en Mac "⌘K". En mobile, sólo se ve la lupa
+              (CSS @media (max-width: 720px)). */}
           {onOpenPalette && (
             <button
               type="button"
               className="topbar-cmd-btn"
               onClick={onOpenPalette}
-              aria-label="Abrir buscador y comandos (Ctrl+K)"
-              title="Buscar y comandos (Ctrl+K)"
+              aria-label={`Abrir buscador y comandos (${modKeyLabel("K")})`}
+              title={`Buscar y comandos (${modKeyLabel("K")})`}
             >
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none"
                    stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -119,7 +120,7 @@ export default function Topbar({ stats, technicians, openNewTask, onOpenPalette 
                 <path d="M13.5 13.5L17 17" strokeLinecap="round"/>
               </svg>
               <span className="topbar-cmd-btn-text">Buscar</span>
-              <kbd className="topbar-cmd-btn-kbd">⌘K</kbd>
+              <kbd className="topbar-cmd-btn-kbd">{modKeyLabel("K")}</kbd>
             </button>
           )}
 
