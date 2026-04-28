@@ -122,6 +122,17 @@ export const schemas = {
       message: "Nada que actualizar",
     }),
 
+  // Comentarios en tareas. Hilo interno de comunicación entre el equipo,
+  // pensado para sustituir mensajes de WhatsApp tipo "el cliente dice
+  // que la avería es en el sótano". Body con margen alto pero acotado
+  // para evitar payloads de 10 MB en una request.
+  taskCommentCreate: z.object({
+    body: trimmed(5000).min(1, "El comentario no puede estar vacío"),
+  }),
+  taskCommentUpdate: z.object({
+    body: trimmed(5000).min(1, "El comentario no puede estar vacío"),
+  }),
+
   // Recordatorios personales. `remind_at` debe ser una fecha ISO válida
   // (el frontend pasa Date.toISOString()). No exigimos que sea futura aquí
   // porque el handler ya decide qué hacer si la fecha ya pasó (programar

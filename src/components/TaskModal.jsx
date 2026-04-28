@@ -10,6 +10,7 @@ import {
 import { validateTask } from "../utils/validation";
 import { usePermissions } from "../hooks/usePermissions";
 import TaskActivityTimeline from "./TaskActivityTimeline";
+import TaskCommentsThread from "./TaskCommentsThread";
 
 /**
  * Construye el objeto que se enviará al backend al guardar. Conservamos los
@@ -375,11 +376,16 @@ export default function TaskModal({
             </div>
           </fieldset>
 
-          {/* Timeline de actividad — sólo en edición (necesitamos un id
-              para consultarlo). En "Nueva tarea" no tiene sentido pintar
-              "Sin actividad" porque la tarea aún no existe. */}
+          {/* Comentarios + Timeline — sólo en edición (necesitamos un id
+              para consultarlos). En "Nueva tarea" la tarea aún no
+              existe, así que no hay nada que pintar. Comentarios va
+              primero porque es un canal vivo (la gente escribe ahí);
+              actividad va al final como referencia/auditoría. */}
           {isEditing && draft?.id && (
-            <TaskActivityTimeline taskId={draft.id} />
+            <>
+              <TaskCommentsThread taskId={draft.id} />
+              <TaskActivityTimeline taskId={draft.id} />
+            </>
           )}
 
           {/* Footer sticky con las acciones */}

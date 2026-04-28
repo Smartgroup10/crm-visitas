@@ -222,6 +222,27 @@ create table if not exists task_activity (
 create index if not exists idx_task_activity_task_time
   on task_activity (task_id, created_at desc);
 
+-- ─── COMENTARIOS DE TAREAS ────────────────────────────────
+-- Hilo de mensajes interno por tarea — sustituye a la conversación
+-- típica que iría por WhatsApp/email. Cada usuario autenticado puede
+-- comentar; sólo el autor puede editar/borrar el suyo.
+--
+-- ON DELETE CASCADE: si se borra la tarea, los comentarios se van con
+-- ella (no tienen vida propia fuera de la tarea). El author va con
+-- ON DELETE SET NULL — si se borra al usuario, los comentarios se
+-- conservan pero pierden el autor (mejor que perder el contexto).
+create table if not exists task_comments (
+  id          uuid primary key default gen_random_uuid(),
+  task_id     uuid not null references tasks(id) on delete cascade,
+  author_id   uuid references users(id) on delete set null,
+  body        text not null,
+  created_at  timestamptz not null default now(),
+  edited_at   timestamptz
+);
+
+create index if not exists idx_task_comments_task_time
+  on task_comments (task_id, created_at asc);
+
 -- ─── RECORDATORIOS PERSONALES ─────────────────────────────
 -- Cada usuario crea sus propios recordatorios (privados). El backend
 -- programa un job en pg-boss para `remind_at`; al disparar, el worker

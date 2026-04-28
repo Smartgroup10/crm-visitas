@@ -198,3 +198,141 @@ tasksRouter.get("/:id/activity", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Error obteniendo actividad" });
   }
 });
+
+// ─── COMENTARIOS DE TAREAS ───────────────────────────────
+//
+// Diseño:
+//   - Cualquier usuario autenticado puede LEER los comentarios y
+//     ESCRIBIR uno nuevo (incluidos técnicos, no es restringido a
+//     admins — el sentido del hilo es que el técnico aporte info
+//     desde campo).
+//   - Sólo el AUTOR puede editar o borrar su propio comentario. Esto
+//     se valida en el handler con `req.user.id === author_id`. No lo
+//     delegamos al middleware porque depende del recurso concreto.
+//   - Emitimos un evento socket `task-comments:change` por cada
+//     mutación, con la fila completa, para que el frontend lo refleje
+//     en tiempo real (igual que `tasks:change`).
+
+// GET /api/tasks/:id/comments — listar
+tasksRouter.get("/:id/comments", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `select c.id, c.task_id, c.body, c.created_at, c.edited_at,
+              c.author_id,
+              coalesce(nullif(u.name, ''), u.email) as author_name
+         from task_comments c
+         left join users u on u.id = c.author_id
+        where c.task_id = $1
+        order by c.created_at asc`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error({ err }, "[tasks/comments/list]");
+    res.status(500).json({ error: "Error obteniendo comentarios" });
+  }
+});
+
+// POST /api/tasks/:id/comments — crear
+tasksRouter.post(
+  "/:id/comments",
+  authMiddleware,
+  validate(schemas.taskCommentCreate),
+  async (req, res) => {
+    try {
+      // Validamos primero que la tarea exista — si el id es inventado,
+      // mejor 404 que un INSERT que fallaría por FK con un mensaje feo.
+      const { rows: taskRows } = await query(
+        "select id from tasks where id = $1",
+        [req.params.id]
+      );
+      if (!taskRows[0]) return res.status(404).json({ error: "Tarea no encontrada" });
+
+      const { rows } = await query(
+        `insert into task_comments (task_id, author_id, body)
+         values ($1, $2, $3)
+         returning id, task_id, body, created_at, edited_at, author_id`,
+        [req.params.id, req.user.id, req.body.body]
+      );
+      // Joineamos el nombre para devolver la fila lista para pintar.
+      const { rows: nameRows } = await query(
+        "select coalesce(nullif(name, ''), email) as name from users where id = $1",
+        [req.user.id]
+      );
+      const enriched = { ...rows[0], author_name: nameRows[0]?.name || null };
+      emit("task-comments:change", { type: "insert", taskId: req.params.id, comment: enriched });
+      res.json(enriched);
+    } catch (err) {
+      logger.error({ err }, "[tasks/comments/create]");
+      res.status(500).json({ error: "Error creando comentario" });
+    }
+  }
+);
+
+// PUT /api/tasks/:taskId/comments/:commentId — editar (solo autor)
+tasksRouter.put(
+  "/:taskId/comments/:commentId",
+  authMiddleware,
+  validate(schemas.taskCommentUpdate),
+  async (req, res) => {
+    try {
+      // Comprobamos autoría antes de tocar la fila. Si no es el autor,
+      // 403 (no 404, queremos diferenciar "no existe" de "no es tuyo").
+      const { rows: existing } = await query(
+        "select author_id from task_comments where id = $1 and task_id = $2",
+        [req.params.commentId, req.params.taskId]
+      );
+      if (!existing[0]) return res.status(404).json({ error: "Comentario no encontrado" });
+      if (existing[0].author_id !== req.user.id) {
+        return res.status(403).json({ error: "Sólo el autor puede editar el comentario" });
+      }
+
+      const { rows } = await query(
+        `update task_comments
+            set body = $1, edited_at = now()
+          where id = $2
+          returning id, task_id, body, created_at, edited_at, author_id`,
+        [req.body.body, req.params.commentId]
+      );
+      const { rows: nameRows } = await query(
+        "select coalesce(nullif(name, ''), email) as name from users where id = $1",
+        [req.user.id]
+      );
+      const enriched = { ...rows[0], author_name: nameRows[0]?.name || null };
+      emit("task-comments:change", { type: "update", taskId: req.params.taskId, comment: enriched });
+      res.json(enriched);
+    } catch (err) {
+      logger.error({ err }, "[tasks/comments/update]");
+      res.status(500).json({ error: "Error actualizando comentario" });
+    }
+  }
+);
+
+// DELETE /api/tasks/:taskId/comments/:commentId — borrar (solo autor)
+tasksRouter.delete(
+  "/:taskId/comments/:commentId",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { rows: existing } = await query(
+        "select author_id from task_comments where id = $1 and task_id = $2",
+        [req.params.commentId, req.params.taskId]
+      );
+      if (!existing[0]) return res.status(404).json({ error: "Comentario no encontrado" });
+      if (existing[0].author_id !== req.user.id) {
+        return res.status(403).json({ error: "Sólo el autor puede eliminar el comentario" });
+      }
+
+      await query("delete from task_comments where id = $1", [req.params.commentId]);
+      emit("task-comments:change", {
+        type: "delete",
+        taskId: req.params.taskId,
+        commentId: req.params.commentId,
+      });
+      res.json({ ok: true });
+    } catch (err) {
+      logger.error({ err }, "[tasks/comments/delete]");
+      res.status(500).json({ error: "Error borrando comentario" });
+    }
+  }
+);
