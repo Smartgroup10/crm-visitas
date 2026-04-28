@@ -3,8 +3,9 @@ import { usePermissions } from "../../hooks/usePermissions";
 import { useToast } from "../../hooks/useToast";
 import { useConfirm } from "../../hooks/useConfirm";
 import EmptyState from "../EmptyState";
+import ClientDetailModal from "../ClientDetailModal";
 
-export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete }) {
+export default function ClientsView({ clients, tasks, technicians, onAdd, onUpdate, onDelete }) {
   const { canManage } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
@@ -14,6 +15,7 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
   const [busyAdd, setBusyAdd]                 = useState(false);
   const [busyEdit, setBusyEdit]               = useState(false);
   const [deletingId, setDeletingId]           = useState(null);
+  const [detailClientId, setDetailClientId]   = useState(null);
   const newClientInputRef = useRef(null);
 
   async function addClient() {
@@ -166,9 +168,17 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                     )}
                   </div>
 
-                  {canManage && (
-                    <div className="client-actions">
-                      {isEditing ? (
+                  <div className="client-actions">
+                    {!isEditing && (
+                      <button
+                        className="btn-secondary small-btn"
+                        onClick={() => setDetailClientId(client.id)}
+                      >
+                        Ver historial
+                      </button>
+                    )}
+                    {canManage && (
+                      isEditing ? (
                         <>
                           <button
                             className="btn-primary small-btn"
@@ -205,15 +215,22 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                             {deletingId === client.id ? "Borrando…" : "Borrar"}
                           </button>
                         </>
-                      )}
-                    </div>
-                  )}
+                      )
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      <ClientDetailModal
+        open={!!detailClientId}
+        clientId={detailClientId}
+        technicians={technicians}
+        onClose={() => setDetailClientId(null)}
+      />
     </div>
   );
 }

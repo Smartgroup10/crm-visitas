@@ -42,6 +42,7 @@
 @import "./styles/notifications.css";
 @import "./styles/activity.css";
 @import "./styles/comments.css";
+@import "./styles/client-detail.css";
 @import "./styles/empty-state.css";
 @import "./styles/app-loading.css";
 @import "./styles/dark-overrides.css";

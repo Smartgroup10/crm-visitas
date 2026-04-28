@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { emit } from "../io.js";
-import { requireRole } from "../auth.js";
+import { requireRole, authMiddleware } from "../auth.js";
 import { logger } from "../logger.js";
 import { schemas, validate } from "../schemas.js";
 
@@ -64,5 +64,46 @@ clientsRouter.delete("/:id", canManage, async (req, res) => {
   } catch (err) {
     logger.error({ err }, "[clients/delete]");
     res.status(500).json({ error: "Error borrando cliente" });
+  }
+});
+
+// ─── GET /api/clients/:id/details ────────────────────────
+//
+// Devuelve la ficha completa del cliente + todas sus tareas asociadas.
+// Lo usa la vista de detalle para mostrar histórico y estadísticas.
+//
+// Decisión de diseño: una sola query con dos selects en lugar de dos
+// endpoints separados. Para los volúmenes esperados (decenas de
+// tareas por cliente como mucho) el payload es manejable y evitamos
+// un round-trip desde el frontend. Las stats (totales por estado /
+// tipo, última visita, etc.) las calcula el frontend a partir de los
+// items — más flexible y barato que mantener agregados en SQL.
+//
+// Cualquier usuario autenticado puede leer este endpoint: igual que
+// /api/tasks, los datos no son sensibles a nivel de rol.
+clientsRouter.get("/:id/details", authMiddleware, async (req, res) => {
+  try {
+    const { rows: clientRows } = await query(
+      "select id, name, created_at from clients where id = $1",
+      [req.params.id]
+    );
+    const client = clientRows[0];
+    if (!client) return res.status(404).json({ error: "Cliente no encontrado" });
+
+    // Orden: pasadas más recientes arriba, futuras al final por fecha
+    // creciente. Para conseguirlo barato, ordenamos por date desc
+    // tratando NULLs como muy antiguas (al fondo). El frontend luego
+    // segmenta entre "pasadas" y "futuras" según la fecha actual.
+    const { rows: tasks } = await query(
+      `select * from tasks
+        where client_id = $1
+        order by date desc nulls last, created_at desc`,
+      [req.params.id]
+    );
+
+    res.json({ client, tasks });
+  } catch (err) {
+    logger.error({ err }, "[clients/details]");
+    res.status(500).json({ error: "Error obteniendo detalle del cliente" });
   }
 });

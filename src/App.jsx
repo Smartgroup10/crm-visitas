@@ -509,6 +509,7 @@ export default function App() {
               <ClientsView
                 clients={clients}
                 tasks={tasks}
+                technicians={technicians}
                 onAdd={handleAddClient}
                 onUpdate={handleUpdateClient}
                 onDelete={handleDeleteClient}
