@@ -40,7 +40,8 @@ export default function App() {
     statusFilter,
     priorityFilter,
     categoryFilter,
-    setSection,
+    setUi,            // raw setter — OK para parches funcionales (u) => ({...u, ...})
+    setSection,       // helper que SÍ hace merge — usar para reemplazos
     setCalendarMode,
     counterModalOpen,
     setCounterModalOpen,
