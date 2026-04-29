@@ -40,7 +40,7 @@ export default function App() {
     statusFilter,
     priorityFilter,
     categoryFilter,
-    setUi,
+    setSection,
     setCalendarMode,
     counterModalOpen,
     setCounterModalOpen,
@@ -609,7 +609,7 @@ export default function App() {
         technicians={technicians}
         canManage={user?.role === "admin" || user?.role === "supervisor"}
         onNewTask={openNewTask}
-        onNavigate={(s) => setUi({ section: s })}
+        onNavigate={(s) => setSection(s)}
         onOpenTask={(id) => {
           window.dispatchEvent(new CustomEvent("crm:open-task", { detail: { id } }));
         }}
