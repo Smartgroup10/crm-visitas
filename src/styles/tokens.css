@@ -91,15 +91,17 @@
   --info-soft:     var(--c-blue-50);
   --info-border:   var(--c-blue-100);
 
-  /* Sidebar (oscura tanto en light como en dark) */
-  --sb-bg:         #0f172a;
-  --sb-bg-soft:    #1a2236;
-  --sb-text:       #a8b1c5;
-  --sb-text-hover: #ffffff;
-  --sb-active-bg:  rgba(255,255,255,0.08);
-  --sb-hover-bg:   rgba(255,255,255,0.045);
-  --sb-section:    rgba(255,255,255,0.35);
-  --sb-border:     rgba(255,255,255,0.06);
+  /* Sidebar (oscura tanto en light como en dark)
+     v2: paleta stone-warm — alineada con --surface en dark mode para
+     que el chrome se sienta una pieza con el resto del sistema. */
+  --sb-bg:         #1c1917;            /* stone-900 */
+  --sb-bg-soft:    #292524;            /* stone-800 */
+  --sb-text:       #d6d3d1;            /* stone-300 */
+  --sb-text-hover: #fafaf9;            /* stone-50 */
+  --sb-active-bg:  rgba(255,255,255,0.05);
+  --sb-hover-bg:   rgba(255,255,255,0.03);
+  --sb-section:    #a8a29e;            /* stone-400 */
+  --sb-border:     rgba(250,250,249,0.06);
 
   /* Status de tareas (alias para mantener clases existentes) */
   --c-pending:  var(--c-gray-300);

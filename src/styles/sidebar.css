@@ -1,3 +1,17 @@
+/* ============================================================
+   Sidebar — Field Engineering aesthetic v2
+   ============================================================
+   Stone-warm dark surface (#1c1917) que arranca alineada con el
+   `--surface` del dark mode — el chrome se siente continuación del
+   resto del sistema, no un chunk de color desconectado.
+
+   Marca: glyph oficial Smartgroup en azul vivo + wordmark en
+   blanco-warm. Sin subtitle redundante: la única caja "Smartgroup"
+   que ve el usuario en operaciones, no necesita decirlo dos veces.
+
+   Active state: 2px de barra brand a la izquierda + tinte sutil.
+   Sin glow azul saturado — los hairlines son la nueva sintaxis. */
+
 /* ─── SIDEBAR BACKDROP ─────────────────────────────────
    En desktop no se ve nunca. En mobile aparece cuando el drawer está
    abierto y un click sobre él lo cierra. */
@@ -9,17 +23,11 @@
 /*
  * Layout interno del sidebar (desktop):
  *   - Fija altura a la del viewport (`100dvh`) para que su pie no
- *     dependa de la altura del contenido principal. Sin esto, en
- *     pantallas cortas o con zoom 100% el footer (avatar + bell +
- *     logout) se quedaba clipeado por debajo del borde.
- *   - `overflow-y: auto` como red de seguridad: si por algún motivo
- *     el contenido (brand + nav + footer) supera la altura del
- *     viewport (zoom > 110%, pantalla muy baja), el sidebar entero se
- *     vuelve scrolleable y nada queda inaccesible.
+ *     dependa de la altura del contenido principal.
+ *   - `overflow-y: auto` como red de seguridad por si en zoom alto el
+ *     contenido (brand + nav + footer) supera la altura disponible.
  *   - `position: sticky` para que al hacer scroll de la app el sidebar
- *     siga visible — esto sólo aplica en desktop, en mobile el media
- *     query lo convierte en drawer fijo.
- */
+ *     siga visible (sólo desktop; en mobile pasa a drawer fijo). */
 .sidebar {
   background: var(--sb-bg);
   display: flex;
@@ -31,11 +39,14 @@
   height: 100dvh;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.18) transparent;
+  scrollbar-color: rgba(250,250,249,0.16) transparent;
+  /* Inner glow muy sutil en el borde derecho — separa del canvas warm
+     sin recurrir a una sombra dura. */
+  box-shadow: inset -1px 0 0 rgba(250,250,249,0.03);
 }
 .sidebar::-webkit-scrollbar { width: 6px; }
 .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.18);
+  background: rgba(250,250,249,0.16);
   border-radius: 3px;
 }
 
@@ -52,52 +63,42 @@
   cursor: pointer;
   transition: background var(--t-fast), color var(--t-fast);
 }
-.sidebar-close:hover { background: var(--sb-hover-bg); color: #fff; }
+.sidebar-close:hover { background: var(--sb-hover-bg); color: var(--sb-text-hover); }
 
+/* ─── BRAND ────────────────────────────────────────────
+   Glyph + wordmark en lockup horizontal. No hay subtitle: el lockup
+   habla por sí solo. Padding generoso arriba para respirar — las
+   cards de la app en el viewport principal empiezan unos píxeles más
+   abajo, lo que crea una alineación visual implícita. */
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 14px 12px;
+  gap: 8px;
+  padding: 18px 14px 16px;
   border-bottom: 1px solid var(--sb-border);
   flex: 0 0 auto;
 }
 
-.brand-badge {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  background: var(--brand);
-  color: #fff;
-  display: flex;
+.sidebar-brand-glyph {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
   flex: 0 0 auto;
-  letter-spacing: -0.3px;
 }
 
-.brand-title {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.4px;
+.sidebar-brand-wordmark {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
-.brand-subtitle {
-  font-size: 10.5px;
-  color: var(--sb-section);
-  margin-top: 1px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
-
+/* ─── NAV ──────────────────────────────────────────────── */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 6px 8px;
+  padding: 10px 8px;
   flex: 1 1 auto;
   /* min-height: 0 es crítico aquí: sin esto el nav no puede encogerse
      por debajo de su tamaño intrínseco y el footer se sale del
@@ -109,12 +110,13 @@
 .sidebar-nav::-webkit-scrollbar { display: none; }
 
 .nav-section-label {
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.14em;
   color: var(--sb-section);
-  padding: 10px 10px 4px;
+  padding: 14px 10px 6px;
   user-select: none;
 }
 .nav-section-label:first-child { padding-top: 4px; }
@@ -124,13 +126,13 @@
   align-items: center;
   gap: 10px;
   text-align: left;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-radius: var(--radius-md);
   color: var(--sb-text);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  transition: background 0.14s ease, color 0.14s ease;
+  transition: background var(--t-fast), color var(--t-fast);
   position: relative;
   width: 100%;
 }
@@ -138,25 +140,28 @@
   background: var(--sb-hover-bg);
   color: var(--sb-text-hover);
 }
+
+/* Active: sin glow, sólo tinte sutil + barra brand a la izquierda
+   (2px hairline). El indicador queda discreto pero leído de un
+   vistazo. */
 .nav-item.active {
   background: var(--sb-active-bg);
-  color: #ffffff;
+  color: var(--sb-text-hover);
   font-weight: 600;
 }
 .nav-item.active::before {
   content: "";
   position: absolute;
   left: -8px;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
   background: var(--brand);
-  box-shadow: 0 0 12px rgba(37,99,235,0.45);
+  border-radius: 0 2px 2px 0;
 }
 .nav-item:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px var(--brand);
+  box-shadow: inset 0 0 0 1.5px var(--brand);
 }
 .nav-item:disabled,
 .nav-soon {
@@ -174,18 +179,45 @@
   width: 18px;
   height: 18px;
   color: inherit;
-  opacity: 0.85;
+  opacity: 0.78;
+  transition: opacity var(--t-fast);
 }
+.nav-item:hover:not(:disabled) .nav-icon,
 .nav-item.active .nav-icon { opacity: 1; }
-.nav-label { flex: 1; }
+.nav-label { flex: 1; min-width: 0; }
+
+/* Notification badge: pill mono pequeña a la derecha del label.
+   Color brand discreto sobre el bg dark — no es un alarm rojo, es
+   un counter informacional. Para urgencias críticas se puede pintar
+   con .nav-badge-critical (clase añadida via prop futuro). */
+.nav-badge {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  background: rgba(124, 140, 255, 0.18);
+  color: #c4cdff;
+  padding: 1px 6px;
+  border-radius: 999px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.4;
+}
+.nav-badge-critical {
+  background: rgba(220, 38, 38, 0.22);
+  color: #fca5a5;
+}
 
 /* ─── SIDEBAR FOOTER ─────────────────────────────────────
    Pie con avatar + nombre + role + botones (preferencias / logout).
-   Densidad ajustada para que TODO encaje en los 220px del sidebar
-   sin que el nombre de usuario empuje fuera los iconos. */
+   El avatar usa el color hash del nombre — un humano se reconoce
+   antes por color que por iniciales, así dos "JV" distintos no
+   se confunden. */
 .sidebar-footer {
   flex: 0 0 auto;
-  padding: 8px 8px 10px;
+  padding: 10px 8px 12px;
   border-top: 1px solid var(--sb-border);
 }
 
@@ -198,7 +230,7 @@
   gap: 8px;
   padding: 6px 6px;
   border-radius: var(--radius-md);
-  transition: background 0.14s ease;
+  transition: background var(--t-fast);
 }
 .sidebar-user:hover { background: var(--sb-hover-bg); }
 
@@ -206,9 +238,10 @@
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: var(--sb-bg-soft);
-  border: 1px solid var(--sb-border);
-  color: #e4e8f0;
+  /* background lo aporta el style inline (color hash). El borde
+     blanco-translúcido le da un halo discreto sobre el dark bg. */
+  border: 1px solid rgba(250,250,249,0.18);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,6 +249,7 @@
   font-weight: 700;
   flex: 0 0 auto;
   letter-spacing: 0.3px;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.18);
 }
 
 .user-info { min-width: 0; flex: 1 1 0; }
@@ -223,19 +257,22 @@
 .user-name {
   font-size: 12.5px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--sb-text-hover);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .user-role {
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
   color: var(--sb-section);
-  letter-spacing: 0.2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 1px;
+  text-transform: uppercase;
 }
 
 .logout-btn {
@@ -249,11 +286,15 @@
   font-size: 15px;
   cursor: pointer;
   flex: 0 0 auto;
-  transition: background 0.12s, color 0.12s;
+  transition: background var(--t-fast), color var(--t-fast);
 }
 .logout-btn:hover {
-  background: rgba(255,255,255,0.1);
-  color: #fff;
+  background: rgba(250,250,249,0.08);
+  color: var(--sb-text-hover);
+}
+.logout-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124,140,255,0.6);
 }
 
 /*
@@ -263,8 +304,7 @@
  * viven en `layout.css`; aquí re-aplicamos las mismas para asegurar
  * que sobreescriben las propiedades desktop (`position: sticky`,
  * `height: 100dvh`) — sidebar.css se importa DESPUÉS de layout.css,
- * así que sin esto la cascada deshace el drawer.
- */
+ * así que sin esto la cascada deshace el drawer. */
 @media (max-width: 900px) {
   .sidebar {
     position: fixed;
@@ -280,7 +320,7 @@
   }
   .sidebar.is-open {
     transform: translateX(0);
-    box-shadow: 8px 0 30px rgba(0,0,0,0.35);
+    box-shadow: 8px 0 30px rgba(0,0,0,0.45);
   }
   .day-task-list { max-height: min(50vh, 400px); }
 }

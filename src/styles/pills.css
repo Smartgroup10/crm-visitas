@@ -1,21 +1,59 @@
-/* ─── MINI STATUS & PRIORITY PILLS ─────────────────── */
+/* ─── MINI STATUS & PRIORITY PILLS ─────────────────────────
+   Pills usados en tablas, day-view-card, mitrabajo. Hairlines warm
+   (no fondos saturados azules). Mono small con tracking uppercase
+   = lectura rápida sin invadir. */
 .mini-status, .mini-priority {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.15px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
 }
 
-.mini-status.no-iniciado  { background: #eaecf2; color: #626b85; }
-.mini-status.en-curso     { background: #fff4e0; color: #8a5300; }
-.mini-status.listo        { background: #dcfaee; color: #007848; }
-.mini-status.bloqueado    { background: #fde8ec; color: #a01030; }
+.mini-status.no-iniciado  {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  border-color: var(--line-warm);
+}
+.mini-status.en-curso     {
+  background: rgba(245, 158, 11, 0.10);
+  color: #92520b;
+  border-color: rgba(245, 158, 11, 0.22);
+}
+.mini-status.listo        {
+  background: rgba(16, 185, 129, 0.10);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.22);
+}
+.mini-status.bloqueado    {
+  background: rgba(220, 38, 38, 0.10);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.22);
+}
 
-.mini-priority.priority-low    { background: #eef0f5; color: #6b7591; }
-.mini-priority.priority-medium { background: #e8edf8; color: #3a5092; }
-.mini-priority.priority-high   { background: #deeeff; color: #0050b8; }
-.mini-priority.priority-urgent { background: #fde8ec; color: #b0001f; }
+.mini-priority.priority-low    {
+  background: var(--surface-sunken);
+  color: var(--ink-faint);
+  border-color: var(--line-warm-soft);
+}
+.mini-priority.priority-medium {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  border-color: var(--line-warm);
+}
+.mini-priority.priority-high   {
+  background: rgba(245, 158, 11, 0.10);
+  color: #92520b;
+  border-color: rgba(245, 158, 11, 0.22);
+}
+.mini-priority.priority-urgent {
+  background: rgba(220, 38, 38, 0.10);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.22);
+}

@@ -22,28 +22,31 @@ import { getClientName, getTechnicianName, peopleFromIds } from "../../utils/id"
 import { statusSlug, getPriorityClass } from "../../utils/status";
 import EmptyState from "../EmptyState";
 
-// Paleta para donuts / barras apiladas — mezcla nuestros colores + tokens de tema.
+// Paleta para donuts / barras apiladas. Coherente con la paleta del
+// resto del CRM: stones para neutros, status-coded para urgencias.
 const STATUS_COLORS = {
-  "No iniciado": "#b0bac3",
-  "En curso":    "#0073ea",
-  "Listo":       "#00c875",
-  "Bloqueado":   "#e2445c",
+  "No iniciado": "#a8a29e",   // stone-400
+  "En curso":    "#f59e0b",   // amber-500 (= --c-progress)
+  "Listo":       "#10b981",   // green-500 (= --success)
+  "Bloqueado":   "#dc2626",   // red-600 (saturado, urgente)
 };
 
 const PRIORITY_COLORS = {
-  "Baja":    "#a0d3ff",
-  "Media":   "#0073ea",
-  "Alta":    "#fdab3d",
-  "Urgente": "#e2445c",
+  "Baja":    "#d6d3d1",       // stone-300
+  "Media":   "#78716c",       // stone-500
+  "Alta":    "#f59e0b",       // amber-500
+  "Urgente": "#dc2626",       // red-600
 };
 
+// Paleta para donut por tipo: brand primero, luego acentos warmth +
+// stones de soporte. Suficiente variedad sin chillar.
 const TYPE_COLORS = [
-  "#0073ea",
-  "#00c875",
+  "#2563eb",   // brand
+  "#10b981",
   "#a358d0",
-  "#fdab3d",
-  "#e2445c",
-  "#037f4c",
+  "#f59e0b",
+  "#dc2626",
+  "#0e2a59",   // navy de la marca
 ];
 
 // ─── Presets de rango de fechas ──────────────────────────
@@ -416,18 +419,36 @@ export default function InformesView({ tasks, users, clients, onEditTask }) {
               <div className="chart-wrap">
                 <ResponsiveContainer width="100%" height={240}>
                   <LineChart data={timeSeries} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <Tooltip />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(28,25,23,.06)" />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: "#78716c", fontFamily: "JetBrains Mono, monospace" }}
+                      interval="preserveStartEnd"
+                      stroke="#d6d3d1"
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: "#78716c", fontFamily: "JetBrains Mono, monospace" }}
+                      stroke="#d6d3d1"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#1c1917",
+                        border: "1px solid rgba(250,250,249,0.08)",
+                        borderRadius: 6,
+                        color: "#f5f5f4",
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: "#fafaf9", fontWeight: 600 }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="count"
                       name="Tareas"
-                      stroke="#0073ea"
+                      stroke="#2563eb"
                       strokeWidth={2}
-                      dot={{ r: 2 }}
-                      activeDot={{ r: 5 }}
+                      dot={{ r: 2, fill: "#2563eb" }}
+                      activeDot={{ r: 5, fill: "#2563eb" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -449,13 +470,27 @@ export default function InformesView({ tasks, users, clients, onEditTask }) {
                       innerRadius={45}
                       outerRadius={80}
                       paddingAngle={2}
+                      stroke="#fafaf9"
                     >
                       {byType.map((_, i) => (
                         <Cell key={i} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
-                    <Legend verticalAlign="bottom" iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#1c1917",
+                        border: "1px solid rgba(250,250,249,0.08)",
+                        borderRadius: 6,
+                        color: "#f5f5f4",
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: "#fafaf9", fontWeight: 600 }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: 11, color: "#57534e" }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -468,13 +503,31 @@ export default function InformesView({ tasks, users, clients, onEditTask }) {
               <div className="chart-wrap">
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={byPriority} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" name="Tareas">
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(28,25,23,.06)" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: "#78716c", fontFamily: "JetBrains Mono, monospace" }}
+                      stroke="#d6d3d1"
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: "#78716c", fontFamily: "JetBrains Mono, monospace" }}
+                      stroke="#d6d3d1"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#1c1917",
+                        border: "1px solid rgba(250,250,249,0.08)",
+                        borderRadius: 6,
+                        color: "#f5f5f4",
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: "#fafaf9", fontWeight: 600 }}
+                      cursor={{ fill: "rgba(28,25,23,0.04)" }}
+                    />
+                    <Bar dataKey="count" name="Tareas" radius={[4, 4, 0, 0]}>
                       {byPriority.map((p, i) => (
-                        <Cell key={i} fill={PRIORITY_COLORS[p.name] || "#999"} />
+                        <Cell key={i} fill={PRIORITY_COLORS[p.name] || "#a8a29e"} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -494,11 +547,32 @@ export default function InformesView({ tasks, users, clients, onEditTask }) {
                     layout="vertical"
                     margin={{ top: 8, right: 24, left: 8, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(28,25,23,.06)" />
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: "#78716c", fontFamily: "JetBrains Mono, monospace" }}
+                      stroke="#d6d3d1"
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={120}
+                      tick={{ fontSize: 11, fill: "#1c1917" }}
+                      stroke="#d6d3d1"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#1c1917",
+                        border: "1px solid rgba(250,250,249,0.08)",
+                        borderRadius: 6,
+                        color: "#f5f5f4",
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: "#fafaf9", fontWeight: 600 }}
+                      cursor={{ fill: "rgba(28,25,23,0.04)" }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11, color: "#57534e" }} />
                     {STATUS_OPTIONS.map((s) => (
                       <Bar
                         key={s}

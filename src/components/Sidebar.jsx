@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { useUI } from "../hooks/useUI";
 import { useAuth } from "../hooks/useAuth";
+import { TECH_AVATAR_COLORS } from "../data/constants";
+import { SmartgroupGlyph, SmartgroupWordmark } from "./SmartgroupLogo";
 import {
   IconHome, IconCheckSquare, IconClipboard, IconUsers,
   IconWrench, IconBarChart, IconLogOut, IconBell,
@@ -15,7 +17,28 @@ function getInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function NavItem({ icon: Icon, label, active, onClick, disabled }) {
+/**
+ * Color de avatar derivado del nombre del usuario. Determinístico:
+ * la misma persona ve siempre el mismo color, lo que ayuda a
+ * reconocer iniciales repetidas (ej. dos "JV" distintos). El hash
+ * es banal a propósito — sólo necesitamos repartir entre la paleta. */
+function colorFromName(name) {
+  if (!name) return TECH_AVATAR_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) {
+    h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return TECH_AVATAR_COLORS[h % TECH_AVATAR_COLORS.length];
+}
+
+/**
+ * Item de navegación. Acepta opcionalmente un `badge` numérico —
+ * cuando se pasa > 0, muestra un dot con el conteo en mono. La
+ * lógica de qué item lleva badge vive en el padre; aquí sólo
+ * pintamos. Si en el futuro se cablean fuentes de datos
+ * (ej. tareas que requieren acción), basta con pasar la prop. */
+function NavItem({ icon: Icon, label, active, onClick, disabled, badge }) {
+  const showBadge = typeof badge === "number" && badge > 0;
   return (
     <button
       type="button"
@@ -25,6 +48,11 @@ function NavItem({ icon: Icon, label, active, onClick, disabled }) {
     >
       <span className="nav-icon"><Icon /></span>
       <span className="nav-label">{label}</span>
+      {showBadge && (
+        <span className="nav-badge" aria-label={`${badge} pendientes`}>
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -36,6 +64,7 @@ export default function Sidebar() {
 
   const displayName = profile?.name || "Usuario";
   const initials    = getInitials(displayName);
+  const avatarColor = colorFromName(profile?.name || profile?.email || "");
   const roleLabel =
     profile?.role === "admin"      ? "Administrador" :
     profile?.role === "supervisor" ? "Supervisor"    :
@@ -89,11 +118,12 @@ export default function Sidebar() {
 
       <aside className={`sidebar ${drawerOpen ? "is-open" : ""}`}>
         <div className="sidebar-brand">
-          <div className="brand-badge">S</div>
-          <div>
-            <div className="brand-title">SMARTGROUP</div>
-            <div className="brand-subtitle">Operaciones</div>
-          </div>
+          <span className="sidebar-brand-glyph" aria-hidden="true">
+            <SmartgroupGlyph size={22} color="#7c8cff" />
+          </span>
+          <span className="sidebar-brand-wordmark" aria-label="Smartgroup">
+            <SmartgroupWordmark height={12} color="#fafaf9" />
+          </span>
           {/* Botón cerrar visible solo en mobile cuando el drawer está abierto */}
           <button
             type="button"
@@ -123,7 +153,9 @@ export default function Sidebar() {
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="user-avatar">{initials}</div>
+            <div className="user-avatar" style={{ background: avatarColor }}>
+              {initials}
+            </div>
             <div className="user-info">
               <div className="user-name">{displayName}</div>
               <div className="user-role">{roleLabel}</div>

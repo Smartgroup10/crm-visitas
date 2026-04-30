@@ -1,49 +1,112 @@
-/* ─── EMPTY STATE v2 (con ícono + CTA opcional) ─────── */
+/* ─── EMPTY STATE v3 (ilustraciones bespoke + warm) ──────
+   Wrapper editorial: ilustración 64x64 con halo warm, eyebrow mono
+   opcional sobre el title, y CTA si procede. La ilustración hereda
+   ink-faint via `currentColor` y los acentos brand viven dentro
+   del SVG (en `var(--brand)`). */
 .empty-state-v2 {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 36px 20px;
-  gap: 8px;
-  color: var(--text-soft, #6b7280);
+  padding: 44px 24px;
+  gap: 4px;
+  color: var(--ink-muted);
 }
 .empty-state-v2--compact {
-  padding: 18px 12px;
-  gap: 4px;
+  padding: 22px 14px;
+  gap: 2px;
 }
+
+/* El "halo" es una caja stone con hairline. El SVG se renderiza
+   dentro y el `currentColor` toma el color del wrapper (ink-faint
+   por defecto). */
 .empty-state-icon {
-  width: 56px;
-  height: 56px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-surface-alt, rgba(0,0,0,0.04));
-  color: var(--text-soft, #9ca3af);
-  margin-bottom: 6px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-warm-soft);
+  color: var(--ink-faint);
+  margin-bottom: 14px;
+  position: relative;
 }
+.empty-state-icon svg {
+  width: 64px;
+  height: 64px;
+}
+
+/* Mancha brand muy sutil tras el halo — añade profundidad en
+   pantallas grandes sin invadir las pequeñas. */
+.empty-state-icon::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--accent-tint) 0%,
+    transparent 70%
+  );
+  z-index: -1;
+  pointer-events: none;
+}
+
 .empty-state-v2--compact .empty-state-icon {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 2px;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 8px;
 }
 .empty-state-v2--compact .empty-state-icon svg {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
 }
-.empty-state-title {
-  font-size: 14px;
+.empty-state-v2--compact .empty-state-icon::after {
+  inset: -4px;
+}
+
+/* Eyebrow mono — opcional. Cuando se pasa, marca el "tipo" del
+   estado (ej. SIN RESULTADOS, FILTROS APLICADOS) en mono uppercase. */
+.empty-state-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
-  color: var(--text-strong, #111827);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 2px;
 }
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-strong);
+  letter-spacing: -0.01em;
+  margin-top: 2px;
+}
+.empty-state-v2--compact .empty-state-title {
+  font-size: 13.5px;
+}
+
 .empty-state-desc {
-  font-size: 12.5px;
-  color: var(--text-soft, #6b7280);
-  max-width: 320px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  max-width: 340px;
+  line-height: 1.55;
+  margin-top: 4px;
+}
+.empty-state-v2--compact .empty-state-desc {
+  font-size: 12px;
+  max-width: 280px;
   line-height: 1.45;
 }
+
 .empty-state-v2 button {
-  margin-top: 8px;
+  margin-top: 14px;
+}
+.empty-state-v2--compact button {
+  margin-top: 10px;
 }
