@@ -1,53 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-
-/**
- * Logo de Smartgroup como SVG inline.
- *
- * Construido con DOS crescents (arcos de 270° con caps redondeados) que
- * se interconectan, replicando la composición del logo oficial:
- *   - Crescent superior: arco que va de la derecha-media, sube por la
- *     parte alta, baja por la izquierda hasta la parte baja-media.
- *     Abre al sureste.
- *   - Crescent inferior: el mismo arco rotado 180°. Abre al noroeste.
- * Como los centros están ligeramente desplazados (la geometría del
- * arco SVG calcula el centro a partir de los endpoints + radio), los
- * dos crescents quedan interlazados en la zona central, igual que en
- * el logo oficial.
- *
- * `currentColor` permite controlar el tono desde CSS según contexto
- * (azul brand sobre fondo claro; azul más claro sobre navy).
- */
-function SmartgroupGlyph({ size = 40 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {/* Crescent superior — abre al sureste */}
-      <path
-        d="M 50 28 A 22 22 0 1 0 28 50"
-        stroke="currentColor"
-        strokeWidth="9"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Crescent inferior — abre al noroeste, rotado 180° */}
-      <path
-        d="M 14 36 A 22 22 0 1 0 36 14"
-        stroke="currentColor"
-        strokeWidth="9"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
+import { SmartgroupGlyph, SmartgroupWordmark } from "./SmartgroupLogo";
 
 function EyeIcon({ off }) {
   return off ? (
@@ -134,13 +88,17 @@ export default function LoginPage() {
       </button>
 
       <main className="login-card">
+        {/*
+          Lockup horizontal del logo oficial: glyph + wordmark
+          alineados en línea. Ambos componentes vienen de
+          SmartgroupLogo.jsx y usan los paths SVG reales del archivo
+          de marca. El glyph usa el color brand de marca (#465eff);
+          el wordmark hereda currentColor desde el CSS para que
+          quede oscuro sobre la card clara y blanco en dark mode.
+        */}
         <div className="login-brand-lockup">
-          <span className="login-brand-glyph">
-            <SmartgroupGlyph size={38} />
-          </span>
-          <h2 className="login-brand-name">
-            smartgroup<sup>®</sup>
-          </h2>
+          <SmartgroupGlyph size={42} />
+          <SmartgroupWordmark height={22} className="login-brand-wordmark" />
         </div>
 
         <h1 className="login-title">Bienvenido de vuelta</h1>

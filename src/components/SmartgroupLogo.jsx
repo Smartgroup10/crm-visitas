@@ -1,0 +1,134 @@
+/**
+ * Logo oficial de Smartgroup, en formato React component.
+ *
+ * Embebemos los paths SVG directamente desde el archivo de marca
+ * (`public/smartgroup-logo.svg`) para poder:
+ *  - Renderizarlo inline (sin HTTP request adicional).
+ *  - Tematizar colores via props o tokens CSS según el contexto.
+ *  - Combinar / separar glyph y wordmark con flexibilidad de layout.
+ *
+ * Tres componentes:
+ *  - <SmartgroupGlyph />   → sólo la "G"
+ *  - <SmartgroupWordmark/> → sólo el wordmark "smartgroup®"
+ *  - <SmartgroupLogo />    → glyph + wordmark con la composición
+ *                            vertical original (la del archivo).
+ *
+ * Variant del logo combinado:
+ *  - "full"     → con fondo navy oficial + wordmark blanco
+ *  - "onLight"  → fondo transparente + wordmark dark (uso en cards
+ *                 claras / superficies cálidas)
+ *  - "onDark"   → fondo transparente + wordmark blanco (uso sobre
+ *                 superficies oscuras propias del CRM)
+ */
+
+// ─── Path data extraído del SVG oficial ────────────────────
+//
+// El glyph es UNA sola path con todas las curvas del isotipo.
+const GLYPH_PATH = "M1548.98,944.89h-195.54c-29.6,0-56.44,19.58-63.33,48.36-10.14,42.34,21.69,80.09,62.32,80.09h71.19c-31.27,98.91-132.72,166.92-245.65,145.25-83.45-16.02-149.84-81.39-166.89-164.64-34.85-170.19,134.44-315.59,307.64-235.94,18.44,8.48,35.33,20.39,48.39,35.92,27.49,32.68,78.92,30.56,103.3-6.36,16.84-25.5,12.14-59.67-9.55-81.2-64.48-63.99-149.97-99.22-240.86-99.22-166.6,0-305.68,119.78-335.83,277.74h-96.48c31.15-210.64,213.15-372.79,432.31-372.79,116.27,0,225.61,45.1,308.04,127.02,20.91,20.78,53.33,26.41,78.61,11.24,37.69-22.61,42.09-72.19,13.19-101.09-115.13-115.14-271.16-174.51-435.34-164.55-291.69,17.7-529.97,277.11-529.97,569.34h0c0,32.73,26.53,59.26,59.26,59.26h170.38c30.15,157.95,169.23,277.74,335.83,277.74s305.67-119.78,335.82-277.74h96.48c-31.15,210.64-213.15,372.79-432.31,372.79-116.28,0-225.62-45.1-308.04-127.02-20.91-20.78-53.33-26.41-78.61-11.24-37.69,22.61-42.09,72.19-13.19,101.09,115.13,115.14,271.18,174.51,435.37,164.55,291.68-17.71,529.94-277.12,529.94-569.34h0c0-32.73-26.54-59.27-59.27-59.27h-177.22Z";
+
+// El wordmark son 11 paths — una por letra de "smartgroup" + el ®.
+const WORDMARK_PATHS = [
+  "M359.33,1926.26l13.43-27.93c15.85,10.47,35.72,16.65,60.15,16.65,19.87,0,29-4.03,29-11.55,0-8.06-5.64-10.21-31.42-12.62-48.88-4.56-64.72-15.31-64.72-44.04s24.71-43.78,66.06-43.78c24.98,0,46.73,5.64,63.11,16.38l-12.89,26.59c-13.16-8.05-29-12.62-48.61-12.62-17.99,0-27.12,4.03-27.12,11.28,0,8.05,5.91,10.2,31.69,12.62,48.34,4.57,64.45,15.31,64.45,44.04s-24.17,44.04-69.29,44.04c-30.35,0-56.13-6.98-73.85-19.07Z",
+  "M749.54,1853.48v88.62h-40.28v-80.29c0-17.46-6.98-25.51-21.75-25.51-12.89,0-22.83,6.18-30.08,16.11v89.7h-40.28v-80.29c0-17.19-6.98-25.51-21.22-25.51-12.35,0-22.56,6.18-30.61,18.26v87.55h-40.28v-135.88h40.28v24.17c12.09-18.26,27.66-27.39,47.26-27.39,20.68,0,34.91,9.94,41.09,27.39,12.62-18.53,29.27-27.39,49.95-27.39,30.08,0,45.92,18.8,45.92,50.49Z",
+  "M914.44,1866.91v75.19h-40.28v-24.17c-11.82,17.46-31.69,27.39-54.79,27.39-30.08,0-48.61-16.38-48.61-43.24s19.34-43.24,53.17-43.24c18.26,0,37.33,4.56,50.22,11.82v-1.34c0-22.82-12.62-33.57-39.21-33.57-16.11,0-30.08,4.03-44.85,12.62l-13.43-29c18.53-11.28,38.94-16.38,64.99-16.38,50.75,0,72.78,19.34,72.78,63.92ZM874.15,1893.22c-11.28-5.1-25.78-8.05-37.87-8.05-16.11,0-24.44,5.37-24.44,15.31,0,9.4,7.52,14.77,21.48,14.77,15.58,0,30.35-6.72,40.82-18.8v-3.22Z",
+  "M1049.25,1804.07l-2.42,37.6c-5.1-.8-11.28-1.34-17.19-1.34-20.41,0-34.64,6.71-45.38,21.21v80.57h-40.28v-135.88h40.28v28.2c12.35-20.95,29.54-31.42,53.98-31.42,3.76,0,7.79.27,11.01,1.08Z",
+  "M1181.65,1937c-11.28,5.64-24.17,8.33-39.48,8.33-34.91,0-51.83-13.97-51.83-42.7v-66.06h-32.76v-30.35h32.76v-46.73h40.28v46.73h47.53v30.35h-47.53v57.47c0,12.89,5.64,17.99,19.6,17.99,8.33,0,16.38-1.88,24.44-5.91l6.98,30.88Z",
+  "M1346.01,1806.21v121.65c0,44.58-28.47,68.48-81.37,68.48-23.09,0-42.16-4.56-60.15-13.96l11.55-30.62c14.5,8.06,28.2,11.55,44.58,11.55,31.15,0,45.12-12.35,45.12-37.87v-12.89c-11.55,17.99-28.2,27.39-48.88,27.39-36.25,0-61.23-27.39-61.23-68.48s24.98-68.48,61.23-68.48c20.68,0,37.33,9.4,48.88,27.39v-24.17h40.28ZM1305.73,1854.55c-8.59-11.55-22.02-18.26-35.99-18.26-20.41,0-33.03,12.89-33.03,35.18s12.62,35.18,33.03,35.18c13.96,0,27.39-6.72,35.99-18.26v-33.84Z",
+  "M1483.78,1804.07l-2.42,37.6c-5.1-.8-11.28-1.34-17.19-1.34-20.41,0-34.64,6.71-45.38,21.21v80.57h-40.28v-135.88h40.28v28.2c12.35-20.95,29.54-31.42,53.98-31.42,3.76,0,7.79.27,11.01,1.08Z",
+  "M1493.99,1874.16c0-42.7,31.15-71.16,77.88-71.16s77.88,28.47,77.88,71.16-31.15,71.17-77.88,71.17-77.88-28.47-77.88-71.17ZM1608.66,1874.16c0-23.09-14.23-37.86-36.79-37.86s-36.79,14.77-36.79,37.86,14.23,37.87,36.79,37.87,36.79-14.77,36.79-37.87Z",
+  "M1812.76,1806.21v135.88h-40.28v-24.17c-13.43,18.26-30.61,27.39-52.1,27.39-30.88,0-48.88-18.8-48.88-50.49v-88.62h40.28v80.29c0,17.19,8.33,25.51,24.97,25.51,14.23,0,26.32-6.18,35.72-18.26v-87.55h40.28Z",
+  "M1995.92,1874.16c0,42.43-24.98,71.17-61.23,71.17-20.68,0-37.33-9.4-48.88-27.39v75.19h-40.28v-186.91h40.28v24.17c11.55-17.99,28.2-27.39,48.88-27.39,36.25,0,61.23,28.74,61.23,71.16ZM1954.83,1874.16c0-23.36-12.62-37.86-33.03-37.86-13.97,0-27.39,6.71-35.99,18.26v39.21c8.59,11.55,22.02,18.26,35.99,18.26,20.41,0,33.03-14.5,33.03-37.87Z",
+  "M2080.67,1835.52c0,17.26-12.53,29.2-30.69,29.2s-30.69-11.95-30.69-29.2,12.53-29.2,30.69-29.2,30.69,11.94,30.69,29.2ZM2075.94,1835.52c0-14.85-10.45-24.89-25.96-24.89s-25.96,10.03-25.96,24.89,10.54,24.89,25.96,24.89,25.96-10.03,25.96-24.89ZM2056.86,1838.18l8.3,11.45h-5.56l-7.96-11.29h-9.54v11.29h-4.56v-28.2h16.84c6.05,0,9.45,2.98,9.45,8.46,0,4.64-2.49,7.55-6.97,8.3ZM2042.1,1834.52h11.45c3.81,0,5.64-1.58,5.64-4.64s-1.82-4.65-5.64-4.65h-11.45v9.29Z",
+];
+
+// Color por defecto del isotipo (extraído del archivo oficial).
+const BRAND_GLYPH_COLOR = "#465eff";
+
+/**
+ * Sólo el isotipo "G". Cuadrado, viewBox ajustado a la zona del
+ * glyph en el SVG original. El color se controla via prop.
+ */
+export function SmartgroupGlyph({ size = 40, color = BRAND_GLYPH_COLOR, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="560 540 1320 1000"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d={GLYPH_PATH} fill={color} />
+    </svg>
+  );
+}
+
+/**
+ * Sólo el wordmark "smartgroup®". Aspect ratio ~8:1, calculamos el
+ * width a partir del height para mantener proporciones. El color
+ * por defecto es `currentColor` para herencia desde CSS.
+ */
+export function SmartgroupWordmark({ height = 22, color = "currentColor", className }) {
+  // viewBox del wordmark: 1760 × 220 → ratio 8:1
+  const width = height * 8;
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox="340 1800 1760 220"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <g fill={color}>
+        {WORDMARK_PATHS.map((d, i) => (
+          <path key={i} d={d} />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Logo completo (glyph arriba, wordmark abajo) — la composición
+ * vertical del archivo oficial. Útil para splash screens, brand
+ * panels, footers de email, etc.
+ *
+ * Variant determina los colores:
+ *   - "full"    → con bg navy + wordmark blanco (idéntico al archivo)
+ *   - "onLight" → sin bg, wordmark en --ink-strong (uso en cards claras)
+ *   - "onDark"  → sin bg, wordmark blanco (uso en cards oscuras propias)
+ */
+export function SmartgroupLogo({ height = 80, variant = "onLight", className }) {
+  let bgColor = "transparent";
+  let glyphColor = BRAND_GLYPH_COLOR;
+  let wordmarkColor;
+
+  if (variant === "full") {
+    bgColor = "#003c74";
+    wordmarkColor = "#ffffff";
+  } else if (variant === "onDark") {
+    wordmarkColor = "#ffffff";
+  } else {
+    // onLight (default)
+    wordmarkColor = "var(--ink-strong, #0c0a09)";
+  }
+
+  return (
+    <svg
+      height={height}
+      viewBox="0 0 2440 2440"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      {variant === "full" && <rect width="2440" height="2440" fill={bgColor} />}
+      <path d={GLYPH_PATH} fill={glyphColor} />
+      <g fill={wordmarkColor}>
+        {WORDMARK_PATHS.map((d, i) => (
+          <path key={i} d={d} />
+        ))}
+      </g>
+    </svg>
+  );
+}

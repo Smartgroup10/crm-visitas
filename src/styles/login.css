@@ -121,40 +121,28 @@
   }
 }
 
-/* ─── Logo lockup ──────────────────────────────────── */
+/* ─── Logo lockup ──────────────────────────────────────
+   Glyph y wordmark son ambos SVGs vectoriales (componentes
+   SmartgroupGlyph + SmartgroupWordmark, paths del archivo de marca
+   oficial). Los alineamos horizontalmente con un gap pequeño.
+
+   El wordmark hereda su color via `currentColor` desde
+   `.login-brand-wordmark`, lo que nos permite cambiar a blanco en
+   dark mode sin tocar el SVG.                                    */
 .login-brand-lockup {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 32px;
 }
 
-.login-brand-glyph {
-  color: var(--brand);
-  display: inline-flex;
-  flex: 0 0 auto;
-}
-
-.login-brand-name {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  font-size: 24px;
-  letter-spacing: -0.04em;
+.login-brand-wordmark {
   color: var(--ink-strong);
-  margin: 0;
-  line-height: 1;
-  /* lowercase preservado tal cual viene escrito en JSX para coincidir
-     con el wordmark oficial de Smartgroup */
+  display: inline-flex;
 }
 
-.login-brand-name sup {
-  font-size: 10px;
-  font-weight: 500;
-  vertical-align: super;
-  margin-left: 2px;
-  opacity: 0.45;
-  top: -0.5em;
-  position: relative;
+[data-theme="dark"] .login-brand-wordmark {
+  color: var(--ink-strong);     /* mismo token; en dark vale ya blanco-warm */
 }
 
 /* ─── Title + subtitle ────────────────────────────── */
