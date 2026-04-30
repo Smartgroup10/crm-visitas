@@ -3,32 +3,16 @@ import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 
 /* Iconos inline para no añadir dependencia de libs externas */
-function MailIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M3 7l9 6 9-6" />
-    </svg>
-  );
-}
-function LockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 1 1 8 0v4" />
-    </svg>
-  );
-}
 function EyeIcon({ off }) {
   return off ? (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 3l18 18" />
       <path d="M10.6 6.1A10 10 0 0 1 12 6c5 0 9 4 10 6a13 13 0 0 1-3.8 4.6" />
       <path d="M6.7 6.7C3.7 8.6 2 12 2 12s4 6 10 6a10 10 0 0 0 4.5-1" />
       <path d="M14.1 14.1A3 3 0 1 1 9.9 9.9" />
     </svg>
   ) : (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -36,7 +20,7 @@ function EyeIcon({ off }) {
 }
 function SunIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
     </svg>
@@ -44,12 +28,28 @@ function SunIcon() {
 }
 function MoonIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   );
 }
 
+/**
+ * Login page — Field Engineering aesthetic.
+ *
+ * Layout:
+ *   - Desktop: split 50/50 — brand panel oscuro a la izquierda con
+ *     un statement editorial; form panel claro a la derecha.
+ *   - Mobile: brand panel arriba reducido (160px), form panel abajo.
+ *
+ * El brand panel transmite identidad de marca y sólo se ve aquí, una
+ * vez. Es la primera impresión: dot grid, glow ambiente, quote serif
+ * grande, footer mono. La forma editorial de un manual técnico.
+ *
+ * El form panel es lo opuesto — calma, minimal, todo en una columna
+ * de 360px. Inputs con label uppercase mono pequeño (etiquetas como
+ * "EMAIL" / "CONTRASEÑA"), border hairline, focus accent.
+ */
 export default function LoginPage() {
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -72,54 +72,72 @@ export default function LoginPage() {
     }
   }
 
-  return (
-    <div className="login-page">
-      {/* Toggle de tema en la esquina superior derecha — accesible incluso
-          antes de hacer login. */}
-      <button
-        type="button"
-        className="login-theme-toggle"
-        onClick={toggleTheme}
-        aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
-        title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
-      >
-        {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-      </button>
+  const year = new Date().getFullYear();
 
-      <div className="login-card">
-        <div className="login-brand">
-          <div className="brand-badge">S</div>
-          <div>
-            <div className="brand-title">SMARTGROUP</div>
-            <div className="brand-subtitle">Operaciones</div>
+  return (
+    <div className="login-shell">
+      {/* ─── Brand panel ─────────────────────────────── */}
+      <aside className="login-brand-panel">
+        {/* Decorative layers (no contenido — todo via CSS / pseudo) */}
+        <div className="login-grid-overlay" aria-hidden="true" />
+        <div className="login-glow" aria-hidden="true" />
+
+        <div className="login-brand-header">
+          <div className="login-brand-mark">
+            <span className="login-brand-badge">S</span>
+            <span className="login-brand-name">SMARTGROUP</span>
           </div>
+          <span className="login-brand-tag">VOIP · Cámaras · Redes</span>
         </div>
 
-        <h2 className="login-title">Bienvenido de vuelta</h2>
-        <p className="login-hint">Accede con tu cuenta corporativa para continuar.</p>
+        <div className="login-brand-quote">
+          <p>Operaciones de campo, controladas con precisión.</p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
+        <div className="login-brand-footer">
+          <span className="login-brand-footer-meta">v2.6</span>
+          <span className="login-brand-footer-sep">—</span>
+          <span className="login-brand-footer-meta">© {year} Smartgroup</span>
+        </div>
+      </aside>
+
+      {/* ─── Form panel ──────────────────────────────── */}
+      <main className="login-form-panel">
+        {/* Theme toggle: discreto, esquina superior derecha del panel claro. */}
+        <button
+          type="button"
+          className="login-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+          title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+        >
+          {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+        </button>
+
+        <form onSubmit={handleSubmit} className="login-form" autoComplete="on">
+          <div className="login-eyebrow">ACCESO · CRM OPERACIONES</div>
+          <h1 className="login-title">Bienvenido de vuelta</h1>
+          <p className="login-subtitle">
+            Inicia sesión con tu cuenta corporativa para continuar.
+          </p>
+
           <div className="login-field">
-            <label htmlFor="login-email">Email</label>
-            <div className="login-input-wrap">
-              <span className="login-input-icon" aria-hidden="true"><MailIcon /></span>
-              <input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@smartgroup.es"
-                required
-                autoFocus
-                autoComplete="username"
-              />
-            </div>
+            <label htmlFor="login-email" className="login-field-label">EMAIL</label>
+            <input
+              id="login-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu.cuenta@smartgroup.es"
+              required
+              autoFocus
+              autoComplete="username"
+            />
           </div>
 
           <div className="login-field">
-            <label htmlFor="login-password">Contraseña</label>
+            <label htmlFor="login-password" className="login-field-label">CONTRASEÑA</label>
             <div className="login-input-wrap">
-              <span className="login-input-icon" aria-hidden="true"><LockIcon /></span>
               <input
                 id="login-password"
                 type={showPwd ? "text" : "password"}
@@ -143,7 +161,7 @@ export default function LoginPage() {
 
           {error && (
             <div className="login-error" role="alert">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 8v4M12 16h.01" />
               </svg>
@@ -153,24 +171,30 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="btn-primary btn-lg btn-block login-submit"
+            className="login-submit"
             disabled={loading}
           >
             {loading ? (
               <>
-                <span className="btn-spinner-inline" aria-hidden="true" />
+                <span className="login-submit-spinner" aria-hidden="true" />
                 Entrando…
               </>
             ) : (
-              "Entrar"
+              <>
+                Iniciar sesión
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 5l7 7-7 7" />
+                </svg>
+              </>
             )}
           </button>
-        </form>
 
-        <div className="login-footer">
-          <span>© {new Date().getFullYear()} Smartgroup · CRM Visitas</span>
-        </div>
-      </div>
+          <div className="login-meta">
+            ¿Problemas de acceso?{" "}
+            <a href="mailto:soporte@smartgroup.es">soporte@smartgroup.es</a>
+          </div>
+        </form>
+      </main>
     </div>
   );
 }

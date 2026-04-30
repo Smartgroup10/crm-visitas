@@ -1,4 +1,13 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+/* Fuentes:
+ *   - Inter: workhorse para UI, body, formularios, navegación.
+ *   - JetBrains Mono: TODO número que muestre datos al usuario va aquí
+ *     con tabular-nums. Comunica precisión técnica sin decoración. Lo
+ *     usamos para KPIs, contadores, horarios, IDs.
+ *   - Instrument Serif: una sola pincelada de calidez tipográfica,
+ *     reservada para greetings y un par de títulos hero. Cumple el
+ *     papel de "personalidad" sin sobrecargar.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap");
 
 /* ─── TOKENS ─────────────────────────────────────────── */
 /*
@@ -11,6 +20,12 @@
  * anterior para no romper el resto de este fichero. Los tokens nuevos
  * añaden estados semánticos (success/warn/danger/info) y bordes/fondos
  * suaves que antes había hardcoded en los componentes.
+ *
+ * v2 (Field Engineering): añadimos un set de tokens "warm" (canvas,
+ * surface, ink) + tipografías secundarias (mono, display) para el
+ * design upgrade. Los componentes legacy siguen usando los nombres
+ * antiguos; las superficies refrescadas (login, inicio, stat-pills…)
+ * usan los nuevos. Se irán migrando progresivamente.
  */
 :root {
   /* ─── Paleta primitiva ─────────────────────────── */
@@ -112,6 +127,72 @@
   /* Transiciones est\u00e1ndar */
   --t-fast: 0.14s ease;
   --t-med:  0.22s ease;
+
+  /* \u2500\u2500\u2500 v2 \u2014 Fuentes \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+     Stack tipogr\u00e1fico ampliado. `--font-sans` reemplaza la cadena
+     que antes viv\u00eda hardcoded en `body`. `--font-mono` para todo
+     n\u00famero/dato. `--font-display` se reserva para greetings hero. */
+  --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:    'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Monaco, monospace;
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+
+  /* \u2500\u2500\u2500 v2 \u2014 Tipograf\u00eda: scale \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+     Peque\u00f1o set de tama\u00f1os sem\u00e1nticos para evitar pixelado disperso
+     por la app. Los componentes legacy mantienen sus tama\u00f1os
+     hardcoded; los nuevos consumen estas variables. */
+  --text-2xs: 10.5px;
+  --text-xs:  12px;
+  --text-sm:  13.5px;
+  --text-md:  16px;
+  --text-lg:  19px;
+  --text-xl:  24px;
+  --text-2xl: 32px;
+  --text-3xl: 44px;     /* KPIs grandes */
+  --text-4xl: 56px;     /* greeting hero */
+
+  --tracking-tight:    -0.02em;
+  --tracking-snug:     -0.01em;
+  --tracking-normal:    0em;
+  --tracking-wide:      0.04em;
+  --tracking-uppercase: 0.10em;
+
+  /* \u2500\u2500\u2500 v2 \u2014 Surfaces "warm" \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+     Paleta c\u00e1lida (stones) que reemplaza progresivamente los
+     azules-grises fr\u00edos. M\u00e1s editorial, menos sterile. */
+  --canvas:         #fafaf9;          /* stone-50 \u2014 el "papel" */
+  --surface:        #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f5f5f4;          /* stone-100 \u2014 nested \u00e1reas */
+  --surface-inset:  #fafaf9;
+
+  /* Hairlines warm: los neutros con base stone leen mejor sobre canvas. */
+  --line-warm:       #e7e5e4;          /* stone-200 \u2014 default hairline */
+  --line-warm-soft:  #f1f1ef;
+  --line-warm-strong:#d6d3d1;          /* stone-300 \u2014 hover */
+
+  /* Tipograf\u00eda de tinta c\u00e1lida \u2014 m\u00e1s legible y menos cl\u00ednico que slate. */
+  --ink-strong:    #0c0a09;            /* stone-950 */
+  --ink:           #1c1917;            /* stone-900 */
+  --ink-muted:     #57534e;            /* stone-600 */
+  --ink-faint:     #a8a29e;            /* stone-400 */
+  --ink-ghost:     #d6d3d1;            /* stone-300 */
+
+  /* Acento usado como punctuation (CTAs / focus / active). El bg
+     y text-color se mantienen en tokens existentes; estos son los
+     "tints" para aplicaciones sutiles. */
+  --accent-tint:   rgba(37,99,235,0.08);
+  --accent-line:   rgba(37,99,235,0.18);
+
+  /* Sombras v2: hairlines en lugar de glows. Son m\u00e1s restrained. */
+  --shadow-hairline: 0 0 0 1px var(--line-warm);
+  --shadow-raised:   0 0 0 1px var(--line-warm-soft), 0 4px 12px rgba(28,25,23,0.04);
+  --shadow-overlay:  0 0 0 1px var(--line-warm-soft), 0 16px 32px rgba(28,25,23,0.10), 0 4px 8px rgba(28,25,23,0.04);
+}
+
+/* Body por defecto: aplicar la nueva variable tipogr\u00e1fica una sola
+   vez en lugar de mantener la cadena hardcoded en base.css. */
+body {
+  font-family: var(--font-sans);
 }
 
 /* ─── DARK MODE ──────────────────────────────────────── */
@@ -160,6 +241,31 @@
   --shadow-pop:   0 4px 16px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
 
   --focus-ring:   0 0 0 3px rgba(79,139,255,0.30);
+
+  /* v2 surfaces (dark) — tonos cálidos también en dark, aunque
+     más saturados hacia el negro warm. */
+  --canvas:         #0c0a09;
+  --surface:        #1c1917;
+  --surface-raised: #292524;
+  --surface-sunken: #1c1917;
+  --surface-inset:  #0c0a09;
+
+  --line-warm:       #292524;
+  --line-warm-soft:  #1c1917;
+  --line-warm-strong:#44403c;
+
+  --ink-strong:    #fafaf9;
+  --ink:           #f5f5f4;
+  --ink-muted:     #a8a29e;
+  --ink-faint:     #78716c;
+  --ink-ghost:     #44403c;
+
+  --accent-tint:   rgba(79,139,255,0.12);
+  --accent-line:   rgba(79,139,255,0.28);
+
+  --shadow-hairline: 0 0 0 1px var(--line-warm);
+  --shadow-raised:   0 0 0 1px var(--line-warm-soft), 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-overlay:  0 0 0 1px var(--line-warm-soft), 0 16px 36px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.30);
 
   color-scheme: dark;
 }
