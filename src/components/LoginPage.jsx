@@ -2,17 +2,24 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 
-/* ─── Iconos inline ─────────────────────────────────────── */
-
 /**
- * Logo de Smartgroup como SVG inline. Reproducimos el "G" de la
- * marca con dos arcos interconectados (un C grande + un arco corto
- * a media altura que forma el brazo del G). currentColor permite
- * cambiar el tono desde el CSS según contexto (mark en azul claro
- * sobre el panel oscuro). Stroke-linecap "round" da el feel
- * orgánico/fluido del logo original.
+ * Logo de Smartgroup como SVG inline.
+ *
+ * Construido con DOS crescents (arcos de 270° con caps redondeados) que
+ * se interconectan, replicando la composición del logo oficial:
+ *   - Crescent superior: arco que va de la derecha-media, sube por la
+ *     parte alta, baja por la izquierda hasta la parte baja-media.
+ *     Abre al sureste.
+ *   - Crescent inferior: el mismo arco rotado 180°. Abre al noroeste.
+ * Como los centros están ligeramente desplazados (la geometría del
+ * arco SVG calcula el centro a partir de los endpoints + radio), los
+ * dos crescents quedan interlazados en la zona central, igual que en
+ * el logo oficial.
+ *
+ * `currentColor` permite controlar el tono desde CSS según contexto
+ * (azul brand sobre fondo claro; azul más claro sobre navy).
  */
-function SmartgroupGlyph({ size = 56 }) {
+function SmartgroupGlyph({ size = 40 }) {
   return (
     <svg
       width={size}
@@ -22,21 +29,21 @@ function SmartgroupGlyph({ size = 56 }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      {/* Arco superior: del 2 al 7 o'clock por el lado izquierdo. Es
-          la "C" externa del G. */}
+      {/* Crescent superior — abre al sureste */}
       <path
-        d="M 46 14 A 22 22 0 1 0 46 50"
+        d="M 50 28 A 22 22 0 1 0 28 50"
         stroke="currentColor"
-        strokeWidth="7"
+        strokeWidth="9"
         strokeLinecap="round"
         fill="none"
       />
-      {/* Brazo horizontal interior que cierra el "G". */}
+      {/* Crescent inferior — abre al noroeste, rotado 180° */}
       <path
-        d="M 32 32 L 50 32"
+        d="M 14 36 A 22 22 0 1 0 36 14"
         stroke="currentColor"
-        strokeWidth="7"
+        strokeWidth="9"
         strokeLinecap="round"
+        fill="none"
       />
     </svg>
   );
@@ -75,17 +82,17 @@ function MoonIcon() {
 }
 
 /**
- * Login page — minimal y branded.
+ * Login page — single panel centered.
  *
- * Split 50/50 desktop. Panel izquierdo: navy de marca con la "G" y
- * el wordmark "smartgroup" centrados. Sin taglines, sin quotes, sin
- * versiones — la primera impresión es la marca, nada más.
- *
- * Panel derecho: form ultra-limpio con título único y campos básicos.
- * El theme toggle vive en la esquina superior derecha del form panel.
- *
- * En mobile el brand panel reduce altura y se queda arriba con el
- * logo más pequeño centrado.
+ * Layout:
+ *   - Sin split. Una sola superficie (canvas warm) con la card del
+ *     login centrada vertical y horizontalmente.
+ *   - Fondo con dot grid sutil que se atenúa hacia los bordes via
+ *     mask radial — añade profundidad sin distraer.
+ *   - Card blanca con hairline border + sombra mínima. Logo arriba,
+ *     título, subtítulo, fields, botón submit y link a soporte.
+ *   - Theme toggle flotante en la esquina superior derecha.
+ *   - Footer pequeño con copyright debajo de la card.
  */
 export default function LoginPage() {
   const { login } = useAuth();
@@ -109,41 +116,39 @@ export default function LoginPage() {
     }
   }
 
+  const year = new Date().getFullYear();
+
   return (
     <div className="login-shell">
-      {/* ─── Brand panel ─────────────────────────────── */}
-      <aside className="login-brand-panel">
-        <div className="login-grid-overlay" aria-hidden="true" />
-        <div className="login-glow" aria-hidden="true" />
+      <div className="login-bg-dots" aria-hidden="true" />
+      <div className="login-bg-glow" aria-hidden="true" />
 
+      <button
+        type="button"
+        className="login-theme-toggle"
+        onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+        title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+      >
+        {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+      </button>
+
+      <main className="login-card">
         <div className="login-brand-lockup">
-          <div className="login-brand-glyph">
-            <SmartgroupGlyph size={64} />
-          </div>
+          <span className="login-brand-glyph">
+            <SmartgroupGlyph size={38} />
+          </span>
           <h2 className="login-brand-name">
             smartgroup<sup>®</sup>
           </h2>
         </div>
-      </aside>
 
-      {/* ─── Form panel ──────────────────────────────── */}
-      <main className="login-form-panel">
-        <button
-          type="button"
-          className="login-theme-toggle"
-          onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
-          title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
-        >
-          {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-        </button>
+        <h1 className="login-title">Bienvenido de vuelta</h1>
+        <p className="login-subtitle">
+          Inicia sesión con tu cuenta para continuar.
+        </p>
 
         <form onSubmit={handleSubmit} className="login-form" autoComplete="on">
-          <h1 className="login-title">Bienvenido de vuelta</h1>
-          <p className="login-subtitle">
-            Inicia sesión con tu cuenta para continuar.
-          </p>
-
           <div className="login-field">
             <label htmlFor="login-email" className="login-field-label">Email</label>
             <input
@@ -211,13 +216,17 @@ export default function LoginPage() {
               </>
             )}
           </button>
-
-          <div className="login-meta">
-            ¿Problemas de acceso?{" "}
-            <a href="mailto:soporte@smartgroup.es">soporte@smartgroup.es</a>
-          </div>
         </form>
+
+        <div className="login-meta">
+          ¿Problemas de acceso?{" "}
+          <a href="mailto:soporte@smartgroup.es">soporte@smartgroup.es</a>
+        </div>
       </main>
+
+      <footer className="login-footer">
+        © {year} Smartgroup · CRM Operaciones
+      </footer>
     </div>
   );
 }
