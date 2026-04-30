@@ -44,6 +44,7 @@
 @import "./styles/comments.css";
 @import "./styles/client-detail.css";
 @import "./styles/commands.css";
+@import "./styles/templates.css";
 @import "./styles/empty-state.css";
 @import "./styles/app-loading.css";
 @import "./styles/dark-overrides.css";

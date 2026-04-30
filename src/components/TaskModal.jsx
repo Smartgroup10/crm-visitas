@@ -11,6 +11,7 @@ import { validateTask } from "../utils/validation";
 import { usePermissions } from "../hooks/usePermissions";
 import TaskActivityTimeline from "./TaskActivityTimeline";
 import TaskCommentsThread from "./TaskCommentsThread";
+import { useTaskTemplates } from "../hooks/useTaskTemplates";
 
 /**
  * Construye el objeto que se enviará al backend al guardar. Conservamos los
@@ -43,7 +44,45 @@ export default function TaskModal({
   newClientName,
   setNewClientName,
   addClient,
+  onOpenTemplates,
 }) {
+  // Sólo cargamos la lista de plantillas cuando estamos en modo
+  // creación — al editar una tarea existente, no tiene sentido
+  // sobrescribir sus campos con una plantilla. El hook se monta
+  // condicionalmente vía short-circuit: si !shouldShowLoader, el
+  // hook devuelve [] y no hace fetch.
+  const shouldShowLoader = open && !isEditing;
+  const { items: templates } = useTaskTemplates();
+
+  /**
+   * Aplica una plantilla al draft actual. Mergea sólo los campos
+   * que la plantilla tiene rellenos — los que no, dejan al draft
+   * intacto. Date / start_time / id / attachments NO se tocan
+   * (son siempre per-instancia).
+   */
+  function applyTemplate(tplId) {
+    if (!tplId) return;
+    const tpl = templates.find((t) => t.id === tplId);
+    if (!tpl) return;
+    setDraft((prev) => ({
+      ...prev,
+      title:         tpl.title || prev.title,
+      type:          tpl.type || prev.type,
+      priority:      tpl.priority || prev.priority,
+      status:        tpl.status || prev.status,
+      estimatedTime: tpl.estimated_time || prev.estimatedTime,
+      notes:         tpl.notes || prev.notes,
+      materials:     tpl.materials || prev.materials,
+      vehicle:       tpl.vehicle || prev.vehicle,
+      phone:         tpl.phone || prev.phone,
+      clientId:      tpl.client_id || prev.clientId,
+      technicianIds: (tpl.technician_ids?.length ? tpl.technician_ids : prev.technicianIds) || [],
+      // Campos específicos del tipo: expandimos al nivel raíz como
+      // hace taskFromDb. Si el draft ya tenía valores propios, los
+      // reescribimos (la plantilla manda).
+      ...(tpl.type_fields || {}),
+    }));
+  }
   const [errors, setErrors] = useState({});
   const [showNewClient, setShowNewClient] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -375,6 +414,45 @@ export default function TaskModal({
               </div>
             </div>
           </fieldset>
+
+          {/* Loader de plantillas — sólo al CREAR, no al editar.
+              Si hay plantillas creadas y el usuario está empezando
+              una tarea nueva, le ofrecemos cargar una con un click.
+              También deja un acceso rápido a "Gestionar..." para
+              crear/editar plantillas sin salir del flujo. */}
+          {shouldShowLoader && (templates.length > 0 || onOpenTemplates) && (
+            <div className="task-template-loader">
+              <span className="task-template-loader-label">
+                <span className="task-template-loader-label-icon" aria-hidden="true">📋</span>
+                Cargar plantilla
+              </span>
+              {templates.length > 0 ? (
+                <select
+                  value=""
+                  onChange={(e) => applyTemplate(e.target.value)}
+                  aria-label="Seleccionar plantilla"
+                >
+                  <option value="">— Selecciona —</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <span style={{ flex: 1, color: "var(--text-soft)", fontSize: 12.5 }}>
+                  No hay plantillas creadas todavía.
+                </span>
+              )}
+              {onOpenTemplates && (
+                <button
+                  type="button"
+                  className="task-template-loader-manage"
+                  onClick={onOpenTemplates}
+                >
+                  Gestionar…
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Comentarios + Timeline — sólo en edición (necesitamos un id
               para consultarlos). En "Nueva tarea" la tarea aún no

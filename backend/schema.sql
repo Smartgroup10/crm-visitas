@@ -243,6 +243,50 @@ create table if not exists task_comments (
 create index if not exists idx_task_comments_task_time
   on task_comments (task_id, created_at asc);
 
+-- ─── PLANTILLAS DE TAREAS ─────────────────────────────────
+-- Permite guardar combinaciones de campos típicas (p.ej. "Mantenimiento
+-- mensual VOIP" con tipo, prioridad, técnico habitual y notas con
+-- checklist) y aplicarlas al crear una nueva tarea con un click. Para
+-- empresas con tareas repetitivas (mantenimientos, incidencias-tipo,
+-- instalaciones estándar) ahorra mucho tiempo y reduce errores.
+--
+-- NO incluye `date` ni `start_time` ni `attachments` — esos siempre
+-- son per-instancia. La plantilla captura el "tipo de trabajo", no la
+-- ocurrencia concreta.
+--
+-- `technician_ids` se almacena como uuid[] sin FK (igual que en tasks):
+-- si un usuario se da de baja, su id queda en el array pero al
+-- aplicar la plantilla filtramos los que ya no existen.
+create table if not exists task_templates (
+  id              uuid primary key default gen_random_uuid(),
+  name            text not null,                -- nombre de la plantilla (ej: "Mantenimiento mensual VOIP")
+  title           text not null default '',     -- título por defecto de la tarea generada
+  type            text,
+  priority        text not null default 'Media',
+  status          text not null default 'No iniciado',
+  estimated_time  text not null default '',
+  notes           text not null default '',
+  materials       text not null default '',
+  vehicle         text not null default '',
+  phone           text not null default '',
+  client_id       uuid references clients(id) on delete set null,
+  technician_ids  uuid[] not null default '{}',
+  type_fields     jsonb not null default '{}',
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  created_by      uuid references users(id) on delete set null
+);
+
+create index if not exists idx_task_templates_name
+  on task_templates (name asc);
+
+-- Trigger: actualiza updated_at automáticamente. Reutilizamos la
+-- función update_updated_at() definida más arriba para tasks.
+drop trigger if exists task_templates_updated_at on task_templates;
+create trigger task_templates_updated_at
+  before update on task_templates
+  for each row execute function update_updated_at();
+
 -- ─── RECORDATORIOS PERSONALES ─────────────────────────────
 -- Cada usuario crea sus propios recordatorios (privados). El backend
 -- programa un job en pg-boss para `remind_at`; al disparar, el worker

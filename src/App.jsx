@@ -19,6 +19,7 @@ import ShortcutsHelp from "./components/ShortcutsHelp";
 import AppSkeleton from "./components/AppSkeleton";
 import NotificationOrchestrator from "./components/NotificationOrchestrator";
 import CommandPalette from "./components/CommandPalette";
+import TaskTemplatesModal from "./components/TaskTemplatesModal";
 import ClientDetailModal from "./components/ClientDetailModal";
 import ClientsView from "./components/views/ClientsView";
 import InicioView from "./components/views/InicioView";
@@ -82,6 +83,7 @@ export default function App() {
   // ClientsView, lo que obligaba a navegar primero a Clientes para
   // poder abrir un detalle.
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
   const [detailClientId, setDetailClientId] = useState(null);
 
   // ── Carga inicial desde el backend ───────────────────────
@@ -583,6 +585,21 @@ export default function App() {
         newClientName={newClientName}
         setNewClientName={setNewClientName}
         addClient={addClientFromModal}
+        onOpenTemplates={() => setTemplatesModalOpen(true)}
+      />
+
+      {/*
+        Modal de gestión de plantillas de tarea. Se abre desde:
+          - El dropdown "Cargar plantilla" del TaskModal (link "Gestionar…")
+          - La paleta de comandos (Ctrl+K → Gestionar plantillas)
+        Al guardar/borrar, los cambios se propagan por socket a
+        cualquier otra instancia del hook useTaskTemplates abierta.
+      */}
+      <TaskTemplatesModal
+        open={templatesModalOpen}
+        onClose={() => setTemplatesModalOpen(false)}
+        clients={clients}
+        technicians={technicians}
       />
 
       <CounterModal
@@ -626,6 +643,7 @@ export default function App() {
           // por evento para que él decida cuándo abrirlo.
           window.dispatchEvent(new CustomEvent("crm:open-prefs"));
         }}
+        onOpenTemplates={() => setTemplatesModalOpen(true)}
       />
 
       {/*

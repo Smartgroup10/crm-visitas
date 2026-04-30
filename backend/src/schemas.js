@@ -122,6 +122,42 @@ export const schemas = {
       message: "Nada que actualizar",
     }),
 
+  // Plantillas de tareas. Captura los campos "tipo de trabajo" (no
+  // los per-instancia como fecha/hora). El name es obligatorio para
+  // distinguirlas en la UI; el resto son opcionales con defaults
+  // sensatos (igual que tasks). type_fields acepta objeto libre con
+  // campos específicos del tipo elegido.
+  taskTemplateCreate: z.object({
+    name:           trimmed(120).min(1, "El nombre es obligatorio"),
+    title:          optionalString(500),
+    type:           z.string().trim().max(100).nullable().optional(),
+    priority:       optionalString(50),
+    status:         optionalString(50),
+    estimated_time: optionalString(100),
+    notes:          optionalString(10_000),
+    materials:      optionalString(10_000),
+    vehicle:        optionalString(200),
+    phone:          optionalString(40),
+    client_id:      uuid.nullable().optional(),
+    technician_ids: z.array(uuid).optional(),
+    type_fields:    z.record(z.string(), z.any()).optional(),
+  }),
+  taskTemplateUpdate: z.object({
+    name:           trimmed(120).min(1, "El nombre es obligatorio"),
+    title:          optionalString(500),
+    type:           z.string().trim().max(100).nullable().optional(),
+    priority:       optionalString(50),
+    status:         optionalString(50),
+    estimated_time: optionalString(100),
+    notes:          optionalString(10_000),
+    materials:      optionalString(10_000),
+    vehicle:        optionalString(200),
+    phone:          optionalString(40),
+    client_id:      uuid.nullable().optional(),
+    technician_ids: z.array(uuid).optional(),
+    type_fields:    z.record(z.string(), z.any()).optional(),
+  }),
+
   // Comentarios en tareas. Hilo interno de comunicación entre el equipo,
   // pensado para sustituir mensajes de WhatsApp tipo "el cliente dice
   // que la avería es en el sótano". Body con margen alto pero acotado

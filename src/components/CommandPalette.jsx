@@ -38,6 +38,7 @@ const QUICK_ACTION_DEFS = [
   { id: "go-informes",label: "Ir a · Informes",                   section: "informes" },
   { id: "toggle-theme", label: "Cambiar tema (claro/oscuro)",     runner: (props) => props.onToggleTheme?.() },
   { id: "open-prefs",   label: "Abrir mis preferencias",          runner: (props) => props.onOpenPrefs?.() },
+  { id: "open-templates", label: "Gestionar plantillas de tarea", runner: (props) => props.onOpenTemplates?.() },
 ];
 
 function buildQuickActions(props) {
@@ -85,6 +86,7 @@ export default function CommandPalette({
   onOpenClient,
   onToggleTheme,
   onOpenPrefs,
+  onOpenTemplates,
 }) {
   const [query, setQuery]       = useState("");
   const [selected, setSelected] = useState(0);
@@ -92,9 +94,17 @@ export default function CommandPalette({
   const listRef  = useRef(null);
 
   // Reset estado al abrir/cerrar.
+  // El lint avisa de set-state-in-effect aquí, pero es el patrón
+  // correcto: el palette es un componente "siempre montado" cuya
+  // visibilidad la controla el padre, y necesitamos reiniciar el
+  // estado interno cuando vuelve a abrirse. La alternativa
+  // (cambiar el `key` desde el padre y desmontar/remontar) sería
+  // peor para el rendimiento — preferimos suprimir el warning aquí.
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery("");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelected(0);
       // Pequeño delay: si ponemos focus síncronamente, algunos
       // navegadores no lo aplican porque el modal aún no es visible.
@@ -118,7 +128,7 @@ export default function CommandPalette({
     const q = query.trim().toLowerCase();
 
     const allActions = buildQuickActions({
-      canManage, onNewTask, onNavigate, onToggleTheme, onOpenPrefs,
+      canManage, onNewTask, onNavigate, onToggleTheme, onOpenPrefs, onOpenTemplates,
     });
     const actionMatches = q
       ? allActions.filter((a) => matches(a.label, q))
@@ -212,14 +222,20 @@ export default function CommandPalette({
     }
 
     return out;
-  }, [query, tasks, clients, technicians, canManage, onNewTask, onNavigate, onOpenTask, onOpenClient, onToggleTheme, onOpenPrefs]);
+  }, [query, tasks, clients, technicians, canManage, onNewTask, onNavigate, onOpenTask, onOpenClient, onToggleTheme, onOpenPrefs, onOpenTemplates]);
 
   // Aplanamos los items para indexar el resaltado vertical.
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
   // Mantener `selected` en rango cuando cambia el filtrado.
+  // No es un loop infinito: el setSelected sólo se llama si
+  // selected está fuera de rango; tras el ajuste, la guarda
+  // protege la siguiente invocación.
   useEffect(() => {
-    if (selected >= flat.length) setSelected(Math.max(0, flat.length - 1));
+    if (selected >= flat.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelected(Math.max(0, flat.length - 1));
+    }
   }, [flat.length, selected]);
 
   // Auto-scroll del item seleccionado dentro de la lista.
