@@ -2,7 +2,46 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 
-/* Iconos inline para no añadir dependencia de libs externas */
+/* ─── Iconos inline ─────────────────────────────────────── */
+
+/**
+ * Logo de Smartgroup como SVG inline. Reproducimos el "G" de la
+ * marca con dos arcos interconectados (un C grande + un arco corto
+ * a media altura que forma el brazo del G). currentColor permite
+ * cambiar el tono desde el CSS según contexto (mark en azul claro
+ * sobre el panel oscuro). Stroke-linecap "round" da el feel
+ * orgánico/fluido del logo original.
+ */
+function SmartgroupGlyph({ size = 56 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      {/* Arco superior: del 2 al 7 o'clock por el lado izquierdo. Es
+          la "C" externa del G. */}
+      <path
+        d="M 46 14 A 22 22 0 1 0 46 50"
+        stroke="currentColor"
+        strokeWidth="7"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Brazo horizontal interior que cierra el "G". */}
+      <path
+        d="M 32 32 L 50 32"
+        stroke="currentColor"
+        strokeWidth="7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function EyeIcon({ off }) {
   return off ? (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -18,6 +57,7 @@ function EyeIcon({ off }) {
     </svg>
   );
 }
+
 function SunIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -35,20 +75,17 @@ function MoonIcon() {
 }
 
 /**
- * Login page — Field Engineering aesthetic.
+ * Login page — minimal y branded.
  *
- * Layout:
- *   - Desktop: split 50/50 — brand panel oscuro a la izquierda con
- *     un statement editorial; form panel claro a la derecha.
- *   - Mobile: brand panel arriba reducido (160px), form panel abajo.
+ * Split 50/50 desktop. Panel izquierdo: navy de marca con la "G" y
+ * el wordmark "smartgroup" centrados. Sin taglines, sin quotes, sin
+ * versiones — la primera impresión es la marca, nada más.
  *
- * El brand panel transmite identidad de marca y sólo se ve aquí, una
- * vez. Es la primera impresión: dot grid, glow ambiente, quote serif
- * grande, footer mono. La forma editorial de un manual técnico.
+ * Panel derecho: form ultra-limpio con título único y campos básicos.
+ * El theme toggle vive en la esquina superior derecha del form panel.
  *
- * El form panel es lo opuesto — calma, minimal, todo en una columna
- * de 360px. Inputs con label uppercase mono pequeño (etiquetas como
- * "EMAIL" / "CONTRASEÑA"), border hairline, focus accent.
+ * En mobile el brand panel reduce altura y se queda arriba con el
+ * logo más pequeño centrado.
  */
 export default function LoginPage() {
   const { login } = useAuth();
@@ -72,38 +109,25 @@ export default function LoginPage() {
     }
   }
 
-  const year = new Date().getFullYear();
-
   return (
     <div className="login-shell">
       {/* ─── Brand panel ─────────────────────────────── */}
       <aside className="login-brand-panel">
-        {/* Decorative layers (no contenido — todo via CSS / pseudo) */}
         <div className="login-grid-overlay" aria-hidden="true" />
         <div className="login-glow" aria-hidden="true" />
 
-        <div className="login-brand-header">
-          <div className="login-brand-mark">
-            <span className="login-brand-badge">S</span>
-            <span className="login-brand-name">SMARTGROUP</span>
+        <div className="login-brand-lockup">
+          <div className="login-brand-glyph">
+            <SmartgroupGlyph size={64} />
           </div>
-          <span className="login-brand-tag">VOIP · Cámaras · Redes</span>
-        </div>
-
-        <div className="login-brand-quote">
-          <p>Operaciones de campo, controladas con precisión.</p>
-        </div>
-
-        <div className="login-brand-footer">
-          <span className="login-brand-footer-meta">v2.6</span>
-          <span className="login-brand-footer-sep">—</span>
-          <span className="login-brand-footer-meta">© {year} Smartgroup</span>
+          <h2 className="login-brand-name">
+            smartgroup<sup>®</sup>
+          </h2>
         </div>
       </aside>
 
       {/* ─── Form panel ──────────────────────────────── */}
       <main className="login-form-panel">
-        {/* Theme toggle: discreto, esquina superior derecha del panel claro. */}
         <button
           type="button"
           className="login-theme-toggle"
@@ -115,14 +139,13 @@ export default function LoginPage() {
         </button>
 
         <form onSubmit={handleSubmit} className="login-form" autoComplete="on">
-          <div className="login-eyebrow">ACCESO · CRM OPERACIONES</div>
           <h1 className="login-title">Bienvenido de vuelta</h1>
           <p className="login-subtitle">
-            Inicia sesión con tu cuenta corporativa para continuar.
+            Inicia sesión con tu cuenta para continuar.
           </p>
 
           <div className="login-field">
-            <label htmlFor="login-email" className="login-field-label">EMAIL</label>
+            <label htmlFor="login-email" className="login-field-label">Email</label>
             <input
               id="login-email"
               type="email"
@@ -136,7 +159,7 @@ export default function LoginPage() {
           </div>
 
           <div className="login-field">
-            <label htmlFor="login-password" className="login-field-label">CONTRASEÑA</label>
+            <label htmlFor="login-password" className="login-field-label">Contraseña</label>
             <div className="login-input-wrap">
               <input
                 id="login-password"

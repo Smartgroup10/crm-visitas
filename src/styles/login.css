@@ -1,9 +1,10 @@
 /* ============================================================
-   Login page — Field Engineering aesthetic
+   Login page — minimal & branded
    ============================================================
-   Split 50/50: brand panel oscuro + form panel claro. La frontera
-   entre ambos es una hairline en lugar de una sombra para
-   reforzar el lenguaje "técnico/editorial" del resto de la app.
+   Split 50/50 desktop, stacked mobile. Panel izquierdo navy de
+   marca con la "G" + wordmark "smartgroup" centrados. Panel
+   derecho cálido con form ultra-limpio. Sin taglines, sin
+   eyebrows, sin versiones — la marca tiene todo el peso visual.
    ============================================================ */
 
 .login-shell {
@@ -19,33 +20,34 @@
 @media (max-width: 880px) {
   .login-shell {
     grid-template-columns: 1fr;
-    grid-template-rows: 200px 1fr;
+    grid-template-rows: 220px 1fr;
   }
 }
 
 /* ─── BRAND PANEL ─────────────────────────────────── */
+/*
+ * Color: navy de marca (mismo tono que el background del logo
+ * oficial — no estamos inventando, lo respetamos).
+ * Composición: logo centrado vertical y horizontalmente, sin nada
+ * más alrededor. La marca habla sola.
+ */
 .login-brand-panel {
   position: relative;
-  background: #0c0a09;
-  color: #fafaf9;
+  background: #0e2a59;       /* navy del logo oficial */
+  display: grid;
+  place-items: center;
   padding: 48px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 32px;
   overflow: hidden;
   isolation: isolate;
 }
 
 @media (max-width: 880px) {
   .login-brand-panel {
-    padding: 24px 28px;
-    gap: 0;
-    justify-content: space-between;
+    padding: 32px;
   }
 }
 
-/* Subtle dot grid — technical blueprint feel, no se mueve */
+/* Subtle dot grid — añade textura sin distraer */
 .login-grid-overlay {
   position: absolute;
   inset: 0;
@@ -62,103 +64,68 @@
 /* Glow ambiente — radial brand color, suave, esquina inferior derecha */
 .login-glow {
   position: absolute;
-  bottom: -240px;
-  right: -180px;
-  width: 580px;
-  height: 580px;
+  bottom: -200px;
+  right: -160px;
+  width: 480px;
+  height: 480px;
   background: radial-gradient(
     circle,
-    rgba(37, 99, 235, 0.18) 0%,
-    transparent 65%
+    rgba(84, 112, 255, 0.22) 0%,
+    transparent 60%
   );
   pointer-events: none;
   z-index: 0;
 }
 
-.login-brand-header,
-.login-brand-quote,
-.login-brand-footer {
+/* Lockup: glyph + wordmark verticalmente alineados */
+.login-brand-lockup {
   position: relative;
   z-index: 1;
-}
-
-.login-brand-header {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.login-brand-mark {
-  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
 }
 
-.login-brand-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background: var(--brand);
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 16px;
-  letter-spacing: -0.04em;
-  color: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 8px 16px rgba(37,99,235,0.25);
+.login-brand-glyph {
+  color: #5470FF;       /* azul más claro que el bg, como en el logo */
+  display: inline-flex;
+  filter: drop-shadow(0 4px 20px rgba(84, 112, 255, 0.35));
+}
+
+@media (max-width: 880px) {
+  .login-brand-glyph svg {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 .login-brand-name {
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  color: rgba(255, 255, 255, 0.96);
-}
-
-.login-brand-tag {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.10em;
-  color: rgba(255, 255, 255, 0.42);
-  text-transform: uppercase;
-  padding-left: 44px;       /* alinea bajo el texto del nombre */
-}
-
-.login-brand-quote {
-  max-width: 460px;
-}
-
-.login-brand-quote p {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 36px;
+  letter-spacing: -0.04em;
+  color: #ffffff;
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 38px;
-  font-weight: 400;
-  line-height: 1.18;
-  letter-spacing: -0.015em;
-  color: #fafaf9;
+  line-height: 1;
+  /* Lowercase preservado tal cual viene escrito en JSX para que
+     coincida con el wordmark oficial */
 }
 
 @media (max-width: 880px) {
-  .login-brand-quote { display: none; }
+  .login-brand-name {
+    font-size: 26px;
+  }
 }
 
-.login-brand-footer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.38);
-}
-
-.login-brand-footer-sep {
-  color: rgba(255, 255, 255, 0.20);
-}
-
-@media (max-width: 880px) {
-  .login-brand-footer { display: none; }
+.login-brand-name sup {
+  font-size: 13px;
+  font-weight: 500;
+  vertical-align: super;
+  margin-left: 2px;
+  opacity: 0.55;
+  top: -0.5em;
+  position: relative;
 }
 
 /* ─── FORM PANEL ──────────────────────────────────── */
@@ -200,19 +167,8 @@
 .login-form {
   width: 100%;
   max-width: 360px;
-  /* Animación de entrada sutil — staggered fade up de los hijos */
   display: flex;
   flex-direction: column;
-}
-
-.login-eyebrow {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
-  color: var(--ink-faint);
-  margin-bottom: 18px;
-  text-transform: uppercase;
 }
 
 .login-title {
@@ -222,7 +178,7 @@
   line-height: 1.15;
   letter-spacing: -0.02em;
   color: var(--ink-strong);
-  margin: 0 0 6px;
+  margin: 0 0 8px;
 }
 
 .login-subtitle {
@@ -239,13 +195,12 @@
 
 .login-field-label {
   display: block;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.10em;
-  color: var(--ink-faint);
+  letter-spacing: -0.005em;
+  color: var(--ink);
   margin-bottom: 6px;
-  text-transform: uppercase;
 }
 
 .login-field input {
@@ -326,11 +281,16 @@
 .login-error svg { flex: 0 0 auto; }
 
 /* ─── Submit ─────────────────────────────────────── */
+/*
+ * Botón en navy de marca (no negro, no azul claro) — coincide con
+ * el panel izquierdo, refuerza la identidad. Hover sube ligeramente
+ * con sombra, y la flecha se desplaza para indicar "vas a algún sitio".
+ */
 .login-submit {
   width: 100%;
   margin-top: 8px;
-  background: var(--ink-strong);
-  color: var(--canvas);
+  background: #0e2a59;
+  color: #ffffff;
   border: 0;
   border-radius: 6px;
   padding: 12px 16px;
@@ -347,8 +307,8 @@
 }
 
 .login-submit:hover:not(:disabled) {
-  background: var(--ink);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  background: #112e60;
+  box-shadow: 0 4px 14px rgba(14, 42, 89, 0.22);
 }
 
 .login-submit:active:not(:disabled) {
@@ -392,7 +352,6 @@
 }
 
 .login-meta a {
-  font-family: var(--font-mono);
   color: var(--ink-muted);
   text-decoration: none;
   transition: color 150ms ease;
@@ -419,13 +378,13 @@
   border-color: var(--line-warm-strong);
 }
 
+/* En dark, el botón submit usa azul un poco más brillante porque
+   el navy puro queda demasiado fundido con el fondo oscuro. */
 [data-theme="dark"] .login-submit {
-  background: var(--ink-strong);
-  color: var(--canvas);
+  background: #1d4ed8;
 }
-
 [data-theme="dark"] .login-submit:hover:not(:disabled) {
-  background: var(--ink);
+  background: #2563eb;
 }
 
 [data-theme="dark"] .login-theme-toggle {
