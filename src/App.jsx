@@ -285,12 +285,18 @@ export default function App() {
   // saveTask NO atrapa el error: lo re-lanza para que TaskModal muestre
   // los errores por campo (p. ej. validación zod del backend). Solo
   // muestra toast si es éxito.
+  //
+  // Para crear: POST con todo el objeto.
+  // Para actualizar: PATCH con todo el draft. El backend filtra los
+  // campos según el rol — admin/supervisor pasa todo, técnico sólo
+  // status/notes/materials/estimated_time/attachments. Esto reemplaza
+  // el PUT anterior, que rechazaba a técnicos por requireRole.
   async function saveTask(taskToSave) {
     const row = taskToDb(taskToSave, user?.id);
     const isNew = !taskToSave.id;
     try {
       if (!isNew) {
-        await api.put(`/tasks/${taskToSave.id}`, row);
+        await api.patch(`/tasks/${taskToSave.id}`, row);
       } else {
         await api.post("/tasks", row);
       }
@@ -303,9 +309,9 @@ export default function App() {
       throw err;
     }
     toast.success(isNew ? "Tarea creada." : "Tarea actualizada.");
-    setSelectedDate(taskToSave.date);
+    if (taskToSave.date) setSelectedDate(taskToSave.date);
     setIsModalOpen(false);
-    setDraft(emptyTask(taskToSave.date));
+    setDraft(emptyTask(taskToSave.date || todayISO()));
   }
 
   async function deleteTask() {

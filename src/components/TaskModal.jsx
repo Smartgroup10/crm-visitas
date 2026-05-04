@@ -90,8 +90,23 @@ export default function TaskModal({
   const [errors, setErrors] = useState({});
   const [showNewClient, setShowNewClient] = useState(false);
   const [busy, setBusy] = useState(false);
-  const { canManage } = usePermissions();
-  const readOnly = !canManage;
+  const { canManage, canEditTask, canEditTaskField, isTecnico } = usePermissions();
+
+  // Tres niveles de permiso sobre el draft:
+  //   - readOnly        → ningún campo es editable (el usuario sólo mira)
+  //   - techPartialEdit → técnico asignado: edita sólo el subset seguro
+  //   - canManage       → admin/supervisor: edita cualquier campo
+  // Cuando el draft es nuevo (sin id), canManage manda — sólo
+  // admin/supervisor pueden crear tareas.
+  const isNewTask = !draft?.id;
+  const techPartialEdit =
+    !canManage && !isNewTask && isTecnico && canEditTask(draft);
+  const readOnly = !canManage && !techPartialEdit;
+  const canEditField = (name) => {
+    if (canManage) return true;
+    if (techPartialEdit) return canEditTaskField(draft, name);
+    return false;
+  };
 
   // Detección de solapamiento: ¿hay otras tareas que comparten algún
   // técnico y caen en la misma franja horaria? El cálculo es barato
@@ -179,6 +194,35 @@ export default function TaskModal({
     }
   }
 
+  /**
+   * Atajo "Marcar como finalizada": cambia status a Listo y guarda.
+   * Útil para técnicos al cerrar la intervención sin tener que abrir
+   * el dropdown de estado. Si hay errores de validación los muestra
+   * igual que el guardado normal. */
+  async function handleMarkAsDone() {
+    if (busy) return;
+    const updated = { ...draft, status: "Listo" };
+    const sanitized = sanitizeForType(updated);
+    const result = validateTask(sanitized);
+    if (!result.valid) {
+      setErrors(result.errors);
+      return;
+    }
+    setErrors({});
+    setBusy(true);
+    setDraft(updated);
+    try {
+      await onSave(sanitized);
+      setBusy(false);
+    } catch (err) {
+      setBusy(false);
+      const fieldErrors = err?.fieldErrors;
+      if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+      }
+    }
+  }
+
   const typeMeta = TASK_TYPES[draft.type] || TASK_TYPES[TASK_TYPE_KEYS[0]];
 
   return (
@@ -195,6 +239,8 @@ export default function TaskModal({
               <p>
                 {readOnly
                   ? "Vista de solo lectura. Para cambios, contacta con un supervisor o administrador."
+                  : techPartialEdit
+                  ? "Esta tarea está asignada a ti. Puedes actualizar estado, notas, materiales, tiempo y adjuntos."
                   : "Rellena los datos de la intervención."}
               </p>
             </div>
@@ -223,6 +269,7 @@ export default function TaskModal({
                     value={draft.title}
                     onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                     placeholder="Ej.: Instalación centralita"
+                    disabled={!canEditField("title")}
                   />
                   {errors.title && <div className="field-error">{errors.title}</div>}
                 </div>
@@ -233,6 +280,7 @@ export default function TaskModal({
                     className={errors.type ? "has-error" : ""}
                     value={draft.type}
                     onChange={(e) => handleTypeChange(e.target.value)}
+                    disabled={!canEditField("type")}
                   >
                     {TASK_TYPE_KEYS.map((key) => (
                       <option key={key} value={key}>
@@ -250,6 +298,7 @@ export default function TaskModal({
                     className={errors.date ? "has-error" : ""}
                     value={draft.date}
                     onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+                    disabled={!canEditField("date")}
                   />
                   {errors.date && <div className="field-error">{errors.date}</div>}
                 </div>
@@ -267,6 +316,7 @@ export default function TaskModal({
                     value={draft.startTime || ""}
                     onChange={(e) => setDraft({ ...draft, startTime: e.target.value })}
                     step="300"
+                    disabled={!canEditField("startTime")}
                   />
                   {errors.startTime && <div className="field-error">{errors.startTime}</div>}
                   <div className="time-presets">
@@ -281,6 +331,7 @@ export default function TaskModal({
                             startTime: draft.startTime === preset ? "" : preset,
                           })
                         }
+                        disabled={!canEditField("startTime")}
                       >
                         {preset}
                       </button>
@@ -301,6 +352,7 @@ export default function TaskModal({
                       className={errors.clientId ? "has-error" : ""}
                       value={draft.clientId}
                       onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
+                      disabled={!canEditField("clientId")}
                     >
                       <option value="">Selecciona cliente</option>
                       {clients.map((client) => (
@@ -315,6 +367,7 @@ export default function TaskModal({
                       onClick={() => setShowNewClient((v) => !v)}
                       aria-expanded={showNewClient}
                       title={showNewClient ? "Cancelar" : "Añadir nuevo cliente"}
+                      disabled={!canEditField("clientId")}
                     >
                       {showNewClient ? "Cancelar" : "+ Nuevo"}
                     </button>
@@ -357,6 +410,7 @@ export default function TaskModal({
                         key={tech.id}
                         className={`chip ${draft.technicianIds.includes(tech.id) ? "chip-active" : ""}`}
                         onClick={() => toggleTechnician(tech.id)}
+                        disabled={!canEditField("technicianIds")}
                       >
                         {tech.name}
                       </button>
@@ -380,6 +434,7 @@ export default function TaskModal({
                   <select
                     value={draft.status}
                     onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+                    disabled={!canEditField("status")}
                   >
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option} value={option}>
@@ -394,6 +449,7 @@ export default function TaskModal({
                   <select
                     value={draft.priority}
                     onChange={(e) => setDraft({ ...draft, priority: e.target.value })}
+                    disabled={!canEditField("priority")}
                   >
                     {PRIORITY_OPTIONS.map((option) => (
                       <option key={option} value={option}>
@@ -410,6 +466,18 @@ export default function TaskModal({
                     value={draft.estimatedTime}
                     onChange={(e) => setDraft({ ...draft, estimatedTime: e.target.value })}
                     placeholder="Ej.: 2 horas"
+                    disabled={!canEditField("estimatedTime")}
+                  />
+                </div>
+
+                <div className="form-row full">
+                  <label>Materiales</label>
+                  <textarea
+                    rows="2"
+                    value={draft.materials || ""}
+                    onChange={(e) => setDraft({ ...draft, materials: e.target.value })}
+                    placeholder="Material utilizado, repuestos, etc."
+                    disabled={!canEditField("materials")}
                   />
                 </div>
               </div>
@@ -426,6 +494,7 @@ export default function TaskModal({
                     value={draft.notes}
                     onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
                     placeholder="Observaciones, incidencias, comprobaciones..."
+                    disabled={!canEditField("notes")}
                   />
                 </div>
               </div>
@@ -483,9 +552,13 @@ export default function TaskModal({
             </>
           )}
 
-          {/* Footer sticky con las acciones */}
+          {/* Footer sticky con las acciones.
+              - "Eliminar": solo admin/supervisor (canManage), tarea existente.
+              - "Marcar como finalizada": cualquier usuario que pueda
+                editar el campo `status` y la tarea no esté ya en Listo.
+                Atajo de un click — pone status=Listo y guarda. */}
           <div className="form-actions">
-            {!readOnly && isEditing && (
+            {canManage && isEditing && (
               <button
                 type="button"
                 className="btn-danger"
@@ -504,6 +577,22 @@ export default function TaskModal({
             >
               Cerrar
             </button>
+            {isEditing && draft.status !== "Listo" && canEditField("status") && (
+              <button
+                type="button"
+                className="btn-finish"
+                onClick={handleMarkAsDone}
+                disabled={busy}
+                title="Marca esta intervención como finalizada"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" strokeWidth="2.5"
+                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Marcar como finalizada
+              </button>
+            )}
             {!readOnly && (
               <button type="submit" className="btn-primary" disabled={busy}>
                 {busy ? (
@@ -511,6 +600,8 @@ export default function TaskModal({
                     <span className="btn-spinner-inline" aria-hidden="true" />
                     Guardando…
                   </>
+                ) : techPartialEdit ? (
+                  "Guardar cambios"
                 ) : (
                   "Guardar tarea"
                 )}

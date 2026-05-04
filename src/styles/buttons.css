@@ -123,6 +123,65 @@
   color: var(--text-strong);
 }
 
+/* "Marcar como finalizada" — atajo de un click para cerrar una
+   intervención. Verde (sucess) discreto: no compite con btn-primary
+   (que es la acción genérica de guardar) pero queda visible. */
+.btn-finish {
+  --_btn-pad-y: 8px;
+  --_btn-pad-x: 14px;
+  --_btn-font:  12.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--_btn-pad-y) var(--_btn-pad-x);
+  border-radius: var(--radius-md);
+  border: 1px solid #10b981;
+  background: rgba(16, 185, 129, 0.10);
+  color: #047857;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--_btn-font);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background var(--t-fast), border-color var(--t-fast),
+              color var(--t-fast), box-shadow var(--t-fast),
+              transform 0.08s ease;
+  user-select: none;
+}
+.btn-finish:hover:not(:disabled) {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.28);
+}
+.btn-finish:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn-finish:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.30);
+}
+.btn-finish:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-finish svg { flex: 0 0 auto; }
+
+[data-theme="dark"] .btn-finish {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.50);
+}
+[data-theme="dark"] .btn-finish:hover:not(:disabled) {
+  background: #10b981;
+  color: #fafaf9;
+  border-color: #10b981;
+}
+
 /* Tama\u00f1os ─────────────── */
 .btn-sm {
   --_btn-pad-y: 5px;
