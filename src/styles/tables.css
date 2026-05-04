@@ -92,3 +92,309 @@
   padding: 36px !important;
   font-size: 13px;
 }
+
+/* ─── MULTISELECT (TableView de Seguimiento) ──────────────
+   Checkboxes custom + columna fija de selección + estado de fila
+   "is-selected" + bulk-bar sticky encima de la tabla. */
+
+/* Columnas de selección — angostas, padding lateral mínimo. */
+.tasks-table--selectable .th-select,
+.tasks-table--selectable .td-select {
+  width: 36px;
+  padding: 0 0 0 14px;
+}
+.tasks-table--selectable thead th.th-select {
+  background: var(--surface-sunken);
+}
+
+/* Cuando una fila está seleccionada, gana un fondo accent-tint persistente.
+   El hover sigue funcionando encima — el tinte se acumula sutilmente. */
+.tasks-table--selectable tbody tr.is-selected td,
+.tasks-table--selectable tbody tr.is-selected:nth-child(even) td {
+  background: var(--accent-tint);
+}
+.tasks-table--selectable tbody tr.is-selected:hover td {
+  background: rgba(37, 99, 235, 0.13);
+}
+
+/* Custom checkbox: el input nativo se oculta visualmente pero permanece
+   accesible (tab + space + screen readers). El "box" lo dibujamos con
+   un span hermano para tener control fino sobre stroke + tick. */
+.row-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  padding: 8px 6px;        /* hit area mayor que el cuadrado visible */
+  margin: 0;
+}
+.row-check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+.row-check-box {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--line-warm-strong);
+  background: var(--surface);
+  position: relative;
+  transition: border-color var(--t-fast), background var(--t-fast);
+  flex: 0 0 auto;
+}
+.row-check:hover .row-check-box {
+  border-color: var(--brand);
+}
+.row-check input:focus-visible + .row-check-box {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  border-color: var(--brand);
+}
+
+/* Estado checked: brand fill + tick blanco vía pseudo-elemento. */
+.row-check input:checked + .row-check-box {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.row-check input:checked + .row-check-box::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Estado indeterminate (master checkbox con selección parcial): rayita. */
+.row-check input:indeterminate + .row-check-box {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.row-check input:indeterminate + .row-check-box::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 8px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+/* ─── BULK ACTION BAR ─────────────────────────────────────
+   Sticky en la parte superior del table-wrapper. Stones + hairline,
+   tipografía mono para el counter, controles compactos. */
+.bulk-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-warm);
+  box-shadow: 0 1px 0 var(--line-warm-soft);
+  animation: bulk-bar-in 160ms ease-out;
+}
+@keyframes bulk-bar-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bulk-bar-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.bulk-bar-count-num {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink-strong);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.bulk-bar-count-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ink-faint);
+}
+
+.bulk-bar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--line-warm);
+  flex: 0 0 auto;
+}
+
+.bulk-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+}
+
+.bulk-bar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.bulk-bar-action-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ink-faint);
+}
+
+.bulk-bar-select {
+  width: auto;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 26px 5px 10px;
+  border: 1px solid var(--line-warm);
+  background: var(--surface);
+  color: var(--ink-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.bulk-bar-select:hover {
+  border-color: var(--line-warm-strong);
+  background: var(--surface-sunken);
+}
+.bulk-bar-select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.bulk-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border: 1px solid var(--line-warm);
+  background: var(--surface);
+  color: var(--ink-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.bulk-bar-btn:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  border-color: var(--line-warm-strong);
+}
+.bulk-bar-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.bulk-bar-btn-primary {
+  background: var(--ink-strong);
+  color: var(--surface);
+  border-color: var(--ink-strong);
+}
+.bulk-bar-btn-primary:hover:not(:disabled) {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+.bulk-bar-btn-danger {
+  border-color: rgba(220, 38, 38, 0.30);
+  color: #991b1b;
+  background: rgba(220, 38, 38, 0.06);
+}
+.bulk-bar-btn-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.45);
+  color: #7f1d1d;
+}
+
+.bulk-bar-action-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bulk-bar-date-pop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bulk-bar-date-pop input[type="date"] {
+  width: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-warm);
+  background: var(--surface);
+  color: var(--ink-strong);
+  border-radius: 6px;
+}
+.bulk-bar-date-pop input[type="date"]:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.bulk-bar-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+}
+.bulk-bar-clear:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  color: var(--ink-strong);
+  border-color: var(--line-warm);
+}
+.bulk-bar-clear:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  border-color: var(--brand);
+}
+
+@media (max-width: 760px) {
+  .bulk-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .bulk-bar-divider {
+    display: none;
+  }
+  .bulk-bar-actions {
+    width: 100%;
+    gap: 8px;
+  }
+}

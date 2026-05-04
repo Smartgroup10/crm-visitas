@@ -33,12 +33,11 @@ function colorFromName(name) {
 
 /**
  * Item de navegación. Acepta opcionalmente un `badge` numérico —
- * cuando se pasa > 0, muestra un dot con el conteo en mono. La
- * lógica de qué item lleva badge vive en el padre; aquí sólo
- * pintamos. Si en el futuro se cablean fuentes de datos
- * (ej. tareas que requieren acción), basta con pasar la prop. */
-function NavItem({ icon: Icon, label, active, onClick, disabled, badge }) {
+ * cuando se pasa > 0, muestra un counter mono a la derecha. Si
+ * `tone` es "critical", se pinta en rojo discreto (urgencias). */
+function NavItem({ icon: Icon, label, active, onClick, disabled, badge, tone }) {
   const showBadge = typeof badge === "number" && badge > 0;
+  const badgeClass = tone === "critical" ? "nav-badge nav-badge-critical" : "nav-badge";
   return (
     <button
       type="button"
@@ -49,7 +48,7 @@ function NavItem({ icon: Icon, label, active, onClick, disabled, badge }) {
       <span className="nav-icon"><Icon /></span>
       <span className="nav-label">{label}</span>
       {showBadge && (
-        <span className="nav-badge" aria-label={`${badge} pendientes`}>
+        <span className={badgeClass} aria-label={`${badge} requieren atención`}>
           {badge > 99 ? "99+" : badge}
         </span>
       )}
@@ -57,7 +56,7 @@ function NavItem({ icon: Icon, label, active, onClick, disabled, badge }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ attentionCount = 0 }) {
   const { section, setSection, drawerOpen, setDrawerOpen } = useUI();
   const { profile, logout, updateProfile } = useAuth();
   const [prefsOpen, setPrefsOpen] = useState(false);
@@ -140,7 +139,14 @@ export default function Sidebar() {
         <nav className="sidebar-nav">
           <div className="nav-section-label">Principal</div>
           <NavItem icon={IconHome}        label="Inicio"       active={section === "inicio"}        onClick={() => go("inicio")} />
-          <NavItem icon={IconCheckSquare} label="Mi trabajo"   active={section === "mitrabajo"}     onClick={() => go("mitrabajo")} />
+          <NavItem
+            icon={IconCheckSquare}
+            label="Mi trabajo"
+            active={section === "mitrabajo"}
+            onClick={() => go("mitrabajo")}
+            badge={attentionCount}
+            tone="critical"
+          />
 
           <div className="nav-section-label">Operaciones</div>
           <NavItem icon={IconClipboard} label="Seguimiento" active={section === "instalaciones"} onClick={() => go("instalaciones")} />

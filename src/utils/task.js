@@ -30,6 +30,26 @@ export function normalizeTask(task) {
   };
 }
 
+/**
+ * Predicado canónico de "tarea que requiere atención inmediata":
+ *   - estado Bloqueado (independientemente de prioridad)
+ *   - O urgente y aún no iniciada
+ *
+ * Usado por el badge del Sidebar y la sección "Requieren acción"
+ * de Mi Trabajo. Mantenerlo en un único sitio evita derivas (un
+ * lugar diciendo 7 y otro diciendo 9 para los mismos datos).
+ */
+export function requiresAttention(task) {
+  return (
+    task.status === "Bloqueado" ||
+    (task.priority === "Urgente" && task.status === "No iniciado")
+  );
+}
+
+export function getAttentionTasks(tasks) {
+  return tasks.filter(requiresAttention);
+}
+
 export function taskHaystack(task, clients, technicians) {
   const typeLabel = TASK_TYPES[task.type]?.label || task.type || "";
   return [

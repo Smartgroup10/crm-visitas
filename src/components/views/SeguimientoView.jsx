@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TASK_TYPES } from "../../data/taskTypes";
+import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../../data/constants";
 import {
   toISO,
   todayISO,
@@ -117,6 +118,8 @@ export default function SeguimientoView({
   technicians,
   onEditTask,
   openNewTask,
+  bulkUpdateTasks,
+  bulkDeleteTasks,
 }) {
   const {
     activeView, calendarMode, setCalendarMode,
@@ -257,6 +260,8 @@ export default function SeguimientoView({
             hasActiveFilters={hasActiveFilters}
             resetFilters={resetFilters}
             openNewTask={openNewTask}
+            bulkUpdateTasks={bulkUpdateTasks}
+            bulkDeleteTasks={bulkDeleteTasks}
           />
         )}
       </section>
@@ -467,9 +472,13 @@ function WeekView({
 
 // ─── Vista DÍA ───────────────────────────────────────────────
 function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, canManage, openNewTask }) {
-  const dayTasks = (tasksByDate[selectedDate] || [])
-    .slice()
-    .sort((a, b) => a.title.localeCompare(b.title, "es"));
+  const dayTasks = useMemo(
+    () =>
+      (tasksByDate[selectedDate] || [])
+        .slice()
+        .sort((a, b) => a.title.localeCompare(b.title, "es")),
+    [tasksByDate, selectedDate]
+  );
 
   return (
     <div className="day-view">
@@ -559,10 +568,106 @@ function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, 
 }
 
 // ─── Vista TABLA ─────────────────────────────────────────────
+//
+// Tabla con multiselección. Al marcar 1+ filas, aparece una bulk-action
+// bar sticky en la parte superior con acciones masivas:
+//   - Cambiar estado / prioridad (selects directos, aplican al cambiar)
+//   - Mover a fecha (input date inline)
+//   - Eliminar (con confirm)
+//   - Limpiar selección
+//
+// La selección se prunea automáticamente cuando los filtros cambian
+// (un id que ya no aparece en filteredTasks deja de estar seleccionado),
+// para evitar acciones sobre filas que el usuario no está viendo.
 function TableView({
   filteredTasks, clients, technicians, onEditTask,
   canManage, hasActiveFilters, resetFilters, openNewTask,
+  bulkUpdateTasks, bulkDeleteTasks,
 }) {
+  // Las filas se ordenan por fecha (asc) y memoizamos: sin esto, cada
+  // re-render de App (socket, keystroke en search, etc.) re-sortea la
+  // lista entera aunque nada haya cambiado.
+  const sortedTasks = useMemo(
+    () => filteredTasks.slice().sort((a, b) => a.date.localeCompare(b.date)),
+    [filteredTasks]
+  );
+
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [busy, setBusy] = useState(false);
+
+  // Selección efectiva: ids seleccionados ∩ visibles bajo los filtros
+  // actuales. Lo derivamos en render en lugar de sincronizar con un
+  // useEffect (anti-pattern en React 19 + activa la regla
+  // react-hooks/set-state-in-effect). Beneficio extra: si el usuario
+  // cambia un filtro y luego lo revierte, las selecciones "ocultas"
+  // reaparecen sin tener que re-clickarlas.
+  const visibleSelectedIds = useMemo(() => {
+    if (selectedIds.size === 0) return selectedIds;
+    const visibleIds = new Set(sortedTasks.map((t) => t.id));
+    const result = new Set();
+    for (const id of selectedIds) if (visibleIds.has(id)) result.add(id);
+    // Si todos los seleccionados siguen visibles, devolvemos la
+    // referencia original — preserva la identidad para consumidores
+    // que comparen por referencia.
+    return result.size === selectedIds.size ? selectedIds : result;
+  }, [selectedIds, sortedTasks]);
+
+  function toggleOne(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else              next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (visibleSelectedIds.size === sortedTasks.length && sortedTasks.length > 0) {
+      // "Todas visibles ya seleccionadas" → deseleccionamos sólo las visibles
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const t of sortedTasks) next.delete(t.id);
+        return next;
+      });
+    } else {
+      // Seleccionamos todas las visibles (preservando otras posibles
+      // seleccionadas que estén fuera del filtro)
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const t of sortedTasks) next.add(t.id);
+        return next;
+      });
+    }
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  const selectedCount = visibleSelectedIds.size;
+  const allSelected   = sortedTasks.length > 0 && selectedCount === sortedTasks.length;
+  const someSelected  = selectedCount > 0 && !allSelected;
+
+  // Wrapper común para las tres acciones de update masivo. `busy` gatea
+  // doble-click durante el await — clearSelection sólo desmonta el bar
+  // *después* de resolverse la red, así que el flag tiene su ventana.
+  // Operamos sobre visibleSelectedIds (no selectedIds) para no afectar
+  // a filas que el usuario no tiene a la vista bajo los filtros actuales.
+  async function applyPartial(partial) {
+    if (busy) return;
+    setBusy(true);
+    await bulkUpdateTasks(Array.from(visibleSelectedIds), partial);
+    setBusy(false);
+    clearSelection();
+  }
+  async function applyDelete() {
+    if (busy) return;
+    setBusy(true);
+    await bulkDeleteTasks(Array.from(visibleSelectedIds));
+    setBusy(false);
+    clearSelection();
+  }
+
   // CTA contextual: si hay filtros aplicados, lo lógico es ofrecer
   // limpiarlos. Si no hay tareas en absoluto, ofrecer crear una.
   const emptyAction = hasActiveFilters
@@ -572,7 +677,21 @@ function TableView({
         : undefined);
 
   return (
-    <div className="table-wrapper">
+    <>
+      {/* Bulk-bar fuera del table-wrapper a propósito: si la tabla
+          desborda horizontalmente (>= 960px), el bar se mantiene fijo
+          en la franja visible en lugar de scrollear con la tabla. */}
+      {selectedCount > 0 && canManage && (
+        <BulkActionBar
+          count={selectedCount}
+          busy={busy}
+          onApply={applyPartial}
+          onDelete={applyDelete}
+          onClear={clearSelection}
+        />
+      )}
+
+      <div className="table-wrapper">
       {filteredTasks.length === 0 ? (
         <EmptyState
           icon={hasActiveFilters ? "search" : "inbox"}
@@ -585,9 +704,25 @@ function TableView({
           action={emptyAction}
         />
       ) : (
-      <table className="tasks-table">
+      <table className="tasks-table tasks-table--selectable">
         <thead>
           <tr>
+            {canManage && (
+              <th className="th-select">
+                <RowCheckbox
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onChange={toggleAll}
+                  label={
+                    someSelected
+                      ? `${selectedCount} de ${sortedTasks.length} seleccionadas. Click para seleccionar todas.`
+                      : allSelected
+                      ? "Todas seleccionadas. Click para deseleccionar."
+                      : "Seleccionar todas las filas visibles."
+                  }
+                />
+              </th>
+            )}
             <th>Título</th>
             <th>Cliente</th>
             <th>Teléfono</th>
@@ -603,38 +738,212 @@ function TableView({
           </tr>
         </thead>
         <tbody>
-          {(
-            filteredTasks
-              .slice()
-              .sort((a, b) => a.date.localeCompare(b.date))
-              .map((task) => (
-                <tr key={task.id} onClick={() => onEditTask(task)}>
-                  <td>{task.title}</td>
-                  <td>{getClientName(task.clientId, clients)}</td>
-                  <td>{task.phone || "-"}</td>
-                  <td>{TASK_TYPES[task.type]?.label || task.type}</td>
-                  <td>{formatShortDate(task.date)}</td>
-                  <td>{task.startTime || "-"}</td>
-                  <td>{peopleFromIds(task.technicianIds, technicians)}</td>
-                  <td>
-                    <span className={`mini-status ${statusSlug(task.status)}`}>
-                      {task.status}
-                    </span>
+          {sortedTasks.map((task) => {
+            const isSelected = selectedIds.has(task.id);
+            return (
+              <tr
+                key={task.id}
+                className={isSelected ? "is-selected" : ""}
+                onClick={() => onEditTask(task)}
+              >
+                {canManage && (
+                  <td
+                    className="td-select"
+                    onClick={(e) => {
+                      // No queremos que un click en la celda del checkbox abra
+                      // el modal de la fila — el checkbox tiene su propio toggle.
+                      e.stopPropagation();
+                    }}
+                  >
+                    <RowCheckbox
+                      checked={isSelected}
+                      onChange={() => toggleOne(task.id)}
+                      label={`Seleccionar "${task.title}"`}
+                    />
                   </td>
-                  <td>
-                    <span className={`mini-priority ${getPriorityClass(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td>{task.estimatedTime || "-"}</td>
-                  <td>{task.vehicle || "-"}</td>
-                  <td>{task.attachments?.length || 0}</td>
-                </tr>
-              ))
-          )}
+                )}
+                <td>{task.title}</td>
+                <td>{getClientName(task.clientId, clients)}</td>
+                <td>{task.phone || "-"}</td>
+                <td>{TASK_TYPES[task.type]?.label || task.type}</td>
+                <td>{formatShortDate(task.date)}</td>
+                <td>{task.startTime || "-"}</td>
+                <td>{peopleFromIds(task.technicianIds, technicians)}</td>
+                <td>
+                  <span className={`mini-status ${statusSlug(task.status)}`}>
+                    {task.status}
+                  </span>
+                </td>
+                <td>
+                  <span className={`mini-priority ${getPriorityClass(task.priority)}`}>
+                    {task.priority}
+                  </span>
+                </td>
+                <td>{task.estimatedTime || "-"}</td>
+                <td>{task.vehicle || "-"}</td>
+                <td>{task.attachments?.length || 0}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Checkbox compartido para fila y header. Si se pasa `indeterminate`
+ * = true, se aplica al DOM via ref (no es un atributo HTML — sólo
+ * propiedad). Sin `indeterminate` se comporta como checkbox normal. */
+function RowCheckbox({ checked, indeterminate, onChange, label }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = !!indeterminate;
+  }, [indeterminate]);
+  return (
+    <label className="row-check" title={label}>
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        aria-label={label}
+      />
+      <span className="row-check-box" aria-hidden="true" />
+    </label>
+  );
+}
+
+/**
+ * Bulk action bar que aparece encima de la tabla cuando hay 1+ filas
+ * seleccionadas. Selects directos para estado y prioridad, input date
+ * para mover, botón rojo para eliminar y X para limpiar selección.
+ * `onApply(partial)` recibe `{ status }`, `{ priority }` o `{ date }`. */
+function BulkActionBar({ count, busy, onApply, onDelete, onClear }) {
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveDate, setMoveDate] = useState("");
+
+  function handleApplyDate() {
+    if (!moveDate) return;
+    onApply({ date: moveDate });
+    setMoveDate("");
+    setMoveOpen(false);
+  }
+
+  return (
+    <div className="bulk-bar" role="region" aria-label="Acciones masivas">
+      <div className="bulk-bar-count">
+        <span className="bulk-bar-count-num">{count}</span>
+        <span className="bulk-bar-count-label">
+          {count === 1 ? "seleccionada" : "seleccionadas"}
+        </span>
+      </div>
+
+      <div className="bulk-bar-divider" aria-hidden="true" />
+
+      <div className="bulk-bar-actions">
+        <label className="bulk-bar-action">
+          <span className="bulk-bar-action-label">Estado</span>
+          <select
+            className="bulk-bar-select"
+            value=""
+            disabled={busy}
+            onChange={(e) => e.target.value && onApply({ status: e.target.value })}
+          >
+            <option value="" disabled>—</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="bulk-bar-action">
+          <span className="bulk-bar-action-label">Prioridad</span>
+          <select
+            className="bulk-bar-select"
+            value=""
+            disabled={busy}
+            onChange={(e) => e.target.value && onApply({ priority: e.target.value })}
+          >
+            <option value="" disabled>—</option>
+            {PRIORITY_OPTIONS.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </label>
+
+        <div className="bulk-bar-action bulk-bar-action-date">
+          <span className="bulk-bar-action-label">Mover a</span>
+          {moveOpen ? (
+            <div className="bulk-bar-date-pop">
+              <input
+                type="date"
+                value={moveDate}
+                onChange={(e) => setMoveDate(e.target.value)}
+                disabled={busy}
+                autoFocus
+              />
+              <button
+                type="button"
+                className="bulk-bar-btn bulk-bar-btn-primary"
+                onClick={handleApplyDate}
+                disabled={busy || !moveDate}
+              >
+                Mover
+              </button>
+              <button
+                type="button"
+                className="bulk-bar-btn"
+                onClick={() => { setMoveOpen(false); setMoveDate(""); }}
+                disabled={busy}
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="bulk-bar-btn"
+              onClick={() => setMoveOpen(true)}
+              disabled={busy}
+            >
+              Elegir fecha…
+            </button>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="bulk-bar-btn bulk-bar-btn-danger"
+          onClick={onDelete}
+          disabled={busy}
+          aria-label={`Eliminar ${count} ${count === 1 ? "tarea" : "tareas"}`}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 6h18" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+          </svg>
+          Eliminar
+        </button>
+      </div>
+
+      <button
+        type="button"
+        className="bulk-bar-clear"
+        onClick={onClear}
+        disabled={busy}
+        aria-label="Limpiar selección"
+        title="Limpiar selección (Esc)"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   );
 }

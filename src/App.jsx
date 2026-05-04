@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 
 import { api } from "./lib/api";
 import { connectSocket, disconnectSocket } from "./lib/socket";
 import { useAuth } from "./hooks/useAuth";
 import { taskFromDb, taskToDb } from "./utils/taskMapper";
 import { todayISO, getCalendarGrid, getWeekGrid, addDays, shiftMonthIso } from "./utils/date";
-import { emptyTask, taskHaystack } from "./utils/task";
+import { emptyTask, taskHaystack, requiresAttention } from "./utils/task";
 import { TASK_TYPE_KEYS } from "./data/taskTypes";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUI } from "./hooks/useUI";
@@ -26,7 +26,31 @@ import InicioView from "./components/views/InicioView";
 import MiTrabajoView from "./components/views/MiTrabajoView";
 import SeguimientoView from "./components/views/SeguimientoView";
 import UsersView from "./components/views/UsersView";
-import InformesView from "./components/views/InformesView";
+
+// InformesView se carga bajo demanda. Trae recharts (~250KB), que no
+// es necesario en la mayoría de visitas a la app — la mayor parte del
+// tiempo se navega entre Inicio / Seguimiento / Mi Trabajo. Lazy aquí
+// reduce notablemente el bundle inicial y el time-to-interactive,
+// especialmente en móvil.
+const InformesView = lazy(() => import("./components/views/InformesView"));
+
+/**
+ * Fallback editorial mientras carga el chunk de Informes. Mismos
+ * tokens que el dashboard de Inicio: hairline + mono eyebrow + un
+ * par de placeholder pulse-bars para indicar "estamos trayendo
+ * datos pesados" sin spinner genérico. */
+function InformesLoadingFallback() {
+  return (
+    <div className="informes-loading">
+      <div className="informes-loading-eyebrow">CARGANDO · INFORMES</div>
+      <div className="informes-loading-skeleton" aria-hidden="true">
+        <div className="informes-loading-bar informes-loading-bar-1" />
+        <div className="informes-loading-bar informes-loading-bar-2" />
+        <div className="informes-loading-bar informes-loading-bar-3" />
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const { user } = useAuth();
@@ -249,6 +273,14 @@ export default function App() {
     done:    tasks.filter((t) => t.status === "Listo").length,
   }), [tasks]);
 
+  // Conteo de tareas que requieren atención. Se pinta como badge del
+  // sidebar en "Mi trabajo": el usuario ve urgencias sin entrar.
+  // Comparte predicado con MiTrabajoView vía utils/task.js.
+  const attentionCount = useMemo(
+    () => tasks.filter(requiresAttention).length,
+    [tasks]
+  );
+
   // ── CRUD — Tareas ────────────────────────────────────────
   // saveTask NO atrapa el error: lo re-lanza para que TaskModal muestre
   // los errores por campo (p. ej. validación zod del backend). Solo
@@ -296,16 +328,105 @@ export default function App() {
     setDraft(emptyTask(selectedDate));
   }
 
+  // ── CRUD — Operaciones masivas ───────────────────────────
+  // bulkUpdateTasks y bulkDeleteTasks alimentan el bulk-action-bar de
+  // la TableView de Seguimiento. Optimistic update local primero (UI
+  // responde al instante) + N requests en paralelo. Si alguno falla,
+  // rollback de sólo las filas afectadas y toast con el reporte.
+  //
+  // No hay endpoint bulk en el backend — usamos PATCH/DELETE
+  // individuales con Promise.allSettled. Para los volúmenes esperados
+  // (decenas máximo) es razonable y nos ahorra cambio de schema/API.
+  //
+  // Hot-path: convertimos `ids` a Set una vez antes de map/filter
+  // para que la búsqueda sea O(1) en lugar de O(ids·tasks). Con
+  // selecciones grandes sobre listados de cientos de tareas la
+  // diferencia es notable.
+  async function bulkUpdateTasks(ids, partial) {
+    if (!ids || ids.length === 0) return;
+    const idSet = new Set(ids);
+    const prevSnapshot = new Map(
+      tasks.filter((t) => idSet.has(t.id)).map((t) => [t.id, t])
+    );
+    setTasks((prev) =>
+      prev.map((t) => (idSet.has(t.id) ? { ...t, ...partial } : t))
+    );
+    const results = await Promise.allSettled(
+      ids.map((id) => api.patch(`/tasks/${id}`, partial))
+    );
+    const failedIds = results
+      .map((r, i) => (r.status === "rejected" ? ids[i] : null))
+      .filter(Boolean);
+    if (failedIds.length > 0) {
+      const failedSet = new Set(failedIds);
+      setTasks((prev) =>
+        prev.map((t) => (failedSet.has(t.id) ? prevSnapshot.get(t.id) : t))
+      );
+      const okCount = ids.length - failedIds.length;
+      toast.error(
+        okCount > 0
+          ? `Actualizadas ${okCount} de ${ids.length}. ${failedIds.length} fallaron.`
+          : "No se pudo aplicar el cambio masivo. Revisa la conexión."
+      );
+      return { ok: okCount, failed: failedIds.length };
+    }
+    toast.success(
+      ids.length === 1 ? "Tarea actualizada." : `${ids.length} tareas actualizadas.`
+    );
+    return { ok: ids.length, failed: 0 };
+  }
+
+  async function bulkDeleteTasks(ids) {
+    if (!ids || ids.length === 0) return;
+    const ok = await confirm({
+      title: ids.length === 1 ? "Borrar tarea" : `Borrar ${ids.length} tareas`,
+      message:
+        ids.length === 1
+          ? "¿Seguro que quieres borrar esta tarea? Esta acción no se puede deshacer."
+          : `¿Seguro que quieres borrar ${ids.length} tareas? Esta acción no se puede deshacer.`,
+      variant: "danger",
+      confirmLabel: ids.length === 1 ? "Borrar" : `Borrar ${ids.length}`,
+    });
+    if (!ok) return;
+    const idSet = new Set(ids);
+    const prevSnapshot = new Map(
+      tasks.filter((t) => idSet.has(t.id)).map((t) => [t.id, t])
+    );
+    setTasks((prev) => prev.filter((t) => !idSet.has(t.id)));
+    const results = await Promise.allSettled(
+      ids.map((id) => api.delete(`/tasks/${id}`))
+    );
+    const failedIds = results
+      .map((r, i) => (r.status === "rejected" ? ids[i] : null))
+      .filter(Boolean);
+    if (failedIds.length > 0) {
+      setTasks((prev) => {
+        const restored = failedIds.map((id) => prevSnapshot.get(id)).filter(Boolean);
+        return [...prev, ...restored];
+      });
+      const okCount = ids.length - failedIds.length;
+      toast.error(
+        okCount > 0
+          ? `Borradas ${okCount} de ${ids.length}. ${failedIds.length} fallaron.`
+          : "No se pudieron borrar las tareas."
+      );
+      return { ok: okCount, failed: failedIds.length };
+    }
+    toast.success(
+      ids.length === 1 ? "Tarea borrada." : `${ids.length} tareas borradas.`
+    );
+    return { ok: ids.length, failed: 0 };
+  }
+
+  // Drop & drop sobre el calendario: caso particular de bulkUpdateTasks
+  // con un solo id. Reutilizamos el patrón optimistic + rollback de
+  // arriba en lugar de mantener una segunda copia. Lo único específico
+  // es el short-circuit cuando la tarea se suelta en su mismo día.
   async function handleDropOnDate(date) {
     if (!draggedTaskId) return;
     const taskId = draggedTaskId;
     setDraggedTaskId(null);
 
-    // Optimistic update: actualizamos el estado local primero para
-    // que la pill aparezca en la celda destino al instante. Si el
-    // PATCH falla, hacemos rollback con el snapshot previo. Si la
-    // tarea cae en el mismo día de antes (drop sin cambio real),
-    // ahorramos el round-trip al backend.
     const prevTask = tasks.find((t) => t.id === taskId);
     if (!prevTask) return;
     if (prevTask.date === date) {
@@ -313,22 +434,8 @@ export default function App() {
       return;
     }
 
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, date } : t)));
     setSelectedDate(date);
-
-    try {
-      await api.patch(`/tasks/${taskId}`, { date });
-      // El socket emitirá tasks:change con la fila actualizada (más
-      // los cambios de updated_at, etc.) y el listener del estado
-      // global la mergeará. El optimistic update de arriba ya nos da
-      // la respuesta visual inmediata, así que aquí no hace falta
-      // tocar nada más.
-    } catch (err) {
-      // Rollback: restauramos la fila original. El usuario ve la
-      // pill volver a su sitio + un toast con el motivo.
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? prevTask : t)));
-      toast.error(err?.message || "No se pudo mover la tarea.");
-    }
+    await bulkUpdateTasks([taskId], { date });
   }
 
   // ── CRUD — Clientes ──────────────────────────────────────
@@ -484,7 +591,7 @@ export default function App() {
   // ── Render ───────────────────────────────────────────────
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar attentionCount={attentionCount} />
 
       <div className="main-shell">
         <Topbar
@@ -513,6 +620,8 @@ export default function App() {
               technicians={technicians}
               onEditTask={editTask}
               openNewTask={openNewTask}
+              bulkUpdateTasks={bulkUpdateTasks}
+              bulkDeleteTasks={bulkDeleteTasks}
             />
           ) : section === "inicio" ? (
             <section className="main-panel clients-main-panel full-width-panel">
@@ -550,12 +659,14 @@ export default function App() {
             </section>
           ) : section === "informes" ? (
             <section className="main-panel clients-main-panel full-width-panel">
-              <InformesView
-                tasks={tasks}
-                users={users}
-                clients={clients}
-                onEditTask={editTask}
-              />
+              <Suspense fallback={<InformesLoadingFallback />}>
+                <InformesView
+                  tasks={tasks}
+                  users={users}
+                  clients={clients}
+                  onEditTask={editTask}
+                />
+              </Suspense>
             </section>
           ) : (
             <section className="main-panel clients-main-panel full-width-panel">

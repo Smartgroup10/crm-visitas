@@ -776,6 +776,51 @@
   padding: 32px 24px;
 }
 
+/* ─── INFORMES LOADING (fallback de Suspense) ──────────────
+   Cuando el chunk de Informes se está descargando (lazy-load).
+   Editorial — mono eyebrow + 3 placeholder bars con pulso suave. */
+.informes-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 48px 32px;
+  max-width: 720px;
+  margin: 32px auto 0;
+}
+.informes-loading-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+}
+.informes-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+.informes-loading-bar {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunken) 0%,
+    var(--line-warm) 50%,
+    var(--surface-sunken) 100%
+  );
+  background-size: 240% 100%;
+  animation: informes-loading-shimmer 1.6s ease-in-out infinite;
+}
+.informes-loading-bar-1 { width: 70%; }
+.informes-loading-bar-2 { width: 92%; }
+.informes-loading-bar-3 { width: 56%; }
+
+@keyframes informes-loading-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 @media (max-width: 760px) {
   .informes-header {
     flex-direction: column;

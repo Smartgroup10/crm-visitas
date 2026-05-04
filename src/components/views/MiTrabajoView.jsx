@@ -2,6 +2,7 @@ import { TASK_TYPES } from "../../data/taskTypes";
 import { todayISO, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
+import { getAttentionTasks } from "../../utils/task";
 import { IconAlert } from "../Icon";
 import { usePermissions } from "../../hooks/usePermissions";
 import EmptyState from "../EmptyState";
@@ -11,13 +12,13 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask,
   const { canManage } = usePermissions();
   const today = todayISO();
 
-  const requiresAction = tasks
-    .filter((t) => t.status === "Bloqueado" || (t.priority === "Urgente" && t.status === "No iniciado"))
-    .sort((a, b) => {
-      if (a.status === "Bloqueado" && b.status !== "Bloqueado") return -1;
-      if (b.status === "Bloqueado" && a.status !== "Bloqueado") return 1;
-      return a.date.localeCompare(b.date);
-    });
+  // Bloqueadas primero, luego por fecha asc. El predicado base lo aporta
+  // utils/task.js — aquí sólo añadimos el orden específico de esta vista.
+  const requiresAction = getAttentionTasks(tasks).sort((a, b) => {
+    if (a.status === "Bloqueado" && b.status !== "Bloqueado") return -1;
+    if (b.status === "Bloqueado" && a.status !== "Bloqueado") return 1;
+    return a.date.localeCompare(b.date);
+  });
 
   const agendaHoy = tasks
     .filter((t) => t.date === today)
