@@ -25,6 +25,20 @@ const SUBTITLES = {
   informes: "Histórico, estadísticas y rendimiento",
 };
 
+// Selector de sección visible sólo en móvil. Mismas opciones que el
+// sidebar (con etiquetas "cortas" tipo Sidebar — "Seguimiento", no
+// "Seguimiento de intervenciones") para que la pill sea legible en
+// pantallas estrechas. En desktop el CSS lo oculta y la sidebar es
+// la que manda.
+const SECTION_OPTIONS = [
+  { value: "inicio",        label: "Inicio" },
+  { value: "mitrabajo",     label: "Mi trabajo" },
+  { value: "instalaciones", label: "Seguimiento" },
+  { value: "clientes",      label: "Clientes" },
+  { value: "usuarios",      label: "Equipo" },
+  { value: "informes",      label: "Informes" },
+];
+
 export default function Topbar({ stats, technicians, openNewTask, onOpenPalette }) {
   const { canManage } = usePermissions();
   const { theme, toggleTheme } = useTheme();
@@ -45,6 +59,7 @@ export default function Topbar({ stats, technicians, openNewTask, onOpenPalette 
     statusFilter,
     priorityFilter,
     categoryFilter,
+    setSection,
     setActiveView,
     setSearch,
     setPersonFilter,
@@ -74,6 +89,36 @@ export default function Topbar({ stats, technicians, openNewTask, onOpenPalette 
         <div className="top-title-block">
           <h1>{TITLES[section]}</h1>
           <p>{SUBTITLES[section]}</p>
+        </div>
+
+        {/* Selector de sección móvil. CSS lo oculta en desktop (donde
+            manda la sidebar). En móvil reemplaza al title-block —
+            tap → native select → cualquier sección. Usar `<select>`
+            nativo gana por accesibilidad y porque iOS/Android pintan
+            su propia hoja de selección, que es la UX que el usuario
+            espera de un picker. */}
+        <div className="topbar-section-select-wrap">
+          <span className="topbar-section-select-label" aria-hidden="true">
+            {SECTION_OPTIONS.find((o) => o.value === section)?.label || "Sección"}
+          </span>
+          <svg
+            className="topbar-section-select-chevron"
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+          <select
+            className="topbar-section-select"
+            value={section}
+            onChange={(e) => setSection(e.target.value)}
+            aria-label="Cambiar de sección"
+          >
+            {SECTION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="top-actions">
