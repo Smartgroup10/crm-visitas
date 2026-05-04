@@ -102,9 +102,12 @@ export default function CommandPalette({
   // peor para el rendimiento — preferimos suprimir el warning aquí.
   useEffect(() => {
     if (open) {
+      // Reset síncrono al abrir: query vacío + cursor en la primera
+      // opción. Es el efecto canónico "sync state cuando una prop
+      // booleana se vuelve true". Cualquier alternativa (cambiar key
+      // desde el padre, mover el estado fuera) tiene peor coste.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery("");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelected(0);
       // Pequeño delay: si ponemos focus síncronamente, algunos
       // navegadores no lo aplican porque el modal aún no es visible.

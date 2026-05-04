@@ -83,32 +83,51 @@
 .hidden-input { display: none; }
 
 .attachments-box {
-  border: 1.5px solid var(--line-main);
-  border-radius: var(--radius-md);
-  padding: 10px;
-  background: var(--bg-soft);
+  border: 1px solid var(--line-warm);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-sunken);
 }
-.attachments-actions { margin-bottom: 8px; }
-.attachments-empty { color: var(--text-soft); font-size: 12px; }
+.attachments-actions { margin-bottom: 10px; }
+.attachments-empty {
+  color: var(--ink-muted);
+  font-size: 12px;
+  letter-spacing: -0.005em;
+}
 .attachments-list { display: flex; flex-direction: column; gap: 6px; }
 
 .attachment-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  border: 1.5px solid var(--line-main);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  padding: 7px 10px;
+  gap: 10px;
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 8px 11px;
+  transition: border-color var(--t-fast);
 }
-.attachment-name { font-size: 12.5px; color: var(--text-strong); font-weight: 600; }
-.attachment-meta { margin-top: 2px; font-size: 11px; color: var(--text-soft); }
+.attachment-item:hover {
+  border-color: var(--line-warm-strong);
+}
+.attachment-name {
+  font-size: 12.5px;
+  color: var(--ink-strong);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.attachment-meta {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
 
 /* ─── COMPACT INLINE "NEW CLIENT" WIDGET ──────────────── */
 .client-field {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: stretch;
 }
 .client-field > select {
@@ -117,30 +136,33 @@
 }
 .client-field-toggle {
   flex-shrink: 0;
-  padding: 0 12px;
-  border: 1.5px solid var(--line-main);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-main);
+  padding: 0 14px;
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  letter-spacing: -0.005em;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
   white-space: nowrap;
 }
 .client-field-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--line-warm-strong);
+  color: var(--ink-strong);
+  background: var(--surface-sunken);
 }
 .client-field-toggle[aria-expanded="true"] {
-  background: var(--bg-soft);
-  border-color: var(--line-soft);
-  color: var(--text-soft);
+  background: var(--surface-sunken);
+  border-color: var(--line-warm-soft);
+  color: var(--ink-faint);
 }
 .client-new-inline {
   display: flex;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 8px;
   align-items: stretch;
 }
 .client-new-inline input {
@@ -182,12 +204,13 @@
 /* ─── FIELD ERROR (errores de validación bajo inputs) ── */
 .field-error {
   font-size: 11.5px;
-  color: var(--c-blocked);
-  margin-top: 3px;
-  line-height: 1.3;
+  color: #991b1b;
+  margin-top: 4px;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
 }
 input.has-error,
 select.has-error,
 textarea.has-error {
-  border-color: var(--c-blocked) !important;
+  border-color: #dc2626 !important;
 }

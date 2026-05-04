@@ -23,7 +23,13 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Variables y argumentos en MAYÚSCULA inicial (componentes React,
+      // tipos) se ignoran. Esto cubre el patrón `function NavItem({ icon: Icon })`
+      // donde `Icon` se usa via JSX y eslint base no lo detecta.
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^[A-Z_]',
+      }],
     },
   },
 ])

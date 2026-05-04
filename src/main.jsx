@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components --
+ * Entry point: este archivo monta la app. `Root` es un wrapper local
+ * que decide entre LoginPage y App según authLoading + user. No se
+ * exporta a propósito (no hay consumidor externo). */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

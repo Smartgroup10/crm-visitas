@@ -137,25 +137,35 @@
   color: var(--ink-strong);
 }
 
-/* ─── COUNTER MODAL INTERNALS ───────────────────────── */
-.counter-modal-search { padding: 0 20px 12px; border-bottom: 1px solid var(--line-soft); margin-bottom: 12px; }
-.counter-modal-list { display: flex; flex-direction: column; gap: 8px; padding: 0 20px 16px; }
+/* ─── COUNTER MODAL INTERNALS — Field Engineering ────── */
+.counter-modal-search {
+  padding: 0 24px 14px;
+  border-bottom: 1px solid var(--line-warm-soft);
+  margin-bottom: 14px;
+}
+.counter-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 24px 20px;
+}
 
-.counter-date-group { display: flex; flex-direction: column; gap: 7px; }
+.counter-date-group { display: flex; flex-direction: column; gap: 8px; }
 
 .counter-date-heading {
   position: sticky;
   top: 0;
   z-index: 1;
-  border: 1px solid var(--line-main);
-  border-radius: var(--radius-sm);
-  background: var(--bg-soft);
-  color: var(--text-main);
-  font-weight: 700;
-  font-size: 11.5px;
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 10.5px;
   padding: 5px 10px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.10em;
 }
 
 .counter-date-items { display: flex; flex-direction: column; gap: 6px; }
@@ -163,24 +173,38 @@
 .counter-task-card {
   width: 100%;
   text-align: left;
-  background: var(--bg-surface);
-  color: var(--text-strong);
-  border: 1.5px solid var(--line-main);
-  border-radius: var(--radius-md);
-  padding: 11px 13px;
+  background: var(--surface);
+  color: var(--ink-strong);
+  border: 1px solid var(--line-warm);
+  border-radius: 8px;
+  padding: 12px 14px;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background var(--t-fast), border-color var(--t-fast), padding-left var(--t-fast);
 }
-.counter-task-card:hover { background: var(--bg-soft); border-color: #adc8f8; }
+.counter-task-card:hover {
+  background: var(--surface-sunken);
+  border-color: var(--line-warm-strong);
+  padding-left: 17px;
+}
 
-.counter-task-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
-.counter-task-meta { color: var(--text-soft); font-size: 12px; margin-top: 3px; }
+.counter-task-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.counter-task-meta {
+  color: var(--ink-muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
 
 /* Filtros en toolbar */
 .toolbar-filters {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -188,24 +212,30 @@
   width: auto;
   min-width: 0;
   height: 32px;
-  padding: 0 26px 0 9px;
+  padding: 0 26px 0 10px;
+  font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 500;
-  background: var(--bg-surface);
-  border: 1.5px solid var(--line-main);
-  border-radius: var(--radius-md);
-  color: var(--text-main);
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
+  color: var(--ink-strong);
   cursor: pointer;
-  transition: border-color 0.12s;
+  letter-spacing: -0.005em;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.toolbar-filter-select:hover {
+  border-color: var(--line-warm-strong);
+  background: var(--surface-sunken);
 }
 .toolbar-filter-select:focus {
+  outline: none;
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(0,115,234,0.13);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
-/* Resalta cuando tiene un filtro activo aplicado */
-.toolbar-filter-select:not([data-active="false"]) { }
 select.toolbar-filter-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a7a96' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  /* Caret en stone-500 — alineado con paleta warm. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2378716c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
   appearance: none;
@@ -229,11 +259,12 @@ select.toolbar-filter-select {
   .task-type-tag { font-size: 10px; padding: 3px 8px; }
 }
 
-/* ─── CONFIRM DIALOG ─────────────────────────────────── */
+/* ─── CONFIRM DIALOG — Field Engineering ─────────────── */
 .confirm-dialog {
-  background: var(--bg-surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-modal);
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 12px;
+  box-shadow: var(--shadow-overlay);
   padding: 22px 24px 18px;
   max-width: min(440px, calc(100vw - 32px));
   width: 100%;
@@ -241,16 +272,19 @@ select.toolbar-filter-select {
 }
 .confirm-dialog-title {
   margin: 0 0 8px;
-  font-size: 17px;
+  font-family: var(--font-sans);
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-strong);
+  color: var(--ink-strong);
+  letter-spacing: -0.01em;
 }
 .confirm-dialog-message {
-  margin: 0 0 18px;
+  margin: 0 0 20px;
   font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--text-soft);
+  line-height: 1.55;
+  color: var(--ink-muted);
   white-space: pre-line;
+  letter-spacing: -0.005em;
 }
 .confirm-dialog-actions {
   display: flex;
@@ -258,7 +292,7 @@ select.toolbar-filter-select {
   gap: 8px;
 }
 .confirm-dialog--danger .confirm-dialog-title {
-  color: var(--c-blocked);
+  color: #991b1b;
 }
 
 @keyframes confirm-in {
@@ -266,11 +300,12 @@ select.toolbar-filter-select {
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* ─── SHORTCUTS HELP MODAL ─────────────────────────────── */
+/* ─── SHORTCUTS HELP MODAL — Field Engineering ──────── */
 .shortcuts-help {
-  background: var(--bg-surface, #fff);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-modal, 0 20px 40px rgba(0,0,0,0.18));
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 12px;
+  box-shadow: var(--shadow-overlay);
   max-width: 520px;
   width: calc(100% - 32px);
   max-height: 90vh;
@@ -281,25 +316,29 @@ select.toolbar-filter-select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px 8px;
-  border-bottom: 1px solid var(--border-subtle, rgba(0,0,0,0.08));
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--line-warm-soft);
 }
 .shortcuts-help-header h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-strong);
+  letter-spacing: -0.01em;
 }
 .shortcuts-help-body {
-  padding: 14px 20px 4px;
+  padding: 16px 24px 6px;
   display: grid;
-  gap: 14px;
+  gap: 18px;
 }
 .shortcuts-group h4 {
-  margin: 0 0 8px 0;
-  font-size: 11px;
+  margin: 0 0 10px 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-soft, #6b7280);
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
   font-weight: 600;
 }
 .shortcuts-group ul {
@@ -310,93 +349,103 @@ select.toolbar-filter-select {
 .shortcuts-group li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 6px 0;
-  font-size: 13.5px;
+  font-size: 13px;
+  color: var(--ink);
 }
 .shortcuts-keys {
-  flex: 0 0 120px;
+  flex: 0 0 130px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
 }
 .shortcuts-plus {
-  color: var(--text-soft, #6b7280);
+  font-family: var(--font-mono);
+  color: var(--ink-faint);
   font-size: 11px;
   margin: 0 2px;
 }
 .shortcuts-help kbd {
   display: inline-block;
   min-width: 22px;
-  padding: 2px 6px;
-  background: var(--bg-surface-alt, #f3f4f6);
-  border: 1px solid var(--border-subtle, rgba(0,0,0,0.15));
+  padding: 2px 7px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-warm);
   border-bottom-width: 2px;
   border-radius: 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11.5px;
-  line-height: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.3;
   text-align: center;
-  color: var(--text-strong, #111827);
+  color: var(--ink-strong);
+  letter-spacing: 0.02em;
 }
 .shortcuts-desc {
-  color: var(--text-soft, #374151);
+  color: var(--ink-muted);
+  letter-spacing: -0.005em;
 }
 .shortcuts-help-footer {
-  padding: 8px 20px 18px;
-  border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08));
-  margin-top: 6px;
+  padding: 12px 24px 20px;
+  border-top: 1px solid var(--line-warm-soft);
+  margin-top: 8px;
 }
 .shortcuts-help-footer p {
   margin: 0;
-  font-size: 12px;
-  color: var(--text-soft, #6b7280);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
 }
 
-/* ─── PREFERENCIAS ────────────────────────────────────────
-   Toggle "Recibir avisos por email" del PreferencesModal: layout horizontal,
-   checkbox grande y subtítulo discreto debajo del label. */
+/* ─── PREFERENCIAS — Field Engineering ────────────────────
+   Toggle "Recibir avisos por email" del PreferencesModal:
+   checkbox accent brand + label + sublabel mono. */
 .prefs-toggle {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 0;
 }
 .prefs-toggle input[type="checkbox"] {
   margin-top: 4px;
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: var(--c-primary, #2563eb);
+  accent-color: var(--brand);
+  flex: 0 0 auto;
 }
 .prefs-toggle > span {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .prefs-toggle strong {
-  font-size: 14px;
-  color: var(--text-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-strong);
+  letter-spacing: -0.005em;
 }
 .prefs-toggle small {
-  font-size: 12px;
-  color: var(--text-soft);
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  line-height: 1.45;
 }
 
-/* ─── RECORDATORIOS PERSONALES ───────────────────────────
-   Modal y panel "Mis recordatorios": presets temporales en chips,
-   selector de fecha+hora, y tarjetas con botón de descartar a la derecha. */
+/* ─── RECORDATORIOS PERSONALES — Field Engineering ───────
+   Modal "Mis recordatorios": presets en chips, selector fecha+hora,
+   tarjetas con botón descartar a la derecha. */
 .reminder-presets {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .reminder-when {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 .reminder-when input[type="date"],
@@ -404,9 +453,6 @@ select.toolbar-filter-select {
   flex: 1;
 }
 
-/* Tarjetas de recordatorio en el panel: layout en fila con un botón de
-   descarte en la esquina. Reusan .day-task-card como base para alinearse
-   visualmente con el resto del dashboard. */
 .reminder-card {
   position: relative;
   display: flex;
@@ -423,23 +469,30 @@ select.toolbar-filter-select {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  transition: background var(--t-fast);
 }
-.reminder-card .reminder-main:hover { background: var(--bg-soft); }
-.reminder-card.is-past .day-task-top strong { color: var(--c-red-700, #b91c1c); }
+.reminder-card .reminder-main:hover {
+  background: var(--surface-sunken);
+}
+.reminder-card.is-past .day-task-top strong {
+  color: #991b1b;
+}
 
 .reminder-when-pill {
-  font-size: 11px;
-  color: var(--text-soft);
-  background: var(--bg-soft);
-  border: 1px solid var(--line-soft);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-warm);
   padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 .reminder-card.is-past .reminder-when-pill {
-  color: var(--c-red-700, #b91c1c);
-  border-color: var(--c-red-100, #fecaca);
-  background: var(--c-red-50, #fef2f2);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.22);
+  background: rgba(220, 38, 38, 0.08);
 }
 
 .reminder-body {
@@ -454,14 +507,18 @@ select.toolbar-filter-select {
   right: 6px;
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   border: 0;
-  color: var(--text-soft);
+  color: var(--ink-faint);
   font-size: 18px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: background var(--t-fast), color var(--t-fast);
 }
-.reminder-dismiss:hover { background: var(--bg-soft); color: var(--text-strong); }
+.reminder-dismiss:hover {
+  background: var(--surface-sunken);
+  color: var(--ink-strong);
+}

@@ -1,3 +1,8 @@
+/* eslint-disable react-refresh/only-export-components --
+ * Context + Provider conviven en este archivo a propósito (patrón
+ * estándar React). El coste es perder fast-refresh granular al
+ * editar este archivo concreto — irrelevante en práctica porque
+ * casi nunca se toca. */
 import { createContext, useEffect, useState, useCallback } from "react";
 import { api, setToken, clearToken, getToken } from "../lib/api";
 import { disconnectSocket } from "../lib/socket";
