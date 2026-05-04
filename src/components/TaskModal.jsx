@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../data/constants";
 import {
@@ -8,7 +8,10 @@ import {
   defaultsForType,
 } from "../data/taskTypes";
 import { validateTask } from "../utils/validation";
+import { findTaskConflicts } from "../utils/task";
+import { peopleFromIds } from "../utils/id";
 import { usePermissions } from "../hooks/usePermissions";
+import { IconAlert } from "./Icon";
 import TaskActivityTimeline from "./TaskActivityTimeline";
 import TaskCommentsThread from "./TaskCommentsThread";
 import { useTaskTemplates } from "../hooks/useTaskTemplates";
@@ -41,6 +44,7 @@ export default function TaskModal({
   isEditing,
   clients,
   technicians,
+  tasks,
   newClientName,
   setNewClientName,
   addClient,
@@ -88,6 +92,15 @@ export default function TaskModal({
   const [busy, setBusy] = useState(false);
   const { canManage } = usePermissions();
   const readOnly = !canManage;
+
+  // Detección de solapamiento: ¿hay otras tareas que comparten algún
+  // técnico y caen en la misma franja horaria? El cálculo es barato
+  // (filtro lineal con math simple) — recalculamos cuando cambian
+  // fecha, hora, técnicos o duración estimada del draft.
+  const conflicts = useMemo(
+    () => findTaskConflicts(draft, tasks || []),
+    [draft, tasks]
+  );
 
   // Al cerrar el modal, plegamos el alta inline y reseteamos errores/busy.
   // Es un reset síncrono de estado local atado al ciclo de vida del modal,
@@ -352,6 +365,10 @@ export default function TaskModal({
                   {errors.technicianIds && <div className="field-error">{errors.technicianIds}</div>}
                 </div>
               </div>
+
+              {conflicts.length > 0 && (
+                <TaskConflictWarning conflicts={conflicts} technicians={technicians} />
+              )}
             </div>
 
             {/* ─── Planificación ─────────────── */}
@@ -501,6 +518,57 @@ export default function TaskModal({
             )}
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Aviso visible cuando el draft solapa con otras tareas existentes
+ * que comparten algún técnico. No es bloqueante — el supervisor
+ * puede seguir y guardar (a veces se solapa a propósito: una visita
+ * corta + algo más, dos cosas en el mismo sitio…). Sólo informa.
+ *
+ * Lista compacta con hora + título + técnicos para que sea evidente
+ * con quién y cuándo se está produciendo el cruce. */
+function TaskConflictWarning({ conflicts, technicians }) {
+  const visible = conflicts.slice(0, 5);
+  const hidden = conflicts.length - visible.length;
+
+  return (
+    <div className="task-conflict" role="alert">
+      <span className="task-conflict-icon" aria-hidden="true">
+        <IconAlert />
+      </span>
+      <div className="task-conflict-body">
+        <div className="task-conflict-headline">
+          <strong>
+            {conflicts.length === 1
+              ? "Solapamiento de horario detectado"
+              : `${conflicts.length} solapamientos de horario detectados`}
+          </strong>
+          <span className="task-conflict-sub">
+            {conflicts.length === 1
+              ? "Un técnico ya tiene otra tarea en esta franja. Puedes guardar igualmente."
+              : "Algún técnico ya tiene otras tareas en esta franja. Puedes guardar igualmente."}
+          </span>
+        </div>
+        <ul className="task-conflict-list">
+          {visible.map((c) => (
+            <li key={c.id} className="task-conflict-item">
+              <span className="task-conflict-time">{c.startTime}</span>
+              <span className="task-conflict-name" title={c.title || "Sin título"}>
+                {c.title || "Sin título"}
+              </span>
+              <span className="task-conflict-techs">
+                {peopleFromIds(c.technicianIds, technicians) || "—"}
+              </span>
+            </li>
+          ))}
+          {hidden > 0 && (
+            <li className="task-conflict-more">+ {hidden} más</li>
+          )}
+        </ul>
       </div>
     </div>
   );

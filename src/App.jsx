@@ -693,6 +693,7 @@ export default function App() {
         isEditing={Boolean(draft.id)}
         clients={clients}
         technicians={technicians}
+        tasks={tasks}
         newClientName={newClientName}
         setNewClientName={setNewClientName}
         addClient={addClientFromModal}
