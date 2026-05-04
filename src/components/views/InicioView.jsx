@@ -1,34 +1,66 @@
+import { useEffect, useMemo, useState } from "react";
+
 import { TECH_AVATAR_COLORS } from "../../data/constants";
 import { TASK_TYPES } from "../../data/taskTypes";
 import { todayISO, addDays, formatShortDate } from "../../utils/date";
 import { getClientName, peopleFromIds } from "../../utils/id";
 import { statusSlug, getPriorityClass } from "../../utils/status";
 import { usePermissions } from "../../hooks/usePermissions";
-import { useAuth } from "../../hooks/useAuth";
 import EmptyState from "../EmptyState";
 
 /**
- * Inicio (dashboard) — Field Engineering aesthetic.
+ * Inicio (panel operativo) — Field Engineering aesthetic.
+ *
+ * Sin greeting personal, sin frase motivacional, sin tipografía
+ * decorativa. La pantalla arranca con un status-bar tipo control
+ * room: reloj vivo + fecha + semana ISO + datos crudos del día.
+ * El usuario abre la app y ve operación, no una tarjeta de bienvenida.
  *
  * Estructura:
- *   1. Hero con kicker mono + greeting en serif italic + subline
- *      adaptativa (cambia el tono según el estado del día).
- *   2. KPI tiles en grid unificado (sin cards flotantes — un único
- *      contenedor con hairlines internas). La última tile va en
- *      navy oscuro como "feature" con barra de progreso.
- *   3. Banner de alerta (sólo si hay tareas bloqueadas).
+ *   1. Status-bar superior: clock vivo + datos del día.
+ *   2. KPI tiles igualados (sin "feature tile" navy decorativa).
+ *   3. Banner de bloqueadas (solo si hay).
  *   4. Grid 2-col: Hoy y mañana | Próximos 7 días.
- *   5. Grid 2-col: Carga por técnico (ranking 01-N) | Urgente / Bloqueado.
- *
- * Tipografía: números en JetBrains Mono tabular, etiquetas mono
- * uppercase, greeting en Instrument Serif. Inter para el resto.
+ *   5. Grid 2-col: Carga por técnico | Urgente / Bloqueado.
  */
+
+// ISO 8601: la semana que contiene el jueves manda. Mismo cálculo que
+// usa Linear, GitHub, Outlook. No depende de zona horaria.
+function isoWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+}
+
+function formatClock(d) {
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
+}
+
+function formatDateBar(d) {
+  const dow = d.toLocaleDateString("es-ES", { weekday: "short" }).replace(/\./g, "");
+  const day = String(d.getDate()).padStart(2, "0");
+  const mon = d.toLocaleDateString("es-ES", { month: "short" }).replace(/\./g, "");
+  const year = d.getFullYear();
+  return `${dow.toUpperCase()} ${day} ${mon.toUpperCase()} ${year}`;
+}
+
 export default function InicioView({ tasks, clients, technicians, onEditTask, openNewTask }) {
   const { canManage } = usePermissions();
-  const { user } = useAuth();
   const today = todayISO();
   const tomorrow = addDays(today, 1);
   const in7 = addDays(today, 7);
+
+  // Reloj vivo. Tick cada segundo. Coste despreciable; el efecto
+  // visual es lo que separa un dashboard "vivo" de uno "estático".
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ─── KPIs ──────────────────────────────────────
   const kpiPending  = tasks.filter((t) => t.status === "No iniciado");
@@ -38,27 +70,34 @@ export default function InicioView({ tasks, clients, technicians, onEditTask, op
   const kpiDone     = tasks.filter((t) => t.status === "Listo");
   const kpiDoneRate = tasks.length ? Math.round((kpiDone.length / tasks.length) * 100) : 0;
 
-  // ─── Listas derivadas ─────────────────────────
-  const urgentOrBlocked = tasks
+  // ─── Listas derivadas (memoizadas para no re-sortear con el clock tick) ─
+  const urgentOrBlocked = useMemo(() => tasks
     .filter((t) => t.status === "Bloqueado" || (t.priority === "Urgente" && t.status !== "Listo"))
     .sort((a, b) => {
       if (a.status === "Bloqueado" && b.status !== "Bloqueado") return -1;
       if (b.status === "Bloqueado" && a.status !== "Bloqueado") return 1;
       return a.date.localeCompare(b.date);
     })
-    .slice(0, 8);
+    .slice(0, 8), [tasks]);
 
-  const todayAndTomorrow = tasks
+  const todayAndTomorrow = useMemo(() => tasks
     .filter((t) => t.date === today || t.date === tomorrow)
     .sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || "99").localeCompare(b.startTime || "99"))
-    .slice(0, 6);
+    .slice(0, 6), [tasks, today, tomorrow]);
 
-  const next7 = tasks
+  const next7 = useMemo(() => tasks
     .filter((t) => t.date > tomorrow && t.date <= in7)
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 6);
+    .slice(0, 6), [tasks, tomorrow, in7]);
 
-  const techLoad = technicians.map((tech) => {
+  // Total de la semana (próximos 7 incluyendo hoy y mañana) para el
+  // contador del status-bar — distinto del slice(0, 6) que pinta la lista.
+  const next7TotalCount = useMemo(
+    () => tasks.filter((t) => t.date >= today && t.date <= in7).length,
+    [tasks, today, in7]
+  );
+
+  const techLoad = useMemo(() => technicians.map((tech) => {
     const tt = tasks.filter((t) => t.technicianIds.includes(tech.id));
     return {
       ...tech,
@@ -69,66 +108,57 @@ export default function InicioView({ tasks, clients, technicians, onEditTask, op
   })
   .filter((t) => t.total > 0)
   .sort((a, b) => b.active - a.active || b.total - a.total)
-  .slice(0, 6);
+  .slice(0, 6), [technicians, tasks]);
 
   const maxLoad = Math.max(...techLoad.map((t) => t.total), 1);
 
-  // ─── Hero ──────────────────────────────────────
-  const firstName =
-    (user?.name?.split(" ")[0]) ||
-    (user?.email?.split("@")[0]) ||
-    "";
-
-  // Etiqueta de fecha en uppercase mono: "MIÉ · 28 ABR"
-  const dateLabel = (() => {
-    const d = new Date();
-    const dow = d.toLocaleDateString("es-ES", { weekday: "short" }).replace(/\./g, "");
-    const day = String(d.getDate()).padStart(2, "0");
-    const mon = d.toLocaleDateString("es-ES", { month: "short" }).replace(/\./g, "");
-    return `${dow.toUpperCase()} · ${day} ${mon.toUpperCase()}`;
-  })();
-
-  // Subline adaptativa: prioriza lo que más urge.
-  const subline = (() => {
-    if (kpiBlocked.length > 0) {
-      const n = kpiBlocked.length;
-      return n === 1
-        ? "Hay 1 incidencia bloqueada que requiere atención."
-        : `Hay ${n} incidencias bloqueadas que requieren atención.`;
-    }
-    if (kpiToday.length > 0) {
-      const n = kpiToday.length;
-      return n === 1
-        ? "Tienes 1 tarea programada para hoy."
-        : `Tienes ${n} tareas programadas para hoy.`;
-    }
-    if (next7.length > 0) {
-      const n = next7.length;
-      return n === 1
-        ? "Próxima semana: 1 tarea planificada."
-        : `Próxima semana: ${n} tareas planificadas.`;
-    }
-    return "Todo bajo control. Buen momento para planificar la semana.";
-  })();
-
   const hasBlocked = kpiBlocked.length > 0;
+  const week = isoWeek(now);
 
   return (
     <div className="inicio-view-v2">
-      {/* ─── HERO ─────────────────────────────────── */}
-      <header className="inicio-hero">
-        <div className="inicio-eyebrow">
-          <span>PANEL DE OPERACIONES</span>
-          <span className="inicio-eyebrow-sep" aria-hidden="true">·</span>
-          <span className="inicio-eyebrow-date">{dateLabel}</span>
+      {/* ─── STATUS BAR (no greeting, todo dato) ─────────── */}
+      <header className="inicio-statusbar" aria-label="Estado operativo">
+        <div className="inicio-statusbar-left">
+          <span className="inicio-statusbar-pulse" aria-hidden="true" />
+          <span className="inicio-statusbar-clock" title="Hora local">
+            {formatClock(now)}
+          </span>
+          <span className="inicio-statusbar-sep" aria-hidden="true">·</span>
+          <span className="inicio-statusbar-date">{formatDateBar(now)}</span>
+          <span className="inicio-statusbar-sep" aria-hidden="true">·</span>
+          <span className="inicio-statusbar-week" title="Semana ISO">
+            S.{String(week).padStart(2, "0")}
+          </span>
         </div>
-        <h1 className="inicio-greeting">
-          Hola, <em>{firstName || "equipo"}</em>.
-        </h1>
-        <p className="inicio-subline">{subline}</p>
+        <div className="inicio-statusbar-right" aria-label="Resumen del día">
+          {kpiBlocked.length > 0 && (
+            <>
+              <span className="inicio-statusbar-stat is-warn">
+                <span className="inicio-statusbar-num">{kpiBlocked.length}</span>
+                <span className="inicio-statusbar-stat-label">bloq</span>
+              </span>
+              <span className="inicio-statusbar-sep" aria-hidden="true">·</span>
+            </>
+          )}
+          <span className="inicio-statusbar-stat">
+            <span className="inicio-statusbar-num">{kpiToday.length}</span>
+            <span className="inicio-statusbar-stat-label">hoy</span>
+          </span>
+          <span className="inicio-statusbar-sep" aria-hidden="true">·</span>
+          <span className="inicio-statusbar-stat">
+            <span className="inicio-statusbar-num">{next7TotalCount}</span>
+            <span className="inicio-statusbar-stat-label">próx 7d</span>
+          </span>
+          <span className="inicio-statusbar-sep" aria-hidden="true">·</span>
+          <span className="inicio-statusbar-stat">
+            <span className="inicio-statusbar-num">{tasks.length}</span>
+            <span className="inicio-statusbar-stat-label">total</span>
+          </span>
+        </div>
       </header>
 
-      {/* ─── KPI TILES ─────────────────────────────── */}
+      {/* ─── KPI TILES (igualadas, sin "feature tile" navy) ─ */}
       <section className="kpi-tiles" aria-label="Indicadores clave">
         <div className="kpi-tile">
           <div className="kpi-tile-label">PENDIENTES</div>
@@ -183,17 +213,17 @@ export default function InicioView({ tasks, clients, technicians, onEditTask, op
           </div>
         </div>
 
-        <div className="kpi-tile kpi-tile-feature">
+        <div className="kpi-tile">
           <div className="kpi-tile-label">COMPLETADAS</div>
           <div className="kpi-tile-value">
             {kpiDoneRate}
             <span className="kpi-tile-value-unit">%</span>
           </div>
-          <div className="kpi-tile-progress" aria-label={`${kpiDoneRate} por ciento completadas`}>
+          <div className="kpi-tile-progress kpi-tile-progress-flat" aria-label={`${kpiDoneRate} por ciento`}>
             <div className="kpi-tile-progress-bar" style={{ width: `${kpiDoneRate}%` }} />
           </div>
           <div className="kpi-tile-meta">
-            <span>{kpiDone.length} de {tasks.length} tareas</span>
+            <span>{kpiDone.length} de {tasks.length}</span>
           </div>
         </div>
       </section>
@@ -206,9 +236,7 @@ export default function InicioView({ tasks, clients, technicians, onEditTask, op
             <strong>
               {kpiBlocked.length} {kpiBlocked.length === 1 ? "tarea bloqueada" : "tareas bloqueadas"}
             </strong>
-            <span>
-              Llevan parado el flujo y necesitan acción para avanzar.
-            </span>
+            <span>Necesitan acción para que el flujo avance.</span>
           </div>
           <div className="inicio-alert-tasks">
             {kpiBlocked.slice(0, 3).map((t) => (

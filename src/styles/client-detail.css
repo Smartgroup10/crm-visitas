@@ -1,46 +1,53 @@
 /* ============================================================
-   Modal de detalle de cliente
+   Modal de detalle de cliente — Field Engineering
    ============================================================
-   Hereda de .task-modal el chrome general (overlay, header, etc.)
-   y añade los bloques específicos: stats grandes, breakdown por
-   chip y línea de tiempo agrupada por mes.
-   ============================================================ */
+   Hereda chrome de .task-modal y añade: stats como tile-system
+   (mismo lenguaje que kpi-tiles del Inicio), breakdown como mono
+   chips, e historial agrupado por mes con hairlines warm. */
 
 .client-detail-modal {
-  /* Algo más alto que el modal de tarea: aquí mostramos lista densa,
-     no formulario. Un poco más de aire vertical. */
   max-height: 88vh;
   overflow-y: auto;
 }
 
-/* ─── Stats ──────────────────────────────────────────── */
+/* ─── Stats — tile system unificado ─────────────────── */
 .client-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  padding: 14px 20px 6px;
+  gap: 0;
+  margin: 18px 24px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 10px;
+  overflow: hidden;
 }
 .client-stat {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  padding: 10px 12px;
-  background: var(--bg-soft, #f5f7fb);
-  border: 1px solid var(--line-soft, #eef1f6);
-  border-radius: var(--radius-lg, 10px);
+  gap: 6px;
+  padding: 14px 16px 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--line-warm);
+  transition: background 150ms ease;
 }
+.client-stat:last-child { border-right: 0; }
+.client-stat:hover { background: var(--surface-sunken); }
 .client-stat strong {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink-strong);
   line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .client-stat span {
-  font-size: 11px;
-  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.10em;
   font-weight: 600;
 }
 
@@ -48,9 +55,9 @@
 .client-breakdown {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 20px 14px;
-  border-bottom: 1px solid var(--line-soft);
+  gap: 10px;
+  padding: 4px 24px 18px;
+  border-bottom: 1px solid var(--line-warm-soft);
 }
 .client-breakdown-row {
   display: flex;
@@ -59,24 +66,28 @@
   gap: 6px;
 }
 .client-breakdown-label {
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
-  color: var(--text-soft);
+  color: var(--ink-faint);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin-right: 4px;
+  letter-spacing: 0.10em;
+  margin-right: 6px;
+  min-width: 64px;
 }
 .client-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 9px;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--line-main, #e3e8f0);
+  gap: 6px;
+  padding: 3px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
   border-radius: 999px;
+  font-family: var(--font-sans);
   font-size: 11.5px;
-  color: var(--text-main);
+  color: var(--ink);
   font-weight: 500;
+  letter-spacing: -0.005em;
 }
 .client-chip-dot {
   width: 7px;
@@ -87,28 +98,29 @@
 
 /* ─── Histórico agrupado por mes ──────────────────── */
 .client-history {
-  padding: 14px 20px 20px;
+  padding: 18px 24px 24px;
 }
 .client-history-group {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 .client-history-group:last-child { margin-bottom: 0; }
 
 .client-history-month {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 0 6px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--line-soft);
+  letter-spacing: 0.12em;
+  padding: 0 0 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line-warm-soft);
 }
 .client-history-count {
-  color: var(--text-soft);
+  color: var(--ink-ghost);
   font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
+  letter-spacing: 0.04em;
+  margin-left: 6px;
 }
 
 .client-history-list {
@@ -117,26 +129,28 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .client-history-item {
   width: 100%;
   text-align: left;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md, 7px);
-  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 10px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  transition: background 0.12s, border-color 0.12s;
+  gap: 3px;
+  transition: background 150ms ease, padding-left 150ms ease;
   font-family: inherit;
 }
+.client-history-item + .client-history-item {
+  border-top: 1px solid var(--line-warm-soft);
+}
 .client-history-item:hover {
-  background: var(--brand-soft, #eaf1ff);
-  border-color: var(--brand-border, #d6e4ff);
+  background: var(--surface-sunken);
+  padding-left: 14px;
 }
 .client-history-item:focus-visible {
   outline: none;
@@ -158,36 +172,41 @@
 .client-history-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-strong);
+  color: var(--ink-strong);
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: -0.005em;
 }
 .client-history-type {
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
-  color: var(--brand);
-  background: var(--brand-soft, #eaf1ff);
+  color: var(--ink-muted);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-warm);
   padding: 1px 7px;
   border-radius: 999px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.06em;
   flex: 0 0 auto;
 }
 
 .client-history-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
   font-size: 11.5px;
-  color: var(--text-soft);
-  padding-left: 16px;     /* alinear con el título tras el dot */
+  color: var(--ink-muted);
+  padding-left: 16px;
 }
 
-/* Mobile: stats en 2 columnas */
+/* Mobile: stats en 2 columnas con hairlines correctas */
 @media (max-width: 540px) {
   .client-stats { grid-template-columns: repeat(2, 1fr); }
-  .client-stat strong { font-size: 18px; }
+  .client-stats .client-stat:nth-child(2n) { border-right: 0; }
+  .client-stats .client-stat:nth-child(-n+2) { border-bottom: 1px solid var(--line-warm); }
+  .client-stat strong { font-size: 22px; }
 }

@@ -1,48 +1,49 @@
 /* ============================================================
-   Timeline de actividad de tareas (audit log)
+   Timeline de actividad — Field Engineering (audit log)
    ============================================================
-   Pintamos una lista vertical "estilo GitHub Issues / Linear":
-   un dot coloreado por tipo a la izquierda + cuerpo a la derecha.
-   El borde izquierdo del .task-activity-list dibuja la línea
-   continua entre dots para reforzar la secuencia temporal.
-   ============================================================ */
+   Lista vertical estilo Linear: dot coloreado por tipo + cuerpo a
+   la derecha. La línea continua que une los dots es un ::before
+   del UL (más eficiente que border en cada item). */
 
 .task-activity {
-  margin-top: 16px;
-  padding: 14px 16px 16px;
-  background: var(--bg-soft, #f5f7fb);
-  border: 1px solid var(--line-soft, #eef1f6);
-  border-radius: var(--radius-lg, 10px);
+  margin: 14px 24px 24px;
+  padding: 16px 18px 18px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-warm);
+  border-radius: 10px;
 }
 
 .task-activity-header {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-warm-soft);
 }
 .task-activity-header h3 {
   margin: 0;
-  font-size: 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-strong);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--ink-strong);
+  letter-spacing: -0.01em;
 }
 .task-activity-status {
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-soft);
-  font-style: italic;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
 }
 
 .task-activity-empty,
 .task-activity-error {
   font-size: 12.5px;
-  color: var(--text-soft);
-  padding: 8px 4px;
+  color: var(--ink-muted);
+  padding: 10px 4px;
 }
 .task-activity-error {
-  color: var(--danger, #ef4444);
+  color: #991b1b;
 }
 
 .task-activity-list {
@@ -52,18 +53,15 @@
   position: relative;
 }
 
-/* Línea vertical continua que une todos los dots.
-   La trazamos con un ::before del UL — más eficiente que
-   dibujar un border-left en cada item (que se rompería al
-   esconder algunos). */
+/* Línea vertical continua entre los dots. */
 .task-activity-list::before {
   content: "";
   position: absolute;
-  left: 11px;        /* alinea con el centro del dot (24px ancho) */
+  left: 11px;
   top: 12px;
   bottom: 12px;
   width: 2px;
-  background: var(--line-main, #e3e8f0);
+  background: var(--line-warm);
   border-radius: 1px;
 }
 
@@ -71,7 +69,7 @@
   display: grid;
   grid-template-columns: 24px 1fr;
   gap: 12px;
-  padding: 6px 0 10px;
+  padding: 6px 0 12px;
   position: relative;
 }
 
@@ -81,34 +79,32 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--bg-surface, #fff);
-  border: 2px solid var(--line-main, #e3e8f0);
-  color: var(--text-soft, #64748b);
-  z-index: 1;       /* sobre la línea vertical */
+  background: var(--surface);
+  border: 2px solid var(--line-warm-strong);
+  color: var(--ink-faint);
+  z-index: 1;
   flex: 0 0 auto;
 }
 
-/* Color del dot según tipo de evento. Usamos los mismos tokens que
-   el resto de la app para mantener coherencia visual. */
 .activity-dot-created {
-  background: var(--success-soft, #ecfdf5);
-  border-color: var(--success-border, #d1fae5);
-  color: var(--success, #10b981);
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.40);
+  color: #047857;
 }
 .activity-dot-updated {
-  background: var(--brand-soft, #eaf1ff);
-  border-color: var(--brand-border, #d6e4ff);
-  color: var(--brand, #2563eb);
+  background: var(--accent-tint);
+  border-color: var(--accent-line);
+  color: var(--brand);
 }
 .activity-dot-deleted {
-  background: var(--danger-soft, #fef2f2);
-  border-color: var(--danger-border, #fee2e2);
-  color: var(--danger, #ef4444);
+  background: rgba(220, 38, 38, 0.10);
+  border-color: rgba(220, 38, 38, 0.40);
+  color: #991b1b;
 }
 
 .activity-body {
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 1px;
 }
 
 .activity-meta {
@@ -116,53 +112,57 @@
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 .activity-actor {
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-strong);
+  color: var(--ink-strong);
+  letter-spacing: -0.005em;
 }
 .activity-time {
-  font-size: 11.5px;
-  color: var(--text-soft);
-  cursor: help;       /* hint de que el title trae el timestamp completo */
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  cursor: help;
+  letter-spacing: 0.02em;
 }
 
 .activity-detail {
   font-size: 12.5px;
-  color: var(--text-main);
+  color: var(--ink);
   line-height: 1.5;
 }
 .activity-summary {
-  color: var(--text-soft);
+  color: var(--ink-muted);
 }
 
 .activity-changes {
   list-style: none;
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .activity-changes li {
   font-size: 12.5px;
-  color: var(--text-main);
+  color: var(--ink);
 }
 
 .activity-from {
-  color: var(--text-soft);
+  color: var(--ink-faint);
   text-decoration: line-through;
-  text-decoration-color: var(--text-muted);
+  text-decoration-color: var(--ink-ghost);
   margin-right: 2px;
 }
 .activity-arrow {
-  color: var(--text-muted);
+  font-family: var(--font-mono);
+  color: var(--ink-ghost);
   margin: 0 6px;
   font-weight: 600;
 }
 .activity-to {
-  color: var(--text-strong);
+  color: var(--ink-strong);
   font-weight: 500;
 }

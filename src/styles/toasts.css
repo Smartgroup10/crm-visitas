@@ -1,4 +1,6 @@
-/* ─── TOASTS ─────────────────────────────────────────── */
+/* ─── TOASTS — Field Engineering ──────────────────────
+   Stack en esquina inferior derecha. Border-left 3px en color
+   semántico + hairline warm + tipografía mono para el icono. */
 .toast-stack {
   position: fixed;
   bottom: 24px;
@@ -14,17 +16,18 @@
   pointer-events: auto;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
   padding: 12px 14px;
-  border-radius: var(--radius-lg);
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-modal);
-  border: 1px solid var(--line-main);
-  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  border: 1px solid var(--line-warm);
+  border-left-width: 3px;
   font-size: 13.5px;
-  color: var(--text-main);
+  color: var(--ink);
   cursor: pointer;
   animation: toast-in 220ms ease-out;
+  letter-spacing: -0.005em;
 }
 .toast-icon {
   flex-shrink: 0;
@@ -34,14 +37,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #fff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.18);
 }
 .toast-message {
   flex: 1;
-  line-height: 1.45;
+  line-height: 1.5;
   word-break: break-word;
+  color: var(--ink);
 }
 .toast-close {
   flex-shrink: 0;
@@ -50,20 +56,24 @@
   padding: 0;
   width: 22px;
   height: 22px;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
-  color: var(--text-muted);
+  color: var(--ink-faint);
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s;
 }
-.toast-close:hover { color: var(--text-main); background: var(--bg-soft); }
+.toast-close:hover {
+  color: var(--ink-strong);
+  background: var(--surface-sunken);
+}
 
-.toast--success { border-left-color: var(--c-done); }
-.toast--success .toast-icon { background: var(--c-done); }
-.toast--error   { border-left-color: var(--c-blocked); }
-.toast--error   .toast-icon { background: var(--c-blocked); }
-.toast--info    { border-left-color: #3b82f6; }
-.toast--info    .toast-icon { background: #3b82f6; }
+.toast--success { border-left-color: #10b981; }
+.toast--success .toast-icon { background: #10b981; }
+.toast--error   { border-left-color: #dc2626; }
+.toast--error   .toast-icon { background: #dc2626; }
+.toast--info    { border-left-color: var(--brand); }
+.toast--info    .toast-icon { background: var(--brand); }
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(12px); }

@@ -1,69 +1,69 @@
 /* ============================================================
-   Hilo de comentarios de tareas
+   Hilo de comentarios — Field Engineering
    ============================================================
-   Look & feel: chat interno discreto, no compite con el formulario
-   principal de la tarea. Cada mensaje en burbuja con avatar circular
-   con iniciales (consistente con .user-avatar del sidebar) y meta
-   compacta. Los propios mensajes resaltan ligeramente para que el
-   usuario se identifique en el hilo.
-   ============================================================ */
+   Discreto, no compite con el formulario principal de la tarea.
+   Burbujas con avatar circular + meta mono. Los propios mensajes
+   resaltan ligeramente sin gritar. */
 
 .task-comments {
-  margin-top: 16px;
-  padding: 14px 16px 14px;
-  background: var(--bg-surface, #ffffff);
-  border: 1px solid var(--line-soft, #eef1f6);
-  border-radius: var(--radius-lg, 10px);
+  margin: 18px 24px 0;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 10px;
 }
 
 .task-comments-header {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-warm-soft);
 }
 .task-comments-header h3 {
   margin: 0;
-  font-size: 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-strong);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--ink-strong);
+  letter-spacing: -0.01em;
 }
 .task-comments-status {
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-soft);
-  font-style: italic;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
 }
 
 .task-comments-empty,
 .task-comments-error {
   font-size: 12.5px;
-  color: var(--text-soft);
-  padding: 12px 4px;
+  color: var(--ink-muted);
+  padding: 14px 4px;
   text-align: center;
 }
 .task-comments-error {
-  color: var(--danger, #ef4444);
+  color: #991b1b;
   text-align: left;
 }
 
 /* ─── Lista de comentarios ────────────────────────────────── */
 .comments-list {
   list-style: none;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   max-height: 360px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #cdd5e8 transparent;
+  scrollbar-color: var(--line-warm-strong) transparent;
 }
 .comments-list::-webkit-scrollbar { width: 6px; }
 .comments-list::-webkit-scrollbar-thumb {
-  background: #cdd5e8;
+  background: var(--line-warm-strong);
   border-radius: 3px;
 }
 
@@ -78,8 +78,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--brand-soft, #eaf1ff);
-  color: var(--brand, #2563eb);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-warm);
+  color: var(--ink-strong);
   display: grid;
   place-items: center;
   font-size: 11px;
@@ -89,21 +90,23 @@
 }
 
 .comment-own .comment-avatar {
-  background: var(--brand, #2563eb);
+  background: var(--brand);
+  border-color: var(--brand);
   color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.16);
 }
 
 .comment-bubble {
   min-width: 0;
-  background: var(--bg-soft, #f5f7fb);
-  border: 1px solid var(--line-soft, #eef1f6);
-  border-radius: 10px;
-  padding: 8px 12px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-warm-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 .comment-own .comment-bubble {
-  background: var(--brand-soft, #eaf1ff);
-  border-color: var(--brand-border, #d6e4ff);
+  background: var(--accent-tint);
+  border-color: var(--accent-line);
 }
 
 .comment-meta {
@@ -111,21 +114,27 @@
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 .comment-author {
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-strong);
+  color: var(--ink-strong);
+  letter-spacing: -0.005em;
 }
 .comment-time {
-  font-size: 11px;
-  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
   cursor: help;
+  letter-spacing: 0.02em;
 }
 .comment-edited {
-  font-style: italic;
-  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-ghost);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
 }
 
 .comment-actions {
@@ -138,25 +147,25 @@
   border: 0;
   padding: 2px 6px;
   font-size: 11px;
-  color: var(--text-soft);
+  color: var(--ink-faint);
   cursor: pointer;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: 4px;
   transition: background 0.12s, color 0.12s;
 }
 .comment-action-btn:hover {
-  background: rgba(0,0,0,0.05);
-  color: var(--text-strong);
+  background: var(--line-warm-soft);
+  color: var(--ink-strong);
 }
 .comment-action-danger:hover {
-  background: var(--danger-soft, #fef2f2);
-  color: var(--danger, #ef4444);
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
 }
 
 .comment-body {
   font-size: 13px;
-  line-height: 1.45;
-  color: var(--text-main);
-  white-space: pre-wrap;       /* respeta saltos de línea del autor */
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
@@ -165,18 +174,19 @@
   width: 100%;
   font-size: 13px;
   font-family: inherit;
-  line-height: 1.45;
-  padding: 6px 8px;
-  background: var(--bg-surface);
-  border: 1.5px solid var(--brand, #2563eb);
-  border-radius: var(--radius-md, 7px);
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--brand);
+  border-radius: 6px;
   resize: vertical;
+  color: var(--ink-strong);
 }
 .comment-edit-actions {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
-  margin-top: 6px;
+  margin-top: 7px;
 }
 .comment-edit-actions .btn-primary,
 .comment-edit-actions .btn-secondary {
@@ -189,26 +199,27 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+  border-top: 1px solid var(--line-warm-soft);
 }
 
 .comment-form textarea {
   width: 100%;
   font-size: 13px;
   font-family: inherit;
-  line-height: 1.45;
-  padding: 8px 10px;
-  background: var(--bg-surface);
-  border: 1.5px solid var(--line-main);
-  border-radius: var(--radius-md, 7px);
+  line-height: 1.5;
+  padding: 9px 11px;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
   resize: vertical;
+  color: var(--ink-strong);
   transition: border-color 0.14s, box-shadow 0.14s;
 }
 .comment-form textarea:focus {
   outline: none;
-  border-color: var(--brand, #2563eb);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.13);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
 .comment-form-actions {
@@ -218,9 +229,10 @@
   gap: 12px;
 }
 .comment-form-hint {
-  font-size: 11px;
-  color: var(--text-soft);
-  font-style: italic;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
 }
 .comment-form-actions .btn-primary {
   font-size: 12.5px;

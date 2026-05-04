@@ -1,85 +1,137 @@
 /* ============================================================
-   Inicio (dashboard) — Field Engineering aesthetic
+   Inicio (panel operativo) — Field Engineering
    ============================================================
-   Hero editorial + KPI tiles unificados con hairlines + paneles
-   con jerarquía clara. Sin cards flotantes individuales — todo
-   delimitado por borders 1px sobre canvas warm.
+   Sin greeting personal, sin tipografía decorativa, sin "feature
+   tile" navy. La pantalla arranca con un status-bar tipo control
+   room — clock vivo + datos crudos del día — y baja a KPI tiles
+   igualados. El tono es de panel de operaciones, no de tarjeta de
+   bienvenida.
    ============================================================ */
 
 .inicio-view-v2 {
-  padding: 36px 32px 48px;
+  padding: 24px 32px 40px;
   max-width: 1280px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 22px;
   font-family: var(--font-sans);
   color: var(--ink);
 }
 
 @media (max-width: 720px) {
   .inicio-view-v2 {
-    padding: 24px 18px 32px;
-    gap: 22px;
+    padding: 18px 14px 28px;
+    gap: 16px;
   }
 }
 
-/* ─── HERO ─────────────────────────────────────── */
-.inicio-hero {
+/* ─── STATUS BAR ──────────────────────────────────────────
+   Una sola línea horizontal: a la izquierda reloj + fecha + semana,
+   a la derecha contadores del día. Sin caja, sin shadow — sólo una
+   hairline inferior que separa del KPI grid. */
+.inicio-statusbar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0 14px;
+  border-bottom: 1px solid var(--line-warm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  flex-wrap: wrap;
+  letter-spacing: -0.005em;
 }
 
-.inicio-eyebrow {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--ink-faint);
+.inicio-statusbar-left,
+.inicio-statusbar-right {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  flex-wrap: wrap;
 }
-.inicio-eyebrow-sep {
-  color: var(--ink-ghost);
+
+.inicio-statusbar-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;          /* green = sistema vivo */
+  flex: 0 0 auto;
+  position: relative;
+  /* Halo discreto pulsante — señal de "datos en tiempo real" sin
+     que sea decorativo gratuito. El socket.io detrás está vivo. */
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45);
+  animation: statusbar-pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-.inicio-eyebrow-date {
+@keyframes statusbar-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+  60%  { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.inicio-statusbar-clock {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink-strong);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.inicio-statusbar-date {
+  letter-spacing: 0.04em;
   color: var(--ink-muted);
 }
 
-.inicio-greeting {
-  font-family: var(--font-display);
-  font-size: 56px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--ink-strong);
-  margin: 0 0 6px;
+.inicio-statusbar-week {
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
 }
-.inicio-greeting em {
-  font-style: italic;
-  color: var(--brand);
+
+.inicio-statusbar-sep {
+  color: var(--ink-ghost);
+  font-weight: 400;
+}
+
+.inicio-statusbar-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  letter-spacing: -0.005em;
+}
+.inicio-statusbar-stat.is-warn .inicio-statusbar-num {
+  color: #dc2626;
+}
+.inicio-statusbar-num {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink-strong);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.inicio-statusbar-stat-label {
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
 }
 
 @media (max-width: 720px) {
-  .inicio-greeting {
-    font-size: 38px;
+  .inicio-statusbar {
+    font-size: 11px;
+    gap: 8px;
+  }
+  .inicio-statusbar-clock,
+  .inicio-statusbar-num {
+    font-size: 12px;
   }
 }
 
-.inicio-subline {
-  font-size: 15px;
-  color: var(--ink-muted);
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* ─── KPI TILES ─────────────────────────────────────
-   Single contenedor con border + radius + overflow hidden.
-   Los tiles dentro se separan por hairlines internas (border-right).
-   No hay shadows — la jerarquía la dan los hairlines. */
+/* ─── KPI TILES ──────────────────────────────────────────
+   Single contenedor con border + radius + overflow hidden. Los
+   tiles dentro se separan por hairlines internas. Igualados — no
+   hay tile "feature" decorativa. La urgencia se transmite por color
+   del valor (rojo en bloqueadas), no por color del fondo. */
 .kpi-tiles {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -96,7 +148,6 @@
   .kpi-tiles .kpi-tile:nth-child(3n) {
     border-right: 0;
   }
-  /* En la fila inferior (tiles 4 y 5), redondeamos diferente */
   .kpi-tiles .kpi-tile {
     border-bottom: 1px solid var(--line-warm);
   }
@@ -118,7 +169,7 @@
 }
 
 .kpi-tile {
-  padding: 22px 22px 20px;
+  padding: 20px 22px 18px;
   border-right: 1px solid var(--line-warm);
   display: flex;
   flex-direction: column;
@@ -132,21 +183,21 @@
   border-right: 0;
 }
 
-.kpi-tile:not(.kpi-tile-feature):hover {
+.kpi-tile:hover {
   background: var(--surface-sunken);
 }
 
 .kpi-tile-label {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
 }
 
 .kpi-tile-value {
   font-family: var(--font-mono);
-  font-size: 44px;
+  font-size: 42px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink-strong);
@@ -158,7 +209,7 @@
 }
 
 .kpi-tile-value-warn {
-  color: var(--status-blocked, #dc2626);
+  color: #dc2626;
 }
 
 .kpi-tile-value-unit {
@@ -168,12 +219,14 @@
 }
 
 .kpi-tile-meta {
+  font-family: var(--font-sans);
   font-size: 12px;
   color: var(--ink-muted);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  letter-spacing: -0.005em;
 }
 .kpi-tile-meta-sep {
   color: var(--ink-ghost);
@@ -187,10 +240,9 @@
   flex: 0 0 auto;
 }
 .kpi-dot-pending  { background: var(--ink-faint); }
-.kpi-dot-progress { background: var(--c-progress, #f59e0b); }
-.kpi-dot-blocked  { background: var(--status-blocked, #dc2626); }
+.kpi-dot-progress { background: #f59e0b; }
+.kpi-dot-blocked  { background: #dc2626; }
 
-/* Halo pulsante sólo cuando el indicador está "vivo" (cuenta > 0) */
 .kpi-dot.is-live {
   animation: pulse-halo 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -206,60 +258,20 @@
   50%      { transform: scale(1.15); }
 }
 
-/* ─── FEATURE TILE (% completadas) ──────────────
-   Navy bg como contraste con el resto. Es el único bloque con
-   color saturado en la fila — funciona como punto focal. */
-.kpi-tile-feature {
-  background: #0e2a59;
-  color: #fafaf9;
-  position: relative;
-}
-
-.kpi-tile-feature::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--brand, #2563eb);
-  opacity: 0.85;
-}
-
-.kpi-tile-feature .kpi-tile-label {
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.kpi-tile-feature .kpi-tile-value {
-  color: #ffffff;
-}
-
-.kpi-tile-feature .kpi-tile-value-unit {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.kpi-tile-feature .kpi-tile-meta {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.kpi-tile-progress {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.12);
+/* Progress bar plana dentro del tile "completadas". No tiene
+   tratamiento decorativo — es simplemente una hairline de progreso. */
+.kpi-tile-progress-flat {
+  height: 3px;
+  background: var(--surface-sunken);
   border-radius: 2px;
   overflow: hidden;
   margin-top: -2px;
 }
-
-.kpi-tile-progress-bar {
+.kpi-tile-progress-flat .kpi-tile-progress-bar {
   height: 100%;
-  background: var(--brand, #4f8bff);
-  background: linear-gradient(90deg, #4f8bff, #6b9eff);
+  background: var(--ink-strong);
   border-radius: 2px;
   transition: width 700ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme="dark"] .kpi-tile-feature {
-  background: #11315c;
 }
 
 /* ─── ALERT BANNER ──────────────────────────────── */
@@ -270,14 +282,14 @@
   padding: 14px 18px;
   background: var(--surface);
   border: 1px solid var(--line-warm);
-  border-left: 3px solid var(--status-blocked, #dc2626);
+  border-left: 3px solid #dc2626;
   border-radius: 10px;
 }
 
 .inicio-alert-mark {
   width: 8px;
   height: 8px;
-  background: var(--status-blocked, #dc2626);
+  background: #dc2626;
   border-radius: 50%;
   flex: 0 0 auto;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
@@ -293,9 +305,10 @@
 }
 
 .inicio-alert-body strong {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--ink-strong);
   font-weight: 600;
+  letter-spacing: -0.005em;
 }
 
 .inicio-alert-body span {
@@ -314,7 +327,7 @@
 .inicio-alert-task {
   background: rgba(220, 38, 38, 0.06);
   border: 1px solid rgba(220, 38, 38, 0.18);
-  color: var(--status-blocked, #dc2626);
+  color: #991b1b;
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 12px;
@@ -333,8 +346,8 @@
 
 .inicio-alert-more {
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--status-blocked, #dc2626);
+  font-size: 11.5px;
+  color: #991b1b;
   font-weight: 600;
 }
 
@@ -353,7 +366,7 @@
 .inicio-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 18px;
 }
 
 @media (max-width: 880px) {
@@ -367,15 +380,15 @@
   background: var(--surface);
   border: 1px solid var(--line-warm);
   border-radius: 10px;
-  padding: 20px 22px 16px;
+  padding: 18px 20px 14px;
 }
 
 .inicio-panel-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--line-warm-soft);
 }
 
@@ -414,7 +427,7 @@
   grid-template-columns: 60px 1fr auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 4px;
+  padding: 9px 4px;
   background: transparent;
   border: 0;
   border-radius: 6px;
@@ -468,6 +481,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.005em;
 }
 
 .inicio-list-sub {
@@ -485,7 +499,7 @@
   color: var(--ink-ghost);
 }
 
-/* Status dot a la derecha (versión refinada de mini-status) */
+/* Status dot a la derecha. */
 .inicio-list-status {
   width: 8px;
   height: 8px;
@@ -493,33 +507,36 @@
   flex: 0 0 auto;
 }
 .inicio-list-status.status-no-iniciado { background: var(--ink-faint); }
-.inicio-list-status.status-en-curso    { background: var(--c-progress, #f59e0b); }
-.inicio-list-status.status-listo       { background: var(--c-done, #16a34a); }
+.inicio-list-status.status-en-curso    { background: #f59e0b; }
+.inicio-list-status.status-listo       { background: #10b981; }
 .inicio-list-status.status-bloqueado   {
-  background: var(--status-blocked, #dc2626);
+  background: #dc2626;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.16);
 }
 
 /* Priority pill a la derecha (para "Próximos 7 días") */
 .inicio-list-priority {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--surface-sunken);
   color: var(--ink-muted);
+  border: 1px solid var(--line-warm);
   flex: 0 0 auto;
 }
 .inicio-list-priority.priority-high {
   background: rgba(245, 158, 11, 0.10);
-  color: var(--c-progress, #f59e0b);
+  color: #92520b;
+  border-color: rgba(245, 158, 11, 0.22);
 }
 .inicio-list-priority.priority-urgent {
   background: rgba(220, 38, 38, 0.10);
-  color: var(--status-blocked, #dc2626);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.22);
 }
 
 /* ─── TECH RANK ────────────────────────────────── */
@@ -536,7 +553,7 @@
   grid-template-columns: 28px 32px 1fr 100px 60px;
   gap: 12px;
   align-items: center;
-  padding: 10px 0;
+  padding: 9px 0;
   border-bottom: 1px solid var(--line-warm-soft);
   transition: padding-left 150ms ease;
 }
@@ -554,6 +571,7 @@
   letter-spacing: 0.04em;
   color: var(--ink-faint);
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .tech-rank-avatar {
@@ -567,6 +585,7 @@
   font-weight: 700;
   letter-spacing: 0.3px;
   flex: 0 0 auto;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.16);
 }
 
 .tech-rank-info {
@@ -583,6 +602,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.005em;
 }
 
 .tech-rank-info span {
@@ -617,7 +637,7 @@
 }
 
 .tech-rank-value-active {
-  color: var(--c-progress, #f59e0b);
+  color: #d97706;
   font-weight: 600;
 }
 .tech-rank-value-sep {
