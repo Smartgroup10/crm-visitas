@@ -67,6 +67,13 @@ export const COMMON_TASK_FIELDS = [
   "materials",
   "estimatedTime",
   "vehicle",
+  // Ubicación específica de la tarea (no del cliente). Si no aparecen
+  // en esta lista, sanitizeForType del TaskModal los descarta antes
+  // de enviar al backend y se pierden al guardar.
+  "address",
+  "city",
+  "postalCode",
+  "locationNotes",
   "attachments",
 ];
 
