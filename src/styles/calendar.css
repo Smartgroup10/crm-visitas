@@ -137,10 +137,18 @@
   background: var(--surface-sunken);
 }
 .calendar-grid .calendar-cell:nth-child(7n) { border-right: 0; }
-.calendar-cell:hover { background: var(--accent-tint) !important; z-index: 30; }
-/* Cuando hay hover sobre una tarea, la celda contenedora sube por encima
-   de las vecinas para que el tooltip flote por delante, no detrás. */
-.calendar-cell:has(.task-pill:hover) { z-index: 40; }
+/* Hover de cells y pills SÓLO en dispositivos con puntero capaz de
+   hover (mouse). En táctil (móvil/tablet), `:hover` se queda sticky
+   tras el primer tap y deja la celda/pill elevada con z-index 30-40
+   y transform: translateY(-1px), llegando a tapar el topbar al
+   scrollear. En esos dispositivos preferimos que el tap simplemente
+   abra el modal sin efectos visuales intermedios. */
+@media (hover: hover) {
+  .calendar-cell:hover { background: var(--accent-tint) !important; z-index: 30; }
+  /* Cuando hay hover sobre una tarea, la celda contenedora sube por encima
+     de las vecinas para que el tooltip flote por delante, no detrás. */
+  .calendar-cell:has(.task-pill:hover) { z-index: 40; }
+}
 
 .calendar-cell.outside { background: var(--surface-inset) !important; }
 .calendar-cell.outside .cell-day { color: var(--ink-ghost); }
@@ -204,11 +212,15 @@
   border-left: 3px solid transparent;
   color: var(--ink-strong);
 }
-.task-pill:hover {
-  filter: none;
-  transform: translateY(-1px);
-  z-index: 40;
-  box-shadow: 0 2px 6px rgba(28,25,23,0.08);
+/* Hover effects de la pill SÓLO en mouse — ver nota arriba sobre
+   sticky-hover en táctil. */
+@media (hover: hover) {
+  .task-pill:hover {
+    filter: none;
+    transform: translateY(-1px);
+    z-index: 40;
+    box-shadow: 0 2px 6px rgba(28,25,23,0.08);
+  }
 }
 
 /* ─── Drag & drop: feedback visual ───────────────────────
@@ -376,10 +388,14 @@
   background: #1c1917;
   transform: rotate(45deg);
 }
-.task-pill:hover .task-tooltip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+/* Tooltip — sólo en hover real (mouse). En táctil sería sticky tras
+   el primer tap y se quedaría visible cubriendo otros elementos. */
+@media (hover: hover) {
+  .task-pill:hover .task-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
 }
 
 .more-label {
@@ -539,10 +555,12 @@
   flex-direction: column;
   gap: 12px;
 }
-.day-view-card:hover {
-  border-color: var(--line-warm-strong);
-  background: var(--surface-sunken);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .day-view-card:hover {
+    border-color: var(--line-warm-strong);
+    background: var(--surface-sunken);
+    transform: translateY(-1px);
+  }
 }
 .day-view-card-top {
   display: flex;

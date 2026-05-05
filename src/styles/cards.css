@@ -23,12 +23,19 @@
               transform var(--t-fast), background var(--t-fast);
 }
 
-.card-hover:hover,
-.team-card:hover,
-.day-task-card:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+/* Hover effects sólo con puntero capaz (mouse). En táctil, `:hover`
+   se queda sticky tras el primer tap y la card permanece elevada
+   con translateY(-1px) y sombra de hover — incoherente con el
+   resto de la app. En esos dispositivos el tap simplemente abre
+   el modal/acción sin feedback visual intermedio. */
+@media (hover: hover) {
+  .card-hover:hover,
+  .team-card:hover,
+  .day-task-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
 }
 
 /* Card "muted" (panel sin chrome) */
