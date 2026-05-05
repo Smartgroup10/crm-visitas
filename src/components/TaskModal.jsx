@@ -13,6 +13,7 @@ import { peopleFromIds } from "../utils/id";
 import { hasAddress, formatAddress, getMapsUrl } from "../utils/address";
 import { usePermissions } from "../hooks/usePermissions";
 import { IconAlert } from "./Icon";
+import ClientCombobox from "./ClientCombobox";
 import TaskActivityTimeline from "./TaskActivityTimeline";
 import TaskCommentsThread from "./TaskCommentsThread";
 import { useTaskTemplates } from "../hooks/useTaskTemplates";
@@ -354,19 +355,14 @@ export default function TaskModal({
                 <div className="form-row full">
                   <label>Cliente</label>
                   <div className="client-field">
-                    <select
-                      className={errors.clientId ? "has-error" : ""}
+                    <ClientCombobox
+                      id="task-client"
                       value={draft.clientId}
-                      onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
+                      onChange={(id) => setDraft({ ...draft, clientId: id })}
+                      clients={clients}
                       disabled={!canEditField("clientId")}
-                    >
-                      <option value="">Selecciona cliente</option>
-                      {clients.map((client) => (
-                        <option key={client.id} value={client.id}>
-                          {client.name}
-                        </option>
-                      ))}
-                    </select>
+                      hasError={!!errors.clientId}
+                    />
                     <button
                       type="button"
                       className="client-field-toggle"

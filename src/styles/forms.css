@@ -129,10 +129,234 @@
   display: flex;
   gap: 8px;
   align-items: stretch;
+  position: relative;     /* el panel del combobox absoluto se ancla aquí */
 }
-.client-field > select {
+.client-field > select,
+.client-field > .client-combobox {
   flex: 1;
   min-width: 0;
+}
+
+/* ─── CLIENT COMBOBOX ──────────────────────────────────
+   Trigger estilo select + panel desplegable con buscador en vivo.
+   Sustituye al `<select>` nativo cuando el listado de clientes es
+   grande (1000+ filas con tildes/acentos donde el type-ahead nativo
+   se queda corto). */
+
+.client-combobox {
+  position: relative;
+}
+
+.client-combobox-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  padding: 0 10px 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink-strong);
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: -0.005em;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast),
+              background var(--t-fast);
+}
+.client-combobox-trigger:hover:not(:disabled) {
+  border-color: var(--line-warm-strong);
+}
+.client-combobox-trigger:focus-visible,
+.client-combobox-trigger.is-open {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.client-combobox-trigger.has-error {
+  border-color: #dc2626;
+}
+.client-combobox-trigger:disabled {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+.client-combobox-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.client-combobox-placeholder {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.client-combobox-clear {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.client-combobox-clear:hover {
+  background: var(--surface-sunken);
+  color: var(--ink-strong);
+}
+
+.client-combobox-chevron {
+  flex: 0 0 auto;
+  color: var(--ink-faint);
+  transition: transform 200ms ease, color var(--t-fast);
+}
+.client-combobox.is-open .client-combobox-chevron {
+  transform: rotate(180deg);
+  color: var(--brand);
+}
+
+/* Panel — anclado al trigger, sale por debajo. */
+.client-combobox-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 8px;
+  box-shadow: var(--shadow-overlay);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 380px;
+  animation: combobox-pop 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes combobox-pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.client-combobox-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-warm-soft);
+  color: var(--ink-faint);
+  flex: 0 0 auto;
+}
+.client-combobox-search svg { flex: 0 0 auto; }
+.client-combobox-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  background: transparent;
+  /* font-size 16px en mobile evita el zoom automático de iOS al
+     hacer focus en un input pequeño. */
+  font-size: 16px;
+  font-family: var(--font-sans);
+  color: var(--ink-strong);
+  letter-spacing: -0.005em;
+}
+.client-combobox-search input::placeholder {
+  color: var(--ink-faint);
+}
+.client-combobox-count {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 6px;
+  background: var(--surface-sunken);
+  border-radius: 4px;
+}
+
+@media (min-width: 720px) {
+  .client-combobox-search input {
+    font-size: 14px;
+  }
+}
+
+.client-combobox-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-warm-strong) transparent;
+}
+.client-combobox-list::-webkit-scrollbar { width: 6px; }
+.client-combobox-list::-webkit-scrollbar-thumb {
+  background: var(--line-warm-strong);
+  border-radius: 3px;
+}
+
+.client-combobox-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background var(--t-fast);
+  border-left: 2px solid transparent;
+}
+.client-combobox-option.is-highlight {
+  background: var(--accent-tint);
+}
+.client-combobox-option.is-selected {
+  border-left-color: var(--brand);
+}
+.client-combobox-option.is-selected.is-highlight {
+  background: var(--accent-tint);
+}
+
+.client-combobox-option-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-strong);
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.client-combobox-option.is-selected .client-combobox-option-name {
+  font-weight: 600;
+}
+.client-combobox-option-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-combobox-empty {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  font-style: italic;
 }
 .client-field-toggle {
   flex-shrink: 0;
