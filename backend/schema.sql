@@ -49,16 +49,27 @@ create table if not exists clients (
   created_by  uuid references users(id) on delete set null
 );
 
--- Limpieza: en una iteración previa añadimos address/city/postal_code/notes
--- a `clients` para mostrar una dirección genérica por cliente. Pero un
--- cliente real (cadena de oficinas, restaurantes, sedes…) puede tener
--- varias direcciones según la tarea. La dirección pasó a la propia
--- `tasks` (ver más abajo). Estas columnas dormidas se borran si existen
--- — DROP IF EXISTS es idempotente, así que es seguro re-aplicar.
-alter table clients drop column if exists address;
-alter table clients drop column if exists city;
-alter table clients drop column if exists postal_code;
-alter table clients drop column if exists notes;
+-- Datos fiscales/registrales del cliente. Distintos del campo address
+-- de la tarea (que es la dirección operativa de cada intervención).
+--   - cif: identificador fiscal — letra+8 dígitos para empresas, DNI
+--          para autónomos, NIE/passport para extranjeros, etc. Texto
+--          libre para acomodar formatos no españoles (NIT, EIN…).
+--   - address/city/postal_code: domicilio fiscal/social. Sirve como
+--          referencia + para cargar masivamente clientes existentes.
+--
+-- ALTER TABLE IF NOT EXISTS es idempotente — el orden con cualquier
+-- migración previa que las haya añadido y borrado da el resultado
+-- correcto en cada arranque del backend.
+alter table clients add column if not exists cif         text not null default '';
+alter table clients add column if not exists address     text not null default '';
+alter table clients add column if not exists city        text not null default '';
+alter table clients add column if not exists postal_code text not null default '';
+
+-- Unicidad de CIF cuando está rellenado. Índice parcial para que los
+-- clientes sin CIF (alta rápida desde el TaskModal con sólo el nombre)
+-- no choquen entre sí.
+create unique index if not exists clients_cif_unique
+  on clients (cif) where cif <> '';
 
 -- ─── MIGRACIÓN: técnicos → usuarios ───────────────────────
 -- Si la tabla `technicians` todavía existe (instalación antigua), copiamos

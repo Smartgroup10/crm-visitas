@@ -26,6 +26,35 @@ export async function applySchema() {
 }
 
 /**
+ * Aplica seed_clients.sql si existe. Contiene los INSERTs masivos
+ * del listado inicial de clientes con CIF + domicilio fiscal. El
+ * fichero se separa de schema.sql porque tiene cientos de filas y
+ * no es estructura, sino datos. Idempotente vía
+ * `on conflict (cif) where cif <> '' do nothing`.
+ *
+ * Si el fichero no existe (entornos de desarrollo, instalaciones
+ * limpias) simplemente saltamos sin error.
+ */
+export async function applyClientsSeed() {
+  try {
+    const sqlPath = resolve(__dirname, "..", "seed_clients.sql");
+    let sql;
+    try {
+      sql = await readFile(sqlPath, "utf8");
+    } catch {
+      logger.info("[db] seed_clients.sql no presente, salto");
+      return;
+    }
+    await query(sql);
+    logger.info("[db] seed de clientes aplicado");
+  } catch (err) {
+    // No abortamos el arranque si falla el seed de clientes — es
+    // datos opcionales. Logueamos para investigar.
+    logger.error({ err }, "[db] error aplicando seed de clientes");
+  }
+}
+
+/**
  * Crea un usuario administrador inicial si no existe ningún usuario en la BD.
  * Usa las variables de entorno ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME.
  */

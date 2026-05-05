@@ -239,12 +239,12 @@
 .client-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 14px;
   background: var(--surface);
   border: 1px solid var(--line-warm);
   border-radius: 8px;
-  padding: 11px 14px;
+  padding: 12px 14px;
   transition: background var(--t-fast), border-color var(--t-fast);
 }
 .client-row:hover {
@@ -260,15 +260,118 @@
   letter-spacing: -0.005em;
 }
 .client-meta {
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--ink-faint);
   font-size: 11.5px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.client-meta-sep { color: var(--ink-ghost); }
+.client-cif {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+.client-fiscal-line {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
 }
 .client-actions {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   flex-shrink: 0;
+}
+
+/* ─── Buscador de clientes ─────────────────────────────
+   Aparece a la derecha del header cuando hay clientes — útil con
+   cientos importados del seed inicial. Match en nombre/CIF/ciudad. */
+.clients-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.clients-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.clients-search input {
+  width: 280px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--ink-strong);
+  letter-spacing: -0.005em;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.clients-search input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.clients-search-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Form inline de edición — grid 2 col que se adapta:
+   nombre full · CIF · dirección full · CP · ciudad. */
+.client-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 8px;
+  width: 100%;
+}
+.client-edit-grid input {
+  font-size: 12.5px;
+  padding: 7px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line-warm);
+  border-radius: 6px;
+  color: var(--ink-strong);
+  font-family: inherit;
+  letter-spacing: -0.005em;
+}
+.client-edit-grid input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.client-edit-name {
+  font-weight: 600;
+}
+.client-edit-cif {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.client-edit-address {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .client-edit-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .client-edit-name {
+    grid-column: 1 / -1;
+  }
+  .clients-search input {
+    width: 100%;
+  }
 }
 
 /* ─── TECHNICIANS VIEW ───────────────────────────────── */

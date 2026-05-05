@@ -11,17 +11,38 @@ function openClientDetail(id) {
   window.dispatchEvent(new CustomEvent("crm:open-client", { detail: { id } }));
 }
 
+const EMPTY_DRAFT = {
+  name: "",
+  cif: "",
+  address: "",
+  postal_code: "",
+  city: "",
+};
+
 export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete }) {
   const { canManage } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
   const [newClient, setNewClient]             = useState("");
   const [editingClientId, setEditingClientId] = useState(null);
-  const [editingValue, setEditingValue]       = useState("");
+  const [editingDraft, setEditingDraft]       = useState(EMPTY_DRAFT);
   const [busyAdd, setBusyAdd]                 = useState(false);
   const [busyEdit, setBusyEdit]               = useState(false);
   const [deletingId, setDeletingId]           = useState(null);
+  const [search, setSearch]                   = useState("");
   const newClientInputRef = useRef(null);
+
+  // Filtro de búsqueda en cliente — útil con cientos de clientes.
+  // Hace match en nombre y CIF (los dos campos más identificativos).
+  const filteredClients = clients.filter((c) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (c.name || "").toLowerCase().includes(q) ||
+      (c.cif || "").toLowerCase().includes(q) ||
+      (c.city || "").toLowerCase().includes(q)
+    );
+  });
 
   async function addClient() {
     const value = newClient.trim();
@@ -32,7 +53,9 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
     }
     setBusyAdd(true);
     try {
-      await onAdd(value);
+      // Alta inicial: solo nombre (datos fiscales se rellenan después
+      // con "Editar" — flujo rápido para crear cliente desde campo).
+      await onAdd({ name: value });
       setNewClient("");
     } catch {
       // App.jsx ya muestra toast de error
@@ -43,21 +66,33 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
 
   function startEdit(client) {
     setEditingClientId(client.id);
-    setEditingValue(client.name);
+    setEditingDraft({
+      name:        client.name || "",
+      cif:         client.cif || "",
+      address:     client.address || "",
+      postal_code: client.postal_code || "",
+      city:        client.city || "",
+    });
   }
 
   async function saveEdit() {
-    const value = editingValue.trim();
-    if (!value) return;
-    if (clients.some((c) => c.name === value && c.id !== editingClientId)) {
-      toast.error(`Ya existe un cliente con el nombre "${value}".`);
+    const name = editingDraft.name.trim();
+    if (!name) return;
+    if (clients.some((c) => c.name === name && c.id !== editingClientId)) {
+      toast.error(`Ya existe un cliente con el nombre "${name}".`);
       return;
     }
     setBusyEdit(true);
     try {
-      await onUpdate(editingClientId, value);
+      await onUpdate(editingClientId, {
+        name,
+        cif:         editingDraft.cif.trim(),
+        address:     editingDraft.address.trim(),
+        city:        editingDraft.city.trim(),
+        postal_code: editingDraft.postal_code.trim(),
+      });
       setEditingClientId(null);
-      setEditingValue("");
+      setEditingDraft(EMPTY_DRAFT);
     } catch {
       // App.jsx ya mostró toast
     } finally {
@@ -95,10 +130,23 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
           <h2>Clientes</h2>
           <p>
             {canManage
-              ? "Gestiona el listado de clientes disponibles para asignar a tareas. La dirección concreta de cada intervención se rellena en la propia tarea (un cliente puede tener varias sedes)."
+              ? "Gestiona el listado de clientes y sus datos fiscales (CIF + domicilio social). La dirección concreta de cada intervención se rellena en la propia tarea."
               : "Listado de clientes. Solo lectura."}
           </p>
         </div>
+        {clients.length > 0 && (
+          <div className="clients-search">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, CIF o municipio…"
+            />
+            <span className="clients-search-count">
+              {filteredClients.length} / {clients.length}
+            </span>
+          </div>
+        )}
       </div>
 
       {canManage && (
@@ -127,28 +175,40 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
       )}
 
       <div className="clients-list-card">
-        {clients.length === 0 ? (
+        {filteredClients.length === 0 ? (
           <EmptyState
-            icon="folder"
-            title="No hay clientes creados"
+            icon={search ? "search" : "folder"}
+            title={
+              search
+                ? "Sin resultados"
+                : "No hay clientes creados"
+            }
             description={
-              canManage
-                ? "Crea tu primer cliente para poder asignarlo a intervenciones."
-                : "Aún no se ha creado ningún cliente."
+              search
+                ? `Ningún cliente coincide con "${search}".`
+                : canManage
+                  ? "Crea tu primer cliente para poder asignarlo a intervenciones."
+                  : "Aún no se ha creado ningún cliente."
             }
             action={
-              canManage
+              !search && canManage
                 ? {
                     label: "Crear cliente",
                     variant: "primary",
                     onClick: () => newClientInputRef.current?.focus(),
                   }
-                : undefined
+                : search
+                  ? {
+                      label: "Limpiar búsqueda",
+                      variant: "primary",
+                      onClick: () => setSearch(""),
+                    }
+                  : undefined
             }
           />
         ) : (
           <div className="clients-list">
-            {clients.map((client) => {
+            {filteredClients.map((client) => {
               const usageCount = tasks.filter((task) => task.clientId === client.id).length;
               const isEditing  = editingClientId === client.id;
 
@@ -156,18 +216,30 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                 <div key={client.id} className="client-row">
                   <div className="client-main">
                     {isEditing ? (
-                      <input
-                        type="text"
-                        value={editingValue}
-                        onChange={(e) => setEditingValue(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                        autoFocus
+                      <ClientEditFields
+                        draft={editingDraft}
+                        setDraft={setEditingDraft}
+                        onSubmit={saveEdit}
                       />
                     ) : (
                       <div>
                         <div className="client-name">{client.name}</div>
                         <div className="client-meta">
-                          Tareas asociadas: {usageCount}
+                          {client.cif && (
+                            <span className="client-cif">CIF: {client.cif}</span>
+                          )}
+                          {client.cif && (client.city || client.postal_code) && (
+                            <span className="client-meta-sep">·</span>
+                          )}
+                          {(client.postal_code || client.city) && (
+                            <span className="client-fiscal-line">
+                              {[client.postal_code, client.city].filter(Boolean).join(" ")}
+                            </span>
+                          )}
+                          {(client.cif || client.city || client.postal_code) && (
+                            <span className="client-meta-sep">·</span>
+                          )}
+                          <span>Tareas: {usageCount}</span>
                         </div>
                       </div>
                     )}
@@ -196,7 +268,7 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                             className="btn-secondary small-btn"
                             onClick={() => {
                               setEditingClientId(null);
-                              setEditingValue("");
+                              setEditingDraft(EMPTY_DRAFT);
                             }}
                             disabled={busyEdit}
                           >
@@ -229,6 +301,62 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Form inline de edición: nombre + CIF (5+5 col), dirección a ancho
+ * completo, CP + ciudad en 2 col. Compacto pero respira. Enter en
+ * cualquier campo guarda. */
+function ClientEditFields({ draft, setDraft, onSubmit }) {
+  const handleKey = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onSubmit();
+    }
+  };
+  return (
+    <div className="client-edit-grid">
+      <input
+        className="client-edit-name"
+        type="text"
+        value={draft.name}
+        onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Nombre del cliente"
+        autoFocus
+      />
+      <input
+        className="client-edit-cif"
+        type="text"
+        value={draft.cif}
+        onChange={(e) => setDraft({ ...draft, cif: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="CIF / NIF"
+      />
+      <input
+        className="client-edit-address"
+        type="text"
+        value={draft.address}
+        onChange={(e) => setDraft({ ...draft, address: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Domicilio fiscal (calle, número)"
+      />
+      <input
+        type="text"
+        value={draft.postal_code}
+        onChange={(e) => setDraft({ ...draft, postal_code: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Código postal"
+      />
+      <input
+        type="text"
+        value={draft.city}
+        onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Municipio"
+      />
     </div>
   );
 }

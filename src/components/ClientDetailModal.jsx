@@ -120,6 +120,33 @@ export default function ClientDetailModal({ open, clientId, technicians, onClose
           </div>
         )}
 
+        {/* ─── Datos fiscales (CIF + domicilio social) ────
+            Sólo aparece si el cliente tiene algún dato — los clientes
+            antiguos creados sin estos campos no muestran un bloque
+            vacío. La dirección de aquí es la fiscal/social, NO la
+            de cada intervención (esa vive en cada tarea). */}
+        {!loading && client && (client.cif || client.address || client.city || client.postal_code) && (
+          <div className="client-fiscal">
+            {client.cif && (
+              <div className="client-fiscal-row">
+                <span className="client-fiscal-label">CIF</span>
+                <span className="client-fiscal-value">{client.cif}</span>
+              </div>
+            )}
+            {(client.address || client.postal_code || client.city) && (
+              <div className="client-fiscal-row">
+                <span className="client-fiscal-label">Domicilio fiscal</span>
+                <span className="client-fiscal-value">
+                  {[
+                    client.address,
+                    [client.postal_code, client.city].filter(Boolean).join(" "),
+                  ].filter(Boolean).join(", ")}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ─── Estadísticas resumen ─────────────────────── */}
         {!loading && !error && tasks.length > 0 && (
           <div className="client-stats">

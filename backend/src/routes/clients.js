@@ -23,14 +23,33 @@ clientsRouter.get("/", async (_req, res) => {
 // ─── POST /api/clients ───────────────────────────────────
 clientsRouter.post("/", canManage, validate(schemas.clientCreate), async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, cif, address, city, postal_code } = req.body;
 
-    const { rows } = await query(
-      "insert into clients (name, created_by) values ($1, $2) returning *",
-      [name, req.user.id]
-    );
-    emit("clients:change", { type: "insert", client: rows[0] });
-    res.json(rows[0]);
+    // El CIF es UNIQUE cuando no está vacío. Si el supervisor intenta
+    // crear un duplicado, devolvemos 409 con un mensaje claro en lugar
+    // del error genérico de Postgres.
+    try {
+      const { rows } = await query(
+        `insert into clients (name, cif, address, city, postal_code, created_by)
+         values ($1, $2, $3, $4, $5, $6) returning *`,
+        [
+          name,
+          cif ?? "",
+          address ?? "",
+          city ?? "",
+          postal_code ?? "",
+          req.user.id,
+        ]
+      );
+      emit("clients:change", { type: "insert", client: rows[0] });
+      res.json(rows[0]);
+    } catch (innerErr) {
+      // 23505 = unique_violation
+      if (innerErr?.code === "23505" && innerErr?.constraint === "clients_cif_unique") {
+        return res.status(409).json({ error: `Ya existe un cliente con el CIF "${cif}".` });
+      }
+      throw innerErr;
+    }
   } catch (err) {
     logger.error({ err }, "[clients/create]");
     res.status(500).json({ error: "Error creando cliente" });
@@ -40,15 +59,31 @@ clientsRouter.post("/", canManage, validate(schemas.clientCreate), async (req, r
 // ─── PUT /api/clients/:id ────────────────────────────────
 clientsRouter.put("/:id", canManage, validate(schemas.clientUpdate), async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, cif, address, city, postal_code } = req.body;
 
-    const { rows } = await query(
-      "update clients set name = $1 where id = $2 returning *",
-      [name, req.params.id]
-    );
-    if (!rows[0]) return res.status(404).json({ error: "Cliente no encontrado" });
-    emit("clients:change", { type: "update", client: rows[0] });
-    res.json(rows[0]);
+    try {
+      const { rows } = await query(
+        `update clients set
+           name = $1, cif = $2, address = $3, city = $4, postal_code = $5
+         where id = $6 returning *`,
+        [
+          name,
+          cif ?? "",
+          address ?? "",
+          city ?? "",
+          postal_code ?? "",
+          req.params.id,
+        ]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "Cliente no encontrado" });
+      emit("clients:change", { type: "update", client: rows[0] });
+      res.json(rows[0]);
+    } catch (innerErr) {
+      if (innerErr?.code === "23505" && innerErr?.constraint === "clients_cif_unique") {
+        return res.status(409).json({ error: `Ya existe otro cliente con el CIF "${cif}".` });
+      }
+      throw innerErr;
+    }
   } catch (err) {
     logger.error({ err }, "[clients/update]");
     res.status(500).json({ error: "Error actualizando cliente" });
@@ -84,7 +119,8 @@ clientsRouter.delete("/:id", canManage, async (req, res) => {
 clientsRouter.get("/:id/details", authMiddleware, async (req, res) => {
   try {
     const { rows: clientRows } = await query(
-      "select id, name, created_at from clients where id = $1",
+      `select id, name, cif, address, city, postal_code, created_at
+         from clients where id = $1`,
       [req.params.id]
     );
     const client = clientRows[0];

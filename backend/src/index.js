@@ -9,7 +9,7 @@ import pinoHttp from "pino-http";
 import { authMiddleware, verifyToken } from "./auth.js";
 import { setIO } from "./io.js";
 import { pool } from "./db.js";
-import { applySchema, seedAdmin, waitForDb } from "./seed.js";
+import { applySchema, applyClientsSeed, seedAdmin, waitForDb } from "./seed.js";
 import { logger } from "./logger.js";
 import { startQueue, stopQueue } from "./queue.js";
 import { registerWorkers } from "./workers.js";
@@ -162,6 +162,7 @@ const PORT = Number(process.env.PORT) || 3001;
   try {
     await waitForDb();
     await applySchema();
+    await applyClientsSeed();
     await seedAdmin();
 
     // pg-boss reusa la misma BD. Si falla, no tumbamos el backend: los

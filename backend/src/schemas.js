@@ -70,14 +70,23 @@ export const schemas = {
     password: z.string().min(1, "Contraseña requerida").max(200),
   }),
 
-  // Clients — solo nombre. Las direcciones viven en cada tarea
-  // (un cliente puede tener varias sedes y la dirección depende de
-  // a qué sede va el técnico).
+  // Clients — nombre + datos fiscales (CIF + domicilio fiscal).
+  // La dirección de cada INTERVENCIÓN sigue viviendo en la tarea
+  // (un cliente puede tener varias sedes). Esta dirección es la
+  // fiscal/social, usada como referencia y para identificación.
   clientCreate: z.object({
-    name: trimmed(200).min(1, "Nombre requerido"),
+    name:        trimmed(200).min(1, "Nombre requerido"),
+    cif:         optionalString(50),
+    address:     optionalString(300),
+    city:        optionalString(120),
+    postal_code: optionalString(20),
   }),
   clientUpdate: z.object({
-    name: trimmed(200).min(1, "Nombre requerido"),
+    name:        trimmed(200).min(1, "Nombre requerido"),
+    cif:         optionalString(50),
+    address:     optionalString(300),
+    city:        optionalString(120),
+    postal_code: optionalString(20),
   }),
 
   // Tasks. No usamos .strict(): si el frontend envía campos legacy que
