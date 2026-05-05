@@ -6,7 +6,15 @@
   flex: 0 0 auto;
   position: sticky;
   top: 0;
-  z-index: 10;
+  /* z-index: 50 mantiene el topbar por encima del contenido al
+     scrollear. Antes era 10 — pero las celdas seleccionadas del
+     calendario tienen z-index 25 (para que su brand-border no quede
+     tapado por las celdas vecinas), y el resultado era que el
+     indicador "hoy" se quedaba pintado encima del topbar al pasar
+     por detrás. 50 es suficiente: cubre cell.selected (25), tooltip
+     (25), y los hovers desktop (30/40). El drawer del sidebar y
+     los modales/notificaciones/cmdK siguen por encima de 50. */
+  z-index: 50;
 }
 
 .compact-topbar { padding-bottom: 0; }

@@ -313,7 +313,10 @@
     bottom: 0;
     width: 260px;
     height: 100dvh;
-    z-index: 50;
+    /* z-index 100: por encima del topbar (50) cuando el drawer está
+       abierto. Antes era 50 — empataba con el topbar y quedaba
+       fragmentado. */
+    z-index: 100;
     transform: translateX(-100%);
     transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
     box-shadow: 0 0 0 transparent;
