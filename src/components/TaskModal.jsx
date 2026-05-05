@@ -10,6 +10,7 @@ import {
 import { validateTask } from "../utils/validation";
 import { findTaskConflicts } from "../utils/task";
 import { peopleFromIds } from "../utils/id";
+import { hasAddress, formatAddress, getMapsUrl } from "../utils/address";
 import { usePermissions } from "../hooks/usePermissions";
 import { IconAlert } from "./Icon";
 import TaskActivityTimeline from "./TaskActivityTimeline";
@@ -115,6 +116,14 @@ export default function TaskModal({
   const conflicts = useMemo(
     () => findTaskConflicts(draft, tasks || []),
     [draft, tasks]
+  );
+
+  // Cliente seleccionado: si tiene dirección, mostramos un bloque
+  // "Cómo llegar" debajo del selector. Útil sobre todo para técnicos
+  // que abren la tarea desde el móvil al ir al sitio.
+  const selectedClient = useMemo(
+    () => (clients || []).find((c) => c.id === draft.clientId) || null,
+    [clients, draft.clientId]
   );
 
   // Al cerrar el modal, plegamos el alta inline y reseteamos errores/busy.
@@ -397,6 +406,50 @@ export default function TaskModal({
                       >
                         Añadir
                       </button>
+                    </div>
+                  )}
+
+                  {/* Dirección del cliente + atajo a Maps. Sólo
+                      aparece si el cliente seleccionado tiene
+                      dirección rellena (la mayoría no la tendrá
+                      hasta que un supervisor la añada en Clientes). */}
+                  {selectedClient && hasAddress(selectedClient) && (
+                    <div className="task-client-location">
+                      <div className="task-client-location-body">
+                        <span className="task-client-location-icon" aria-hidden="true">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" strokeWidth="2"
+                               strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                        </span>
+                        <div className="task-client-location-text">
+                          <div className="task-client-location-line">
+                            {formatAddress(selectedClient)}
+                          </div>
+                          {selectedClient.notes && (
+                            <div className="task-client-location-notes">
+                              {selectedClient.notes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <a
+                        className="task-client-location-cta"
+                        href={getMapsUrl(selectedClient) || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Abrir ${formatAddress(selectedClient)} en Maps`}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" strokeWidth="2"
+                             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                        Cómo llegar
+                      </a>
                     </div>
                   )}
                 </div>

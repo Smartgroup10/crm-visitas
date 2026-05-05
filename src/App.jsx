@@ -464,19 +464,25 @@ export default function App() {
     }
   }
 
-  async function handleAddClient(name) {
+  // handleAddClient/handleUpdateClient aceptan ahora el payload completo
+  // del cliente (name + address + city + postal_code + notes). El alta
+  // inline desde TaskModal sigue mandando solo `{ name }` — los campos
+  // opcionales se rellenan por defecto a "" en el backend.
+  async function handleAddClient(payload) {
+    const body = typeof payload === "string" ? { name: payload } : payload;
     try {
-      await api.post("/clients", { name });
-      toast.success(`Cliente "${name}" creado.`);
+      await api.post("/clients", body);
+      toast.success(`Cliente "${body.name}" creado.`);
     } catch (err) {
       toast.error(err?.message || "No se pudo crear el cliente.");
       throw err;
     }
   }
 
-  async function handleUpdateClient(id, name) {
+  async function handleUpdateClient(id, payload) {
+    const body = typeof payload === "string" ? { name: payload } : payload;
     try {
-      await api.put(`/clients/${id}`, { name });
+      await api.put(`/clients/${id}`, body);
       toast.success("Cliente actualizado.");
     } catch (err) {
       toast.error(err?.message || "No se pudo actualizar el cliente.");

@@ -23,11 +23,19 @@ clientsRouter.get("/", async (_req, res) => {
 // ─── POST /api/clients ───────────────────────────────────
 clientsRouter.post("/", canManage, validate(schemas.clientCreate), async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, address, city, postal_code, notes } = req.body;
 
     const { rows } = await query(
-      "insert into clients (name, created_by) values ($1, $2) returning *",
-      [name, req.user.id]
+      `insert into clients (name, address, city, postal_code, notes, created_by)
+       values ($1, $2, $3, $4, $5, $6) returning *`,
+      [
+        name,
+        address ?? "",
+        city ?? "",
+        postal_code ?? "",
+        notes ?? "",
+        req.user.id,
+      ]
     );
     emit("clients:change", { type: "insert", client: rows[0] });
     res.json(rows[0]);
@@ -40,11 +48,20 @@ clientsRouter.post("/", canManage, validate(schemas.clientCreate), async (req, r
 // ─── PUT /api/clients/:id ────────────────────────────────
 clientsRouter.put("/:id", canManage, validate(schemas.clientUpdate), async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, address, city, postal_code, notes } = req.body;
 
     const { rows } = await query(
-      "update clients set name = $1 where id = $2 returning *",
-      [name, req.params.id]
+      `update clients set
+         name = $1, address = $2, city = $3, postal_code = $4, notes = $5
+       where id = $6 returning *`,
+      [
+        name,
+        address ?? "",
+        city ?? "",
+        postal_code ?? "",
+        notes ?? "",
+        req.params.id,
+      ]
     );
     if (!rows[0]) return res.status(404).json({ error: "Cliente no encontrado" });
     emit("clients:change", { type: "update", client: rows[0] });
@@ -84,7 +101,8 @@ clientsRouter.delete("/:id", canManage, async (req, res) => {
 clientsRouter.get("/:id/details", authMiddleware, async (req, res) => {
   try {
     const { rows: clientRows } = await query(
-      "select id, name, created_at from clients where id = $1",
+      `select id, name, address, city, postal_code, notes, created_at
+         from clients where id = $1`,
       [req.params.id]
     );
     const client = clientRows[0];

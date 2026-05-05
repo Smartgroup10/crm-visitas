@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { usePermissions } from "../../hooks/usePermissions";
 import { useToast } from "../../hooks/useToast";
 import { useConfirm } from "../../hooks/useConfirm";
+import { formatAddress, getMapsUrl } from "../../utils/address";
 import EmptyState from "../EmptyState";
 
 // El modal de detalle del cliente vive ahora a nivel App (para que se
@@ -11,13 +12,21 @@ function openClientDetail(id) {
   window.dispatchEvent(new CustomEvent("crm:open-client", { detail: { id } }));
 }
 
+const EMPTY_DRAFT = {
+  name: "",
+  address: "",
+  city: "",
+  postal_code: "",
+  notes: "",
+};
+
 export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete }) {
   const { canManage } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
   const [newClient, setNewClient]             = useState("");
   const [editingClientId, setEditingClientId] = useState(null);
-  const [editingValue, setEditingValue]       = useState("");
+  const [editingDraft, setEditingDraft]       = useState(EMPTY_DRAFT);
   const [busyAdd, setBusyAdd]                 = useState(false);
   const [busyEdit, setBusyEdit]               = useState(false);
   const [deletingId, setDeletingId]           = useState(null);
@@ -32,7 +41,11 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
     }
     setBusyAdd(true);
     try {
-      await onAdd(value);
+      // El alta inicial sólo pide nombre — la dirección y el resto se
+      // rellenan después con "Editar" para no obligar al usuario a
+      // tener todos los datos al crear (típico cuando el técnico
+      // descubre el cliente en campo y quiere registrarlo rápido).
+      await onAdd({ name: value });
       setNewClient("");
     } catch {
       // App.jsx ya muestra toast de error
@@ -43,21 +56,33 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
 
   function startEdit(client) {
     setEditingClientId(client.id);
-    setEditingValue(client.name);
+    setEditingDraft({
+      name:        client.name || "",
+      address:     client.address || "",
+      city:        client.city || "",
+      postal_code: client.postal_code || "",
+      notes:       client.notes || "",
+    });
   }
 
   async function saveEdit() {
-    const value = editingValue.trim();
-    if (!value) return;
-    if (clients.some((c) => c.name === value && c.id !== editingClientId)) {
-      toast.error(`Ya existe un cliente con el nombre "${value}".`);
+    const name = editingDraft.name.trim();
+    if (!name) return;
+    if (clients.some((c) => c.name === name && c.id !== editingClientId)) {
+      toast.error(`Ya existe un cliente con el nombre "${name}".`);
       return;
     }
     setBusyEdit(true);
     try {
-      await onUpdate(editingClientId, value);
+      await onUpdate(editingClientId, {
+        name,
+        address:     editingDraft.address.trim(),
+        city:        editingDraft.city.trim(),
+        postal_code: editingDraft.postal_code.trim(),
+        notes:       editingDraft.notes.trim(),
+      });
       setEditingClientId(null);
-      setEditingValue("");
+      setEditingDraft(EMPTY_DRAFT);
     } catch {
       // App.jsx ya mostró toast
     } finally {
@@ -95,7 +120,7 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
           <h2>Clientes</h2>
           <p>
             {canManage
-              ? "Gestiona el listado de clientes disponibles para asignar a tareas."
+              ? "Gestiona el listado de clientes y sus direcciones para asignarlos a tareas."
               : "Listado de clientes. Solo lectura."}
           </p>
         </div>
@@ -151,29 +176,57 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
             {clients.map((client) => {
               const usageCount = tasks.filter((task) => task.clientId === client.id).length;
               const isEditing  = editingClientId === client.id;
+              const formatted  = formatAddress(client);
+              const mapsUrl    = getMapsUrl(client);
 
               return (
                 <div key={client.id} className="client-row">
                   <div className="client-main">
                     {isEditing ? (
-                      <input
-                        type="text"
-                        value={editingValue}
-                        onChange={(e) => setEditingValue(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                        autoFocus
+                      <ClientEditFields
+                        draft={editingDraft}
+                        setDraft={setEditingDraft}
+                        onSubmit={saveEdit}
                       />
                     ) : (
                       <div>
                         <div className="client-name">{client.name}</div>
+                        {formatted && (
+                          <div className="client-address">{formatted}</div>
+                        )}
                         <div className="client-meta">
                           Tareas asociadas: {usageCount}
+                          {client.notes && (
+                            <>
+                              <span className="client-meta-sep">·</span>
+                              <span className="client-notes-inline" title={client.notes}>
+                                {client.notes}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
 
                   <div className="client-actions">
+                    {!isEditing && mapsUrl && (
+                      <a
+                        className="btn-secondary small-btn client-maps-btn"
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Abrir ${formatted} en Maps`}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" strokeWidth="2"
+                             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        Cómo llegar
+                      </a>
+                    )}
                     {!isEditing && (
                       <button
                         className="btn-secondary small-btn"
@@ -196,7 +249,7 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
                             className="btn-secondary small-btn"
                             onClick={() => {
                               setEditingClientId(null);
-                              setEditingValue("");
+                              setEditingDraft(EMPTY_DRAFT);
                             }}
                             disabled={busyEdit}
                           >
@@ -229,6 +282,60 @@ export default function ClientsView({ clients, tasks, onAdd, onUpdate, onDelete 
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Formulario de edición compacto: nombre + dirección en grid 2-col,
+ * más notas como textarea pequeña. Enter en cualquier input dispara
+ * el guardado para mantener el flujo rápido. */
+function ClientEditFields({ draft, setDraft, onSubmit }) {
+  const handleKey = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onSubmit();
+    }
+  };
+  return (
+    <div className="client-edit-grid">
+      <input
+        className="client-edit-name"
+        type="text"
+        value={draft.name}
+        onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Nombre del cliente"
+        autoFocus
+      />
+      <input
+        type="text"
+        value={draft.address}
+        onChange={(e) => setDraft({ ...draft, address: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Dirección (calle, número)"
+      />
+      <input
+        type="text"
+        value={draft.postal_code}
+        onChange={(e) => setDraft({ ...draft, postal_code: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Código postal"
+      />
+      <input
+        type="text"
+        value={draft.city}
+        onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+        onKeyDown={handleKey}
+        placeholder="Ciudad"
+      />
+      <textarea
+        className="client-edit-notes"
+        value={draft.notes}
+        onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+        rows="2"
+        placeholder="Notas (portero, código, contacto en obra…)"
+      />
     </div>
   );
 }

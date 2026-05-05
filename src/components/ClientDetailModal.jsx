@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import { useClientDetail } from "../hooks/useClientDetail";
+import { hasAddress, formatAddress, getMapsUrl } from "../utils/address";
 
 /**
  * Modal de detalle de cliente: ficha + estadísticas + histórico
@@ -117,6 +118,42 @@ export default function ClientDetailModal({ open, clientId, technicians, onClose
         {error && (
           <div className="form-section">
             <div className="task-comments-error" role="alert">{error}</div>
+          </div>
+        )}
+
+        {/* ─── Dirección + Cómo llegar ─────────────────── */}
+        {!loading && !error && hasAddress(client) && (
+          <div className="client-location">
+            <div className="client-location-body">
+              <span className="client-location-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" strokeWidth="2"
+                     strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </span>
+              <div className="client-location-text">
+                <div className="client-location-line">{formatAddress(client)}</div>
+                {client.notes && (
+                  <div className="client-location-notes">{client.notes}</div>
+                )}
+              </div>
+            </div>
+            <a
+              className="client-location-cta"
+              href={getMapsUrl(client) || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2"
+                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+              Cómo llegar
+            </a>
           </div>
         )}
 

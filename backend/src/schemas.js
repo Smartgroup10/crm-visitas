@@ -64,11 +64,22 @@ export const schemas = {
   }),
 
   // Clients
+  // address/city/postal_code/notes son opcionales — un cliente puede
+  // existir sólo con nombre mientras un supervisor no rellena la
+  // ubicación todavía. Trimming + topes de longitud razonables.
   clientCreate: z.object({
-    name: trimmed(200).min(1, "Nombre requerido"),
+    name:        trimmed(200).min(1, "Nombre requerido"),
+    address:     optionalString(300),
+    city:        optionalString(120),
+    postal_code: optionalString(20),
+    notes:       optionalString(2_000),
   }),
   clientUpdate: z.object({
-    name: trimmed(200).min(1, "Nombre requerido"),
+    name:        trimmed(200).min(1, "Nombre requerido"),
+    address:     optionalString(300),
+    city:        optionalString(120),
+    postal_code: optionalString(20),
+    notes:       optionalString(2_000),
   }),
 
   // Tasks. No usamos .strict(): si el frontend envía campos legacy que

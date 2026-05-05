@@ -49,6 +49,22 @@ create table if not exists clients (
   created_by  uuid references users(id) on delete set null
 );
 
+-- Datos de localización del cliente. Usados por:
+--   - El TaskModal para mostrar la dirección al técnico cuando abre
+--     la tarea, y un botón "Cómo llegar" que lanza Maps.
+--   - La ficha del cliente (ClientDetailModal) para tener la
+--     información a mano sin tener que rebuscar en otro sitio.
+--   - Eventualmente, una vista "ruta del día" que ordene tareas por
+--     proximidad geográfica.
+--
+-- Todos los campos son opcionales (default '' o null). El cliente
+-- existente no necesita migrarse: simplemente queda con dirección
+-- vacía hasta que un admin/supervisor la rellene.
+alter table clients add column if not exists address     text not null default '';
+alter table clients add column if not exists city        text not null default '';
+alter table clients add column if not exists postal_code text not null default '';
+alter table clients add column if not exists notes       text not null default '';
+
 -- ─── MIGRACIÓN: técnicos → usuarios ───────────────────────
 -- Si la tabla `technicians` todavía existe (instalación antigua), copiamos
 -- sus filas a `users` reusando el mismo UUID, y después la borramos.
@@ -117,6 +133,24 @@ create table if not exists tasks (
 -- no existe. Se almacena como text "HH:MM" para mantener simetría con
 -- `date` (también text). Null = sin hora concreta.
 alter table tasks add column if not exists start_time text;
+
+-- Migración: si la tarea fue generada automáticamente por una plantilla
+-- recurrente, la enlazamos para evitar duplicados al regenerar y poder
+-- mostrar un badge "Recurrente" en la UI. Las tareas creadas a mano
+-- tienen template_id = NULL.
+alter table tasks add column if not exists template_id uuid;
+do $$ begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where constraint_name = 'tasks_template_id_fkey'
+      and table_name = 'tasks'
+  ) then
+    alter table tasks
+      add constraint tasks_template_id_fkey
+      foreign key (template_id) references task_templates(id) on delete set null;
+  end if;
+end $$;
+create index if not exists idx_tasks_template_date on tasks (template_id, date);
 
 -- Trigger: actualizar updated_at automáticamente al modificar una tarea
 create or replace function update_updated_at()
@@ -279,6 +313,37 @@ create table if not exists task_templates (
 
 create index if not exists idx_task_templates_name
   on task_templates (name asc);
+
+-- ─── RECURRENCIA: columnas embedded en la plantilla ──────
+-- Decisión de diseño: NO una tabla separada. Una plantilla tiene como
+-- mucho UN patrón de recurrencia, y casi siempre la lógica "guardar
+-- tipo de trabajo" y "agendar repetición" van de la mano. Acoplar los
+-- datos en la misma fila simplifica el form (una sección extra en el
+-- modal de plantillas), evita un join, y hace trivial el toggle de
+-- activación.
+--
+-- Patrones soportados (kind):
+--   "daily"     → cada día
+--   "weekly"    → en los días de la semana indicados (recurrence_weekdays:
+--                 0=domingo, 1=lunes, …, 6=sábado, ISO-like de Date.getDay())
+--   "monthly"   → un día concreto del mes (recurrence_day_of_month: 1-31).
+--                 Si el día no existe en el mes (p.ej. 31 en febrero),
+--                 generamos en el último día disponible.
+--
+-- recurrence_lookahead_days es el horizonte de generación: el worker
+-- mantiene generadas las tareas hasta `today + lookahead`. Default 30:
+-- generas un mes por delante, lo cual permite ver el calendario futuro
+-- y reaccionar a cambios sin tener huecos.
+--
+-- recurrence_last_fired_at se actualiza tras cada generación correcta
+-- y sirve para evitar re-procesos en runs intermedios.
+alter table task_templates add column if not exists recurrence_kind            text;
+alter table task_templates add column if not exists recurrence_weekdays        int[] not null default '{}';
+alter table task_templates add column if not exists recurrence_day_of_month    int;
+alter table task_templates add column if not exists recurrence_start_time      text;
+alter table task_templates add column if not exists recurrence_lookahead_days  int not null default 30;
+alter table task_templates add column if not exists recurrence_active          boolean not null default false;
+alter table task_templates add column if not exists recurrence_last_fired_at   timestamptz;
 
 -- Trigger: actualiza updated_at automáticamente. Reutilizamos la
 -- función update_updated_at() definida más arriba para tasks.
