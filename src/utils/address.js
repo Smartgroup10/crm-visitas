@@ -1,5 +1,12 @@
 /**
- * Helpers para direcciones de cliente y enlaces a Maps.
+ * Helpers para direcciones de tarea y enlaces a Maps.
+ *
+ * La dirección vive en la propia tarea (no en el cliente) porque un
+ * cliente puede tener varias sedes — la dirección concreta a la que
+ * va el técnico depende de la intervención. Los campos camelCase
+ * (`address`, `city`, `postalCode`, `locationNotes`) son los que
+ * existen en el draft del frontend (taskMapper traduce a snake_case
+ * al persistir).
  *
  * Decisiones:
  *  - Usamos Google Maps porque es el denominador común: en iOS abre
@@ -13,33 +20,31 @@
  */
 
 /**
- * Devuelve true si el cliente tiene al menos una pieza de dirección
- * útil (calle/ciudad/CP). Sirve para decidir si pintamos el bloque
- * de "Cómo llegar" o lo omitimos. */
-export function hasAddress(client) {
-  if (!client) return false;
+ * ¿La tarea tiene al menos una pieza de dirección útil?
+ * Sirve para decidir si pintamos el bloque "Cómo llegar". */
+export function hasAddress(task) {
+  if (!task) return false;
   return Boolean(
-    (client.address && client.address.trim()) ||
-    (client.city && client.city.trim()) ||
-    (client.postal_code && client.postal_code.trim())
+    (task.address && task.address.trim()) ||
+    (task.city && task.city.trim()) ||
+    (task.postalCode && task.postalCode.trim())
   );
 }
 
 /**
- * Compone "calle, CP ciudad" filtrando los campos vacíos. Resultado
- * idóneo para el query string de Maps y para mostrar al usuario.
+ * Compone "calle, CP ciudad" filtrando vacíos. Resultado idóneo para
+ * el query de Maps y para mostrar al usuario.
  *
  * Ejemplos:
- *   { address: "C/ Mayor 12", city: "Madrid", postal_code: "28013" }
+ *   { address: "C/ Mayor 12", city: "Madrid", postalCode: "28013" }
  *     → "C/ Mayor 12, 28013 Madrid"
- *   { address: "C/ Mayor 12", city: "", postal_code: "" }
- *     → "C/ Mayor 12"
+ *   { address: "C/ Mayor 12" } → "C/ Mayor 12"
  *   {} → "" */
-export function formatAddress(client) {
-  if (!client) return "";
-  const street = (client.address || "").trim();
-  const city = (client.city || "").trim();
-  const cp = (client.postal_code || "").trim();
+export function formatAddress(task) {
+  if (!task) return "";
+  const street = (task.address || "").trim();
+  const city = (task.city || "").trim();
+  const cp = (task.postalCode || "").trim();
   const cityLine = [cp, city].filter(Boolean).join(" ");
   return [street, cityLine].filter(Boolean).join(", ");
 }
@@ -50,9 +55,9 @@ export function formatAddress(client) {
  * Usa la spec oficial Google Maps URLs (sin API key necesaria).
  *
  * Devuelve null si no hay dirección suficiente — el caller debe
- * gatear el botón con `hasAddress(client)` antes de pintarlo. */
-export function getMapsUrl(client) {
-  const formatted = formatAddress(client);
+ * gatear el botón con `hasAddress(task)` antes de pintarlo. */
+export function getMapsUrl(task) {
+  const formatted = formatAddress(task);
   if (!formatted) return null;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formatted)}`;
 }

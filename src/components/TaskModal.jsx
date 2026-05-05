@@ -118,13 +118,10 @@ export default function TaskModal({
     [draft, tasks]
   );
 
-  // Cliente seleccionado: si tiene dirección, mostramos un bloque
-  // "Cómo llegar" debajo del selector. Útil sobre todo para técnicos
-  // que abren la tarea desde el móvil al ir al sitio.
-  const selectedClient = useMemo(
-    () => (clients || []).find((c) => c.id === draft.clientId) || null,
-    [clients, draft.clientId]
-  );
+  // Dirección rellena en el draft → el botón "Cómo llegar" puede
+  // pintarse. La URL se compone solo si hay datos suficientes.
+  const taskHasAddress = hasAddress(draft);
+  const taskMapsUrl = taskHasAddress ? getMapsUrl(draft) : null;
 
   // Al cerrar el modal, plegamos el alta inline y reseteamos errores/busy.
   // Es un reset síncrono de estado local atado al ciclo de vida del modal,
@@ -408,50 +405,6 @@ export default function TaskModal({
                       </button>
                     </div>
                   )}
-
-                  {/* Dirección del cliente + atajo a Maps. Sólo
-                      aparece si el cliente seleccionado tiene
-                      dirección rellena (la mayoría no la tendrá
-                      hasta que un supervisor la añada en Clientes). */}
-                  {selectedClient && hasAddress(selectedClient) && (
-                    <div className="task-client-location">
-                      <div className="task-client-location-body">
-                        <span className="task-client-location-icon" aria-hidden="true">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                               stroke="currentColor" strokeWidth="2"
-                               strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
-                        </span>
-                        <div className="task-client-location-text">
-                          <div className="task-client-location-line">
-                            {formatAddress(selectedClient)}
-                          </div>
-                          {selectedClient.notes && (
-                            <div className="task-client-location-notes">
-                              {selectedClient.notes}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <a
-                        className="task-client-location-cta"
-                        href={getMapsUrl(selectedClient) || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={`Abrir ${formatAddress(selectedClient)} en Maps`}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" strokeWidth="2"
-                             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <line x1="5" y1="12" x2="19" y2="12" />
-                          <polyline points="12 5 19 12 12 19" />
-                        </svg>
-                        Cómo llegar
-                      </a>
-                    </div>
-                  )}
                 </div>
 
                 <div className="form-row full">
@@ -476,6 +429,77 @@ export default function TaskModal({
               {conflicts.length > 0 && (
                 <TaskConflictWarning conflicts={conflicts} technicians={technicians} />
               )}
+            </div>
+
+            {/* ─── Ubicación ─────────────────────
+                Dirección específica de esta tarea — vive en la propia
+                tarea (no en el cliente) porque un cliente puede tener
+                varias sedes/oficinas/restaurantes. El técnico que abre
+                la tarea desde el móvil pulsa "Cómo llegar" y sale
+                Maps con la ruta a la dirección exacta. */}
+            <div className="form-section">
+              <div className="form-section-header">
+                Ubicación
+                {taskMapsUrl && (
+                  <a
+                    className="task-location-cta"
+                    href={taskMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Abrir ${formatAddress(draft)} en Maps`}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" strokeWidth="2"
+                         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                    Cómo llegar
+                  </a>
+                )}
+              </div>
+              <div className="form-section-grid">
+                <div className="form-row full">
+                  <label>Dirección</label>
+                  <input
+                    type="text"
+                    value={draft.address || ""}
+                    onChange={(e) => setDraft({ ...draft, address: e.target.value })}
+                    placeholder="Calle, número, piso, puerta…"
+                    disabled={!canEditField("address")}
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Código postal</label>
+                  <input
+                    type="text"
+                    value={draft.postalCode || ""}
+                    onChange={(e) => setDraft({ ...draft, postalCode: e.target.value })}
+                    placeholder="28013"
+                    disabled={!canEditField("postalCode")}
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Ciudad</label>
+                  <input
+                    type="text"
+                    value={draft.city || ""}
+                    onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+                    placeholder="Madrid"
+                    disabled={!canEditField("city")}
+                  />
+                </div>
+                <div className="form-row full">
+                  <label>Notas de acceso</label>
+                  <textarea
+                    rows="2"
+                    value={draft.locationNotes || ""}
+                    onChange={(e) => setDraft({ ...draft, locationNotes: e.target.value })}
+                    placeholder="Portero, código, parking, contacto en obra…"
+                    disabled={!canEditField("locationNotes")}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* ─── Planificación ─────────────── */}

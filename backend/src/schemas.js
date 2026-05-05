@@ -48,6 +48,13 @@ const taskShape = {
   notes:           optionalString(10_000),
   materials:       optionalString(10_000),
   estimated_time:  optionalString(100),
+  // Ubicación específica de la tarea. address es texto libre (calle,
+  // número, piso, puerta) — Google Maps lo encuentra con eso. Notas
+  // separadas para portero/código/parking sin enturbiar `notes`.
+  address:         optionalString(300),
+  city:            optionalString(120),
+  postal_code:     optionalString(20),
+  location_notes:  optionalString(2_000),
   attachments:     z.array(z.any()).max(50).optional(),
   // zod v4: `z.record()` exige firma de dos argumentos `(keyType, valueType)`.
   // En v3 bastaba con pasar el valueType. Como las claves de `type_fields`
@@ -63,23 +70,14 @@ export const schemas = {
     password: z.string().min(1, "Contraseña requerida").max(200),
   }),
 
-  // Clients
-  // address/city/postal_code/notes son opcionales — un cliente puede
-  // existir sólo con nombre mientras un supervisor no rellena la
-  // ubicación todavía. Trimming + topes de longitud razonables.
+  // Clients — solo nombre. Las direcciones viven en cada tarea
+  // (un cliente puede tener varias sedes y la dirección depende de
+  // a qué sede va el técnico).
   clientCreate: z.object({
-    name:        trimmed(200).min(1, "Nombre requerido"),
-    address:     optionalString(300),
-    city:        optionalString(120),
-    postal_code: optionalString(20),
-    notes:       optionalString(2_000),
+    name: trimmed(200).min(1, "Nombre requerido"),
   }),
   clientUpdate: z.object({
-    name:        trimmed(200).min(1, "Nombre requerido"),
-    address:     optionalString(300),
-    city:        optionalString(120),
-    postal_code: optionalString(20),
-    notes:       optionalString(2_000),
+    name: trimmed(200).min(1, "Nombre requerido"),
   }),
 
   // Tasks. No usamos .strict(): si el frontend envía campos legacy que

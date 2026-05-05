@@ -17,6 +17,10 @@ export function emptyTask(date, type = "incidencia") {
     materials: "",
     estimatedTime: "",
     vehicle: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    locationNotes: "",
     attachments: [],
     ...defaultsForType(type),
   };
@@ -163,6 +167,12 @@ export function taskHaystack(task, clients, technicians) {
     task.materials,
     task.estimatedTime,
     task.vehicle,
+    // Ubicación incluida en la búsqueda — útil cuando el supervisor
+    // recuerda "la tarea de Calle Mayor" sin recordar el cliente.
+    task.address,
+    task.city,
+    task.postalCode,
+    task.locationNotes,
     ...(task.attachments || []).map((f) => f.name),
   ]
     .join(" ")

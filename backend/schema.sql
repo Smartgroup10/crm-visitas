@@ -49,21 +49,16 @@ create table if not exists clients (
   created_by  uuid references users(id) on delete set null
 );
 
--- Datos de localización del cliente. Usados por:
---   - El TaskModal para mostrar la dirección al técnico cuando abre
---     la tarea, y un botón "Cómo llegar" que lanza Maps.
---   - La ficha del cliente (ClientDetailModal) para tener la
---     información a mano sin tener que rebuscar en otro sitio.
---   - Eventualmente, una vista "ruta del día" que ordene tareas por
---     proximidad geográfica.
---
--- Todos los campos son opcionales (default '' o null). El cliente
--- existente no necesita migrarse: simplemente queda con dirección
--- vacía hasta que un admin/supervisor la rellene.
-alter table clients add column if not exists address     text not null default '';
-alter table clients add column if not exists city        text not null default '';
-alter table clients add column if not exists postal_code text not null default '';
-alter table clients add column if not exists notes       text not null default '';
+-- Limpieza: en una iteración previa añadimos address/city/postal_code/notes
+-- a `clients` para mostrar una dirección genérica por cliente. Pero un
+-- cliente real (cadena de oficinas, restaurantes, sedes…) puede tener
+-- varias direcciones según la tarea. La dirección pasó a la propia
+-- `tasks` (ver más abajo). Estas columnas dormidas se borran si existen
+-- — DROP IF EXISTS es idempotente, así que es seguro re-aplicar.
+alter table clients drop column if exists address;
+alter table clients drop column if exists city;
+alter table clients drop column if exists postal_code;
+alter table clients drop column if exists notes;
 
 -- ─── MIGRACIÓN: técnicos → usuarios ───────────────────────
 -- Si la tabla `technicians` todavía existe (instalación antigua), copiamos
@@ -133,6 +128,20 @@ create table if not exists tasks (
 -- no existe. Se almacena como text "HH:MM" para mantener simetría con
 -- `date` (también text). Null = sin hora concreta.
 alter table tasks add column if not exists start_time text;
+
+-- Datos de ubicación específicos de la tarea. Vive en la tarea (no en
+-- el cliente) porque un cliente real puede tener varias sedes/oficinas/
+-- restaurantes y la dirección concreta a la que va el técnico depende
+-- de la intervención. El supervisor rellena al planear; el botón
+-- "Cómo llegar" del TaskModal compone una URL de Google Maps a partir
+-- de estos campos.
+--
+-- Todos los campos default '' — una tarea puede crearse sin dirección
+-- (el técnico la conoce, llamada interna, etc.) y rellenarla después.
+alter table tasks add column if not exists address        text not null default '';
+alter table tasks add column if not exists city           text not null default '';
+alter table tasks add column if not exists postal_code    text not null default '';
+alter table tasks add column if not exists location_notes text not null default '';
 
 -- Migración: si la tarea fue generada automáticamente por una plantilla
 -- recurrente, la enlazamos para evitar duplicados al regenerar y poder

@@ -111,9 +111,10 @@ tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) 
     const { rows } = await query(
       `insert into tasks (
         title, date, start_time, status, priority, client_id, phone, technician_ids,
-        vehicle, type, notes, materials, estimated_time, attachments,
-        type_fields, created_by, updated_by
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$16)
+        vehicle, type, notes, materials, estimated_time,
+        address, city, postal_code, location_notes,
+        attachments, type_fields, created_by, updated_by
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$20)
       returning *`,
       [
         t.title           ?? "",
@@ -129,6 +130,10 @@ tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) 
         t.notes           ?? "",
         t.materials       ?? "",
         t.estimated_time  ?? "",
+        t.address         ?? "",
+        t.city            ?? "",
+        t.postal_code     ?? "",
+        t.location_notes  ?? "",
         JSON.stringify(t.attachments ?? []),
         JSON.stringify(t.type_fields ?? {}),
         req.user.id,
@@ -158,8 +163,9 @@ tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res
          title = $1, date = $2, start_time = $3, status = $4, priority = $5,
          client_id = $6, phone = $7, technician_ids = $8, vehicle = $9, type = $10,
          notes = $11, materials = $12, estimated_time = $13,
-         attachments = $14, type_fields = $15, updated_by = $16
-       where id = $17 returning *`,
+         address = $14, city = $15, postal_code = $16, location_notes = $17,
+         attachments = $18, type_fields = $19, updated_by = $20
+       where id = $21 returning *`,
       [
         t.title          ?? "",
         t.date           ?? null,
@@ -174,6 +180,10 @@ tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res
         t.notes          ?? "",
         t.materials      ?? "",
         t.estimated_time ?? "",
+        t.address        ?? "",
+        t.city           ?? "",
+        t.postal_code    ?? "",
+        t.location_notes ?? "",
         JSON.stringify(t.attachments ?? []),
         JSON.stringify(t.type_fields ?? {}),
         req.user.id,
