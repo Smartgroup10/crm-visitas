@@ -100,6 +100,9 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
+/* Mobile: mostramos sólo la inicial. Por defecto la versión "short"
+   está oculta y la "full" visible; la media query mobile invierte. */
+.calendar-weekdays .wd-short { display: none; }
 /* Sábado y domingo en tono más cálido (subtle ámbar sin gritar) */
 .calendar-weekdays div:last-child,
 .calendar-weekdays div:nth-last-child(2) {
@@ -596,4 +599,173 @@
   border-left: 3px solid var(--line-warm-strong);
   white-space: pre-wrap;
   line-height: 1.55;
+}
+
+/* ============================================================
+   MOBILE — touch targets + layout adaptativo
+   ============================================================
+   El calendario en móvil es duro de usar por densidad: 7 columnas
+   pequeñas + pills minúsculas + tabs touch-pequeñas. Estos breakpoints
+   sueltan presión: tabs 44px, period-nav 40px, semana con scroll
+   horizontal y scroll-snap para que cada día se ancle, mes con menos
+   pills visibles + weekdays cortas. */
+
+@media (max-width: 720px) {
+  /* Topbar del calendario en mobile: las tabs Mes/Semana/Día se
+     mantienen a la izquierda; el cluster Hoy + ‹ › + label se
+     reflow a una segunda fila si hace falta. */
+  .calendar-topbar {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .calendar-topbar-controls {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Mode tabs touch-friendly: 40px alto, padding generoso. */
+  .calendar-mode-tab {
+    padding: 9px 16px;
+    font-size: 13px;
+  }
+
+  /* Period nav: ‹ › a 40px (touch target real) en lugar de 32px.
+     El alto consistente con mode-tab para que la fila se vea
+     alineada cuando wrappea. */
+  .calendar-topbar-controls .ghost-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+    line-height: 1;
+  }
+  .calendar-topbar-controls .ghost-btn {
+    height: 40px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .month-label {
+    font-size: 13px;
+    flex: 1;
+    text-align: center;
+  }
+
+  /* Weekdays más cortas — "lun." → "L", etc. — para que los días
+     respiren. La cabecera sigue siendo informativa pero no consume
+     espacio que debería ir a las pills. */
+  .calendar-weekdays div {
+    padding: 8px 2px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .calendar-weekdays .wd-full { display: none; }
+  .calendar-weekdays .wd-short { display: inline; }
+
+  /* Cell del mes: padding reducido, alto mínimo bajo, día compacto. */
+  .calendar-cell {
+    padding: 4px 4px 3px;
+    min-height: 56px;
+  }
+  .cell-header { min-height: 16px; margin-bottom: 2px; }
+  .cell-day { font-size: 10px; }
+  .cell-day.today {
+    width: 18px;
+    height: 18px;
+    font-size: 9.5px;
+  }
+  .cell-tasks { gap: 2px; }
+
+  /* Task pills más compactas — el mes en mobile sólo da espacio para
+     2 visibles + "+N", el resto se muestran en day-view al pulsar. */
+  .task-pill {
+    padding: 3px 5px 3px 7px;
+    font-size: 10px;
+    border-left-width: 2px;
+  }
+  .task-pill-text { font-size: 10px; }
+  .task-pill-time { font-size: 9px; }
+  .more-label { font-size: 9.5px; padding-left: 4px; }
+
+  /* ─── Vista SEMANA en mobile ────────────────────────
+     7 columnas a 360px = ~50px cada una. Demasiado estrecho. Pasamos
+     a scroll horizontal con scroll-snap: cada día ocupa 120px mín y
+     se ancla al borde izquierdo cuando paras de scrollear.
+
+     Mantenemos el tap en cabecera de columna como navegación rápida
+     al "día" — gesto coherente con desktop. */
+  .week-grid {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .week-grid::-webkit-scrollbar { display: none; }
+  .week-column {
+    flex: 0 0 auto;
+    width: 60vw;
+    min-width: 200px;
+    max-width: 280px;
+    scroll-snap-align: start;
+    border-right: 1px solid var(--line-warm-soft);
+  }
+  .week-column-header { padding: 14px 8px 12px; }
+  .week-column-num { font-size: 26px; }
+  .week-column-num.today {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+  .week-column-body {
+    padding: 10px;
+    gap: 6px;
+  }
+  .week-column-body .task-pill {
+    padding: 8px 10px 8px 12px;
+    font-size: 12px;
+  }
+
+  /* ─── Vista DÍA en mobile ───────────────────────────
+     La más usable en móvil. Padding reducido, summary count más
+     prominente (es lo primero que el técnico necesita saber). */
+  .day-view {
+    padding: 16px 14px 22px;
+  }
+  .day-view-summary {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+  .day-view-count { font-size: 28px; }
+  .day-view-card {
+    padding: 12px 13px;
+    gap: 10px;
+  }
+  .day-view-card-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 14px;
+  }
+  .day-view-card-title {
+    font-size: 13.5px;
+    line-height: 1.3;
+  }
+}
+
+/* En pantallas muy estrechas (<400px) las celdas del mes ya no caben
+   con buen aspecto. Reducimos al máximo para no romper el layout y
+   dejamos en claro que la vista útil aquí es Día. */
+@media (max-width: 400px) {
+  .calendar-cell {
+    min-height: 48px;
+    padding: 3px 3px 2px;
+  }
+  .calendar-weekdays div {
+    font-size: 8.5px;
+    padding: 5px 1px;
+  }
+  .task-pill {
+    padding: 2px 4px 2px 6px;
+    font-size: 9.5px;
+  }
 }

@@ -18,6 +18,10 @@ import { useTouchDrag } from "../../hooks/useTouchDrag";
 import EmptyState from "../EmptyState";
 
 const WEEKDAY_LABELS = ["lun.", "mar.", "mié.", "jue.", "vie.", "sáb.", "dom."];
+// En móvil estrecho usamos sólo la inicial (M para martes/miércoles
+// se desambigua por orden, pero en español canónico se usa X para
+// miércoles para evitar la colisión).
+const WEEKDAY_LABELS_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 
 function TaskTooltip({ task, clients, technicians }) {
   return (
@@ -336,7 +340,12 @@ function MonthView({
   return (
     <>
       <div className="calendar-weekdays">
-        {WEEKDAY_LABELS.map((l) => <div key={l}>{l}</div>)}
+        {WEEKDAY_LABELS.map((l, i) => (
+          <div key={l}>
+            <span className="wd-full">{l}</span>
+            <span className="wd-short" aria-hidden="true">{WEEKDAY_LABELS_SHORT[i]}</span>
+          </div>
+        ))}
       </div>
 
       <div className="calendar-grid">

@@ -628,3 +628,51 @@ textarea.has-error {
 [data-theme="dark"] .task-conflict-icon { color: #fcd34d; }
 [data-theme="dark"] .task-conflict-more { color: #fcd34d; }
 [data-theme="dark"] .task-conflict-list { border-top-color: rgba(245, 158, 11, 0.22); }
+
+/* ─── MOBILE — anti-zoom + touch targets ─────────────────
+   iOS Safari hace zoom automático al hacer focus en cualquier input
+   con font-size < 16px. Forzamos 16px en TODOS los inputs/selects/
+   textareas del form en mobile para evitarlo. Los chips también
+   ganan padding para que sean cómodos al pulsar con el dedo. */
+@media (max-width: 720px) {
+  .task-form input,
+  .task-form select,
+  .task-form textarea,
+  .form-row input,
+  .form-row select,
+  .form-row textarea {
+    font-size: 16px;
+  }
+  .task-form input[type="date"],
+  .task-form input[type="time"] {
+    /* iOS muestra el picker nativo independientemente del font-size,
+       pero el placeholder visible respeta este 16px. */
+    font-size: 16px;
+  }
+
+  /* Chips touch-friendly: 32px → 36px alto, padding mayor. */
+  .chip {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .chips-wrap {
+    gap: 8px;
+  }
+  .time-presets {
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  /* Form-section-header en mobile: si lleva CTA "Cómo llegar" a la
+     derecha, cuando wrappee la fila el CTA va a la siguiente línea
+     full-width — más cómodo de pulsar. */
+  .form-section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .task-location-cta {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+[data-theme="dark"] .task-conflict-list { border-top-color: rgba(245, 158, 11, 0.22); }

@@ -241,22 +241,85 @@ select.toolbar-filter-select {
   appearance: none;
 }
 
-/* ─── MODAL responsive ───────────────────────────────── */
-/* En mobile el grid de 2 columnas del modal molesta más que ayuda:
+/* ─── MODAL responsive ─────────────────────────────────
+   En mobile el grid de 2 columnas del modal molesta más que ayuda:
    los selects se quedan estrechos y los labels se cortan. Pasamos a
    columna única y dejamos respirar los campos. */
 @media (max-width: 640px) {
+  /* El overlay reduce el padding lateral para que el modal aproveche
+     todo el ancho posible — en pantallas estrechas cada píxel cuenta. */
+  .modal-overlay {
+    padding: 8px;
+  }
+  .task-modal,
+  .counter-modal,
+  .templates-modal {
+    border-radius: 12px;
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
   .form-section {
-    padding: 12px 14px 14px;
+    padding: 16px 16px 18px;
   }
   .form-section-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .form-actions {
+    padding: 12px 16px;
     gap: 8px;
   }
-  .form-actions { padding: 10px 14px; }
-  .modal-header { padding: 12px 14px 10px; }
-  .modal-header-main { gap: 10px; }
-  .task-type-tag { font-size: 10px; padding: 3px 8px; }
+  /* En el footer del modal en mobile, los botones se reorganizan en
+     un grid: Eliminar a un lado, Cancelar/Guardar/Marcar como
+     finalizada al otro. Si caben en la fila siguen así; si no,
+     wrappean (cada botón con min-height 40px del .btn rule). */
+  .form-actions-spacer {
+    /* En mobile el spacer ya no se usa para empujar — los botones se
+       reorganizan vía flex-wrap natural. */
+    min-width: 0;
+  }
+  .modal-header {
+    padding: 16px 16px 14px;
+  }
+  .modal-header-main {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .task-type-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  .icon-close {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* En el ClientDetailModal y otros modales heredan estos overrides.
+   Las secciones específicas del client-detail se ajustan en su CSS. */
+@media (max-width: 540px) {
+  /* Confirm dialog: padding reducido para que entre en pantallas
+     muy estrechas (320-360px) sin recortar. */
+  .confirm-dialog {
+    padding: 18px 18px 14px;
+    border-radius: 10px;
+  }
+  .confirm-dialog-actions {
+    flex-wrap: wrap;
+  }
+  .confirm-dialog-actions .btn,
+  .confirm-dialog-actions .btn-primary,
+  .confirm-dialog-actions .btn-secondary,
+  .confirm-dialog-actions .btn-danger {
+    flex: 1 1 auto;
+  }
+
+  /* Shortcuts help en mobile: misma reducción de padding. */
+  .shortcuts-help-header,
+  .shortcuts-help-body,
+  .shortcuts-help-footer {
+    padding-inline: 18px;
+  }
 }
 
 /* ─── CONFIRM DIALOG — Field Engineering ─────────────── */

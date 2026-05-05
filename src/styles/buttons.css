@@ -182,6 +182,35 @@
   border-color: #10b981;
 }
 
+/* ─── MOBILE — touch targets ─────────────────────────────
+   Apple HIG recomienda 44×44 px mínimo. En desktop 32-34px funciona
+   bien con cursor preciso; en móvil con dedo necesitamos más altura.
+   Subimos los botones primarios/secundarios/danger del modal y los
+   ghost del calendar topbar a 40px en mobile (compromiso usable). */
+@media (max-width: 720px) {
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-ghost,
+  .btn-finish {
+    min-height: 40px;
+    padding-block: 9px;
+  }
+  /* small-btn (.small-btn aplicado en cards de cliente, equipo, etc.)
+     se queda compacto pero con padding-block más generoso. */
+  .small-btn {
+    min-height: 32px;
+    padding-block: 6px;
+  }
+
+  /* Ghost compacto del calendar topbar: ya lo hicimos en calendar.css
+     a 40px específicamente. Aquí solo subimos los ghost que no estén
+     dentro del calendario. */
+  .ghost-btn { min-height: 36px; padding: 8px 14px; }
+  .ghost-icon { width: 36px; height: 36px; }
+}
+
 /* Tama\u00f1os ─────────────── */
 .btn-sm {
   --_btn-pad-y: 5px;

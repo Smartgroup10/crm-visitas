@@ -150,3 +150,28 @@
 @media (max-width: 480px) {
   .top-title-row p { display: none; }
 }
+
+/* ─── MOBILE — reducir paddings del shell para ganar ancho ─
+   En desktop el shell tiene 12-14px de padding lateral; en móvil
+   eso son 24-28px que perdemos en chrome. Reducimos a 8-10px en
+   estrecho — los componentes interiores tienen su propio padding
+   que sigue siendo cómodo. */
+@media (max-width: 720px) {
+  .topbar {
+    padding: 12px 14px 0;
+  }
+  .content-grid {
+    padding: 10px 10px 14px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 10px 10px 0;
+  }
+  .content-grid {
+    padding: 8px 8px 12px;
+    gap: 8px;
+  }
+}

@@ -180,6 +180,16 @@
   }
 }
 
+/* En pantallas estrechas (<540px) los stat-pills compiten con el
+   section-selector y los filtros — los ocultamos del topbar.
+   Los KPIs siguen visibles en la pantalla de Inicio (status-bar +
+   tiles), así que no se pierde información, sólo redundancia. */
+@media (max-width: 540px) {
+  .top-header-counters {
+    display: none;
+  }
+}
+
 /* ─── TOOLBAR ─────────────────────────────────────────── */
 .toolbar {
   display: flex;
@@ -400,6 +410,80 @@
     appearance: none;
     -webkit-appearance: none;
     font-size: 16px;        /* iOS: si <16, hace zoom al focus */
+  }
+}
+
+/* ─── TOOLBAR SEGUIMIENTO — mobile reorganizada ──────────
+   En desktop, todo en una fila: tabs + buscador + 4 filtros + 2
+   botones quick. En móvil esto se desborda. Reorganizamos en
+   bloques apilados con responsabilidades claras:
+
+     Fila 1: tabs Tabla/Calendario + buscador (full width)
+     Fila 2: 4 filtros en grid 2×2
+     Fila 3: botones Limpiar / Nueva tarea (full width)
+*/
+@media (max-width: 720px) {
+  .toolbar.toolbar-installations {
+    gap: 10px;
+    padding: 10px 0 10px;
+    align-items: stretch;
+  }
+  .toolbar-search-tabs {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .inline-view-tabs {
+    flex: 0 0 auto;
+  }
+  .search-wrapper {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .search-input {
+    height: 40px;
+    font-size: 16px;
+  }
+
+  /* Filtros en grid 2×2 — los selects ocupan toda la fila por pares,
+     son cómodos para pulsar. */
+  .toolbar-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+  .toolbar-filter-select {
+    width: 100%;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  /* Botones quick: full width, dos columnas si caben los dos. */
+  .toolbar-right.quick-actions {
+    width: 100%;
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+  .quick-btn {
+    height: 40px;
+    padding-inline: 16px;
+    font-size: 13px;
+  }
+  .toolbar-right.quick-actions .btn-primary {
+    /* "Nueva tarea" como CTA principal — más ancho para identificar. */
+    grid-column: 2;
+  }
+}
+
+/* En pantallas muy estrechas (<420px) cada filtro va a su propia fila.
+   Pierde densidad visual pero gana usabilidad: cada select tiene
+   ancho cómodo para pulsar, los labels caben sin truncar. */
+@media (max-width: 420px) {
+  .toolbar-filters {
+    grid-template-columns: 1fr;
   }
 }
 
