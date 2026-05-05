@@ -34,6 +34,11 @@ export async function applySchema() {
  *
  * Si el fichero no existe (entornos de desarrollo, instalaciones
  * limpias) simplemente saltamos sin error.
+ *
+ * Post-aplicación: contamos los clientes con CIF rellenado y lo
+ * dejamos en log. Si en una iteración anterior el seed no se subió
+ * al contenedor (Dockerfile no copiaba el archivo), este log lo
+ * delata sin tener que entrar a inspeccionar la BD.
  */
 export async function applyClientsSeed() {
   try {
@@ -42,11 +47,21 @@ export async function applyClientsSeed() {
     try {
       sql = await readFile(sqlPath, "utf8");
     } catch {
-      logger.info("[db] seed_clients.sql no presente, salto");
+      logger.warn(
+        "[db] seed_clients.sql NO PRESENTE en el contenedor — si esperabas " +
+        "el listado inicial de clientes, revisa el Dockerfile (debe copiar " +
+        "el fichero al WORKDIR junto a schema.sql)."
+      );
       return;
     }
     await query(sql);
-    logger.info("[db] seed de clientes aplicado");
+    const { rows } = await query(
+      "select count(*)::int as n from clients where cif <> ''"
+    );
+    logger.info(
+      { clientesConCif: rows[0]?.n ?? 0 },
+      "[db] seed de clientes aplicado"
+    );
   } catch (err) {
     // No abortamos el arranque si falla el seed de clientes — es
     // datos opcionales. Logueamos para investigar.
