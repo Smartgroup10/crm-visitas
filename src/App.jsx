@@ -266,12 +266,26 @@ export default function App() {
     );
   }, [tasksByDate, selectedDate]);
 
-  const stats = useMemo(() => ({
-    total:   tasks.length,
-    pending: tasks.filter((t) => t.status === "No iniciado").length,
-    progress:tasks.filter((t) => t.status === "En curso").length,
-    done:    tasks.filter((t) => t.status === "Listo").length,
-  }), [tasks]);
+  // Stat-pills del topbar = scope al mes en curso. Sin scope, los
+  // contadores acumulan all-time y dejan de tener significado
+  // operativo al cabo de unos meses ("3000 Total" no informa de
+  // nada). El CounterModal permite ampliar a otros meses.
+  const currentMonthKey = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+
+  const stats = useMemo(() => {
+    const monthTasks = tasks.filter(
+      (t) => t.date && t.date.startsWith(currentMonthKey)
+    );
+    return {
+      total:   monthTasks.length,
+      pending: monthTasks.filter((t) => t.status === "No iniciado").length,
+      progress:monthTasks.filter((t) => t.status === "En curso").length,
+      done:    monthTasks.filter((t) => t.status === "Listo").length,
+    };
+  }, [tasks, currentMonthKey]);
 
   // Conteo de tareas que requieren atención. Se pinta como badge del
   // sidebar en "Mi trabajo": el usuario ve urgencias sin entrar.
