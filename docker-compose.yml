@@ -44,8 +44,19 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "${APP_PORT:-9090}:80"
+    # No publicamos el puerto al host. Coolify (Traefik) enruta el
+    # dominio (crm-visitas.api2smart.com) directamente al contenedor
+    # por su red interna usando el `EXPOSE 80` del Dockerfile —
+    # publicar también al host:9090 es redundante y, si quedan
+    # contenedores fantasma de un deploy anterior cogiendo el puerto,
+    # bloquea el siguiente deploy con "port is already allocated".
+    #
+    # Si en el futuro necesitas acceder al front directamente desde
+    # la IP del host (sin pasar por el dominio), descomenta:
+    #   ports:
+    #     - "${APP_PORT:-9090}:80"
+    expose:
+      - "80"
 
 volumes:
   pg_data:
