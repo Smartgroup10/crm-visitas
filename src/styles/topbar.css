@@ -1,6 +1,13 @@
-/* ─── TOPBAR — Field Engineering ───────────────────────── */
+/* ─── TOPBAR — Field Engineering ─────────────────────────
+   Glass effect: background semi-translúcido + backdrop-blur. Cuando
+   hay contenido detrás (durante scroll, columnas pasando por debajo)
+   se ve un blur sutil que da atmósfera tipo iOS/macOS. Cuando es
+   sólo canvas no se nota — la translucidez se mezcla con el mismo
+   tono y aparenta sólido. */
 .topbar {
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
   border-bottom: 1px solid var(--line-warm);
   padding: 14px 22px 0;
   flex: 0 0 auto;
@@ -15,6 +22,19 @@
      (25), y los hovers desktop (30/40). El drawer del sidebar y
      los modales/notificaciones/cmdK siguen por encima de 50. */
   z-index: 50;
+}
+
+/* En dark mode el blur usa surface oscuro translúcido. */
+[data-theme="dark"] .topbar {
+  background: rgba(28, 25, 23, 0.78);
+}
+
+/* Fallback para browsers sin backdrop-filter (raros hoy día) — el
+   topbar simplemente queda opaco. */
+@supports not (backdrop-filter: blur(1px)) {
+  .topbar {
+    background: var(--surface);
+  }
 }
 
 .compact-topbar { padding-bottom: 0; }

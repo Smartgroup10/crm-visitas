@@ -126,9 +126,26 @@
   --shadow-modal: 0 10px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.08);
   --shadow-pop:   0 4px 16px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.06);
 
-  /* Transiciones est\u00e1ndar */
-  --t-fast: 0.14s ease;
-  --t-med:  0.22s ease;
+  /* \u2500\u2500\u2500 Motion \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+     Curvas y duraciones intencionadas. `--ease-out-quart` es la
+     curva de Linear/Vercel para movimientos refinados; `--ease-spring`
+     simula un muelle muy ligero (overshoot m\u00ednimo). Consumidas v\u00eda
+     `transition` y `animation`. */
+  --t-fast:    0.14s ease;
+  --t-med:     0.22s ease;
+  --t-slow:    0.36s ease;
+
+  --ease-out-quart:  cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-out-expo:   cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+
+  --motion-fast:     0.18s var(--ease-out-quart);
+  --motion-med:      0.32s var(--ease-out-quart);
+  --motion-slow:     0.56s var(--ease-out-expo);
+
+  /* Stagger base \u2014 separaci\u00f3n entre items en una entrada coreogr\u00e1fica. */
+  --motion-stagger:  60ms;
 
   /* \u2500\u2500\u2500 v2 \u2014 Fuentes \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
      Stack tipogr\u00e1fico ampliado. `--font-sans` reemplaza la cadena
@@ -185,10 +202,22 @@
   --accent-tint:   rgba(37,99,235,0.08);
   --accent-line:   rgba(37,99,235,0.18);
 
-  /* Sombras v2: hairlines en lugar de glows. Son m\u00e1s restrained. */
+  /* Sombras v2: hairlines + capas. Las layered sin glows agresivos
+     dan profundidad sutil tipo Apple/Linear: una capa cercana
+     definida + otra ambient suave. */
   --shadow-hairline: 0 0 0 1px var(--line-warm);
-  --shadow-raised:   0 0 0 1px var(--line-warm-soft), 0 4px 12px rgba(28,25,23,0.04);
-  --shadow-overlay:  0 0 0 1px var(--line-warm-soft), 0 16px 32px rgba(28,25,23,0.10), 0 4px 8px rgba(28,25,23,0.04);
+  --shadow-raised:
+    0 0 0 1px var(--line-warm-soft),
+    0 1px 1px rgba(28,25,23,0.02),
+    0 4px 12px rgba(28,25,23,0.04);
+  --shadow-overlay:
+    0 0 0 1px var(--line-warm-soft),
+    0 2px 4px rgba(28,25,23,0.03),
+    0 8px 24px rgba(28,25,23,0.08),
+    0 24px 48px rgba(28,25,23,0.10);
+
+  /* Foco soft glow en lugar de outline duro. M\u00e1s Linear/Vercel. */
+  --focus-glow: 0 0 0 3px var(--accent-tint), 0 0 0 1px var(--brand);
 }
 
 /* Body por defecto: aplicar la nueva variable tipogr\u00e1fica una sola

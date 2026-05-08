@@ -106,8 +106,44 @@
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: none;
+  position: relative;          /* anchor para el active indicator */
 }
 .sidebar-nav::-webkit-scrollbar { display: none; }
+
+/* ─── Magic active indicator ──────────────────────────
+   Barra brand 2px que vive como elemento absolute dentro del nav.
+   Su `transform: translateY(...)` y `height` los actualiza React
+   cuando cambia la sección activa. La transición es la que crea
+   el efecto "desliza" (Linear / Vercel). */
+.sidebar-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  background: var(--brand);
+  border-radius: 0 2px 2px 0;
+  /* Hasta que React mida el DOM, el indicator está oculto para
+     evitar el flash en (0, 0). `is-ready` lo hace visible. */
+  opacity: 0;
+  transition:
+    transform 0.42s var(--ease-out-expo),
+    height 0.42s var(--ease-out-expo),
+    opacity 0.18s ease;
+  pointer-events: none;
+  /* Halo brand muy sutil — mismo color, blur 4px — para añadir
+     presencia sin sombra dura. */
+  box-shadow: 0 0 12px rgba(124, 140, 255, 0.30);
+}
+.sidebar-active-indicator.is-ready {
+  opacity: 1;
+}
+
+/* En pantallas con preferencia reducida, salta sin animar. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-active-indicator {
+    transition: opacity 0.18s ease;
+  }
+}
 
 .nav-section-label {
   font-family: var(--font-mono);
@@ -141,23 +177,12 @@
   color: var(--sb-text-hover);
 }
 
-/* Active: sin glow, sólo tinte sutil + barra brand a la izquierda
-   (2px hairline). El indicador queda discreto pero leído de un
-   vistazo. */
+/* Active: sin glow, sólo tinte sutil + el magic indicator brand
+   se desliza hasta el item activo (definido en .sidebar-nav). */
 .nav-item.active {
   background: var(--sb-active-bg);
   color: var(--sb-text-hover);
   font-weight: 600;
-}
-.nav-item.active::before {
-  content: "";
-  position: absolute;
-  left: -8px;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  background: var(--brand);
-  border-radius: 0 2px 2px 0;
 }
 .nav-item:focus-visible {
   outline: none;

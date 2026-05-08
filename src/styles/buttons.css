@@ -42,16 +42,26 @@
   letter-spacing: 0.1px;
   line-height: 1.2;
   white-space: nowrap;
-  transition: background var(--t-fast), border-color var(--t-fast),
-              color var(--t-fast), box-shadow var(--t-fast),
-              transform 0.08s ease;
+  /* Curva quart out — el feedback responde rápido al inicio
+     y se asienta suave al final. Más vivo que `ease`. */
+  transition:
+    background 0.14s var(--ease-out-quart),
+    border-color 0.14s var(--ease-out-quart),
+    color 0.14s var(--ease-out-quart),
+    box-shadow 0.14s var(--ease-out-quart),
+    transform 0.10s var(--ease-out-quart);
   user-select: none;
 }
 .btn:active,
 .btn-primary:active,
 .btn-secondary:active,
 .btn-danger:active,
-.btn-ghost:active { transform: scale(0.98); }
+.btn-ghost:active {
+  /* Press un poquito más profundo (96 %) para que se note bajo el dedo
+     en mobile sin que en desktop sea exagerado. */
+  transform: scale(0.96);
+  transition-duration: 0.06s;
+}
 
 .btn:focus-visible,
 .btn-primary:focus-visible,
@@ -59,7 +69,8 @@
 .btn-danger:focus-visible,
 .btn-ghost:focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring);
+  /* Soft glow en lugar de outline duro — más Linear/Vercel. */
+  box-shadow: var(--focus-glow);
 }
 
 .btn:disabled,

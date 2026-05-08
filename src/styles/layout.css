@@ -13,6 +13,9 @@
 }
 
 /* ─── MAIN SHELL ─────────────────────────────────────── */
+/* Dot grid sutil de fondo — eco del bg del login. Da textura al
+   canvas sin invadir la lectura. El mask-image atenúa el patrón
+   hacia los bordes para que no compita con el sidebar/topbar. */
 .main-shell {
   display: flex;
   flex-direction: column;
@@ -20,7 +23,38 @@
   min-height: 100vh;
   min-height: 100dvh;
   animation: fade-up 0.24s ease;
-  background: var(--bg-app);
+  background: var(--canvas);
+  position: relative;
+  isolation: isolate;
+}
+.main-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at center,
+    var(--ink-ghost) 1px,
+    transparent 1.6px
+  );
+  background-size: 28px 28px;
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: -1;
+  -webkit-mask-image: radial-gradient(
+    ellipse 100% 100% at center,
+    rgba(0, 0, 0, 0.7) 0%,
+    transparent 80%
+  );
+          mask-image: radial-gradient(
+    ellipse 100% 100% at center,
+    rgba(0, 0, 0, 0.7) 0%,
+    transparent 80%
+  );
+}
+
+/* En dark mode el dot grid es casi invisible. */
+[data-theme="dark"] .main-shell::before {
+  opacity: 0.18;
 }
 
 /* ─── CONTENT GRID ─────────────────────────────────────── */

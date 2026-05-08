@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useUI } from "../hooks/useUI";
 import { useAuth } from "../hooks/useAuth";
@@ -105,6 +105,40 @@ export default function Sidebar({ attentionCount = 0 }) {
     setDrawerOpen(false);
   };
 
+  // ─── Magic indicator del sidebar ─────────────────────
+  // Una pequeña barra brand a la izquierda del item activo que
+  // se desliza suavemente al cambiar de sección, en lugar de
+  // saltar al nuevo item. Patrón Linear / Vercel.
+  //
+  // useLayoutEffect mide DESPUÉS del render pero ANTES del paint,
+  // así no hay flash en el primer load. Recalculamos cuando
+  // cambia `section`.
+  const navRef = useRef(null);
+  const [indicator, setIndicator] = useState({ y: 0, h: 0, ready: false });
+
+  /* eslint-disable react-hooks/set-state-in-effect --
+   * Caso legítimo de "measure DOM after render → set state": no hay
+   * forma de calcular la posición del item activo sin haber pintado
+   * primero. useLayoutEffect garantiza que la medida se haga ANTES
+   * del paint, así que no hay flash visible para el usuario. */
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const active = nav.querySelector(".nav-item.active");
+    if (!active) {
+      setIndicator((s) => ({ ...s, ready: false }));
+      return;
+    }
+    const navRect = nav.getBoundingClientRect();
+    const itemRect = active.getBoundingClientRect();
+    setIndicator({
+      y: itemRect.top - navRect.top,
+      h: itemRect.height,
+      ready: true,
+    });
+  }, [section]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   return (
     <>
       {/* Backdrop sólo presente cuando el drawer está abierto (mobile).
@@ -136,7 +170,18 @@ export default function Sidebar({ attentionCount = 0 }) {
           </button>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" ref={navRef}>
+          {/* Magic indicator: barra brand absolute que se desliza
+              entre los items activos. La posición la medimos vía
+              useLayoutEffect en el componente. */}
+          <span
+            className={`sidebar-active-indicator ${indicator.ready ? "is-ready" : ""}`}
+            style={{
+              transform: `translateY(${indicator.y}px)`,
+              height: `${indicator.h}px`,
+            }}
+            aria-hidden="true"
+          />
           <div className="nav-section-label">Principal</div>
           <NavItem icon={IconHome}        label="Inicio"       active={section === "inicio"}        onClick={() => go("inicio")} />
           <NavItem

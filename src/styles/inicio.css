@@ -19,6 +19,86 @@
   color: var(--ink);
 }
 
+/* ─── Coreografía de entrada ───────────────────────────
+   Una de las tomas más fuertes de la skill frontend-design es:
+   "one well-orchestrated page load with staggered reveals creates
+   more delight than scattered micro-interactions". Aplicado al
+   Inicio — el primer impacto del usuario al abrir la app.
+
+   Estructura: cada hijo directo de .inicio-view-v2 tiene una
+   entrada en cascada con el mismo keyframe pero distinto delay.
+   El status-bar arranca primero (sin delay), las tiles a 60ms,
+   el alert a 120ms, los grids a 180ms y 240ms.
+
+   Todo respeta `prefers-reduced-motion`: si el usuario lo tiene
+   activado, las animaciones no se reproducen. Los elementos
+   aparecen instantáneamente. */
+
+@keyframes inicio-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.inicio-view-v2 > * {
+  animation: inicio-rise 0.56s var(--ease-out-expo) backwards;
+}
+.inicio-view-v2 > *:nth-child(1) { animation-delay: 0ms; }
+.inicio-view-v2 > *:nth-child(2) { animation-delay: 60ms; }
+.inicio-view-v2 > *:nth-child(3) { animation-delay: 120ms; }
+.inicio-view-v2 > *:nth-child(4) { animation-delay: 180ms; }
+.inicio-view-v2 > *:nth-child(5) { animation-delay: 240ms; }
+.inicio-view-v2 > *:nth-child(6) { animation-delay: 300ms; }
+
+/* Las tiles de KPI dentro del grid también tienen su propia
+   secuencia — a partir de 80ms del wrapper para que entren
+   "después" del contenedor pero todavía dentro del page-load. */
+.kpi-tiles .kpi-tile {
+  animation: inicio-rise 0.48s var(--ease-out-expo) backwards;
+}
+.kpi-tiles .kpi-tile:nth-child(1) { animation-delay: 100ms; }
+.kpi-tiles .kpi-tile:nth-child(2) { animation-delay: 160ms; }
+.kpi-tiles .kpi-tile:nth-child(3) { animation-delay: 220ms; }
+.kpi-tiles .kpi-tile:nth-child(4) { animation-delay: 280ms; }
+.kpi-tiles .kpi-tile:nth-child(5) { animation-delay: 340ms; }
+
+/* Lists dentro de los panels — entrada por items con stagger
+   más rápido (cada 30ms), arrancando cuando el panel ya está
+   posicionado (480ms). Da sensación de "los datos llegan después
+   del chrome", que es como funciona la app realmente con la API. */
+.inicio-list li,
+.tech-rank li {
+  animation: inicio-rise 0.36s var(--ease-out-quart) backwards;
+}
+.inicio-list li:nth-child(1) { animation-delay: 480ms; }
+.inicio-list li:nth-child(2) { animation-delay: 510ms; }
+.inicio-list li:nth-child(3) { animation-delay: 540ms; }
+.inicio-list li:nth-child(4) { animation-delay: 570ms; }
+.inicio-list li:nth-child(5) { animation-delay: 600ms; }
+.inicio-list li:nth-child(n+6) { animation-delay: 630ms; }
+
+.tech-rank li:nth-child(1) { animation-delay: 480ms; }
+.tech-rank li:nth-child(2) { animation-delay: 510ms; }
+.tech-rank li:nth-child(3) { animation-delay: 540ms; }
+.tech-rank li:nth-child(4) { animation-delay: 570ms; }
+.tech-rank li:nth-child(5) { animation-delay: 600ms; }
+.tech-rank li:nth-child(n+6) { animation-delay: 630ms; }
+
+/* Reduced motion: respetamos preferencia del usuario (a11y). */
+@media (prefers-reduced-motion: reduce) {
+  .inicio-view-v2 > *,
+  .kpi-tiles .kpi-tile,
+  .inicio-list li,
+  .tech-rank li {
+    animation: none !important;
+  }
+}
+
 @media (max-width: 720px) {
   .inicio-view-v2 {
     padding: 18px 14px 28px;
