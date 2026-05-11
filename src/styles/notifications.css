@@ -32,16 +32,41 @@
   padding: 14px 14px 14px 0;
   background: var(--surface);
   border: 1px solid var(--line-warm);
-  border-radius: 10px;
-  box-shadow: var(--shadow-overlay);
+  border-radius: 12px;
+  /* Shadow layered estilo Apple: hairline + 3 capas de blur ambient
+     para profundidad sutil. La card "flota" sobre el contenido sin
+     glow agresivo. */
+  box-shadow:
+    0 0 0 1px var(--line-warm-soft),
+    0 2px 4px rgba(28, 25, 23, 0.04),
+    0 12px 24px rgba(28, 25, 23, 0.10),
+    0 24px 48px rgba(28, 25, 23, 0.08);
   transform: translateX(0);
   opacity: 1;
-  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
-              opacity   240ms ease-out;
+  /* Curva quart out — entrada rápida pero asentada. */
+  transition:
+    transform 0.42s var(--ease-out-quart),
+    opacity 0.32s ease-out,
+    box-shadow 0.24s ease;
 }
 .notif-card.is-entering {
-  transform: translateX(20px);
+  /* Más distancia inicial (28px) para que la entrada sea más
+     evidente — la notificación es info crítica, debe llamar
+     la atención al aparecer. */
+  transform: translateX(28px);
   opacity: 0;
+}
+
+/* Hover: subir ligerísimamente la presencia de la sombra para
+   feedback de "puedes interactuar conmigo". Solo en hover real. */
+@media (hover: hover) {
+  .notif-card:hover {
+    box-shadow:
+      0 0 0 1px var(--line-warm),
+      0 4px 8px rgba(28, 25, 23, 0.06),
+      0 16px 32px rgba(28, 25, 23, 0.14),
+      0 32px 64px rgba(28, 25, 23, 0.10);
+  }
 }
 
 /* Barra de acento (3px) a la izquierda, color del tipo. */

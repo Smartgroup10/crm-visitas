@@ -68,37 +68,49 @@ export default function NotificationOrchestrator({ userId, tasks, leadMinutes })
       }
     };
 
-    // Branded title: prefijo con un emoji que identifica el tipo de
-    //   evento incluso al verlo de un vistazo en la esquina del SO.
-    //   No metemos "SMARTGROUP" en el título porque la mayoría de
-    //   navegadores ya pintan el origen ("crm-visitas.api2smart.com")
-    //   debajo, y duplicar texto reduce la legibilidad.
-    const brandedTitle = payload.kind === "task"
-      ? `⏰ ${payload.title}`
-      : `🔔 ${payload.title}`;
+    // Título limpio sin emojis. Antes prefijábamos con ⏰/🔔 para
+    //   diferenciar el tipo de un vistazo, pero los emojis se ven
+    //   inconsistentes entre SOs (Windows los pinta más planos, iOS
+    //   en color, algunos clientes los esconden) y restan
+    //   profesionalidad. El icono branded ya identifica el origen.
+    //
+    //   El prefijo de marca lo añadimos sólo a la Notification del
+    //   navegador, que aparece fuera de la app — el usuario en otra
+    //   pestaña o app no tiene contexto. Dentro de la app (card
+    //   in-app) no hace falta repetir "Smartgroup".
+    const browserTitle = payload.kind === "task"
+      ? `Tarea — ${payload.title}`
+      : `Aviso — ${payload.title}`;
 
-    // 1) Notificación del navegador (sale aunque la pestaña esté en
-    //    background o en otra ventana — es el caso de uso principal).
-    //    requireInteraction sólo para tareas: el usuario puede estar
-    //    en otra app y queremos que la notificación se quede hasta que
-    //    la atienda. Los reminders genéricos pueden auto-cerrarse.
-    const n = browser.notify({
-      title: brandedTitle,
-      body: payload.body,
-      tag: payload.tag,
-      data: { kind: payload.kind, id: payload.id },
-      requireInteraction: payload.kind === "task",
-    });
-    if (n) {
-      n.onclick = () => {
-        openTask();
-        n.close();
-      };
+    // 1) Notificación del navegador SÓLO si la pestaña está oculta
+    //    (otra pestaña, ventana minimizada, otra app). Cuando la app
+    //    está visible, mostrar también la Notification del SO es
+    //    redundante y rompe la consistencia visual — la card in-app
+    //    es nuestra estética; el SO no la podemos restilizar. Así
+    //    el usuario que está activo en la app solo ve nuestro
+    //    diseño; el que está fuera ve la notif nativa con el icono
+    //    branded para que sepa de qué app es.
+    const tabHidden = typeof document !== "undefined" && document.hidden;
+    if (tabHidden) {
+      const n = browser.notify({
+        title: browserTitle,
+        body: payload.body,
+        tag: payload.tag,
+        data: { kind: payload.kind, id: payload.id },
+        requireInteraction: payload.kind === "task",
+      });
+      if (n) {
+        n.onclick = () => {
+          openTask();
+          n.close();
+        };
+      }
     }
 
-    // 2) Card rich del stack in-app: refuerzo visual cuando la pestaña
-    //    está activa, y único canal cuando el navegador no tiene
-    //    permiso o el toggle local está apagado.
+    // 2) Card rich del stack in-app: SIEMPRE se dispara — es el
+    //    canal nativo de la app. Cuando la pestaña está visible es
+    //    lo único que ve el usuario; cuando vuelve de otra pestaña
+    //    ve la card encolada esperando.
     notifStack.push({
       kind: payload.kind,
       title: payload.title,

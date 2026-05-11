@@ -1,18 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Icono cuadrado con la marca SMARTGROUP. Lo consumen las notificaciones
-  del navegador (Notification API) como `icon`. 192×192 es el tamaño que
-  Chrome/Edge/Firefox piden para el área principal del pop-up.
+  Icono cuadrado branded para las notificaciones del navegador
+  (Notification API). Usa el glyph oficial Smartgroup sobre fondo
+  navy (#0e2a59) — mismo navy del logo full y de la pantalla de
+  login, así la notificación queda visualmente ligada al CRM
+  cuando aparece en la esquina del SO.
+
+  Dimensiones: 192×192 (lo que piden Chrome/Edge/Firefox para el
+  área principal del pop-up). El path del glyph viene tal cual del
+  SVG de marca oficial; el viewBox `560 380 1320 1320` lo centra
+  cuadrado dentro del icono.
+
+  Si el navegador no acepta SVG (Safari macOS ocasionalmente),
+  cae al favicon del sitio automáticamente.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#1d4ed8"/>
-    </linearGradient>
-  </defs>
-  <rect width="192" height="192" rx="36" fill="url(#g)"/>
-  <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle"
-        font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-        font-size="120" font-weight="800" fill="#ffffff" letter-spacing="-4">S</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="560 380 1320 1320" width="192" height="192">
+  <rect x="560" y="380" width="1320" height="1320" rx="275" ry="275" fill="#0e2a59"/>
+  <path
+    d="M1548.98,944.89h-195.54c-29.6,0-56.44,19.58-63.33,48.36-10.14,42.34,21.69,80.09,62.32,80.09h71.19c-31.27,98.91-132.72,166.92-245.65,145.25-83.45-16.02-149.84-81.39-166.89-164.64-34.85-170.19,134.44-315.59,307.64-235.94,18.44,8.48,35.33,20.39,48.39,35.92,27.49,32.68,78.92,30.56,103.3-6.36,16.84-25.5,12.14-59.67-9.55-81.2-64.48-63.99-149.97-99.22-240.86-99.22-166.6,0-305.68,119.78-335.83,277.74h-96.48c31.15-210.64,213.15-372.79,432.31-372.79,116.27,0,225.61,45.1,308.04,127.02,20.91,20.78,53.33,26.41,78.61,11.24,37.69-22.61,42.09-72.19,13.19-101.09-115.13-115.14-271.16-174.51-435.34-164.55-291.69,17.7-529.97,277.11-529.97,569.34h0c0,32.73,26.53,59.26,59.26,59.26h170.38c30.15,157.95,169.23,277.74,335.83,277.74s305.67-119.78,335.82-277.74h96.48c-31.15,210.64-213.15,372.79-432.31,372.79-116.28,0-225.62-45.1-308.04-127.02-20.91-20.78-53.33-26.41-78.61-11.24-37.69,22.61-42.09,72.19-13.19,101.09,115.13,115.14,271.18,174.51,435.37,164.55,291.68-17.71,529.94-277.12,529.94-569.34h0c0-32.73-26.54-59.27-59.27-59.27h-177.22Z"
+    fill="#ffffff"
+  />
 </svg>
