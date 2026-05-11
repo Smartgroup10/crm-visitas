@@ -6,12 +6,20 @@
 import { createContext, useEffect, useState, useCallback } from "react";
 import { api, setToken, clearToken, getToken } from "../lib/api";
 import { disconnectSocket } from "../lib/socket";
+import { useIdleLogout } from "../hooks/useIdleLogout";
+import { useToast } from "../hooks/useToast";
+
+// Duraciones del idle timeout. Si en algún momento se quieren mover
+// a preferencias por usuario o env vars, este es el punto único.
+const IDLE_TIMEOUT_MS = 10 * 60 * 1000;          // 10 min sin actividad → logout
+const IDLE_WARNING_MS = 9 * 60 * 1000;           // a los 9 min → aviso para que el usuario pueda quedarse
 
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser]               = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const toast = useToast();
 
   // Cierra la sesión localmente (se usa tanto en logout manual como al recibir 401).
   const doLogout = useCallback(() => {
@@ -19,6 +27,33 @@ export function AuthProvider({ children }) {
     disconnectSocket();
     setUser(null);
   }, []);
+
+  // ─── Idle timeout ────────────────────────────────────
+  // Tras 10 min de inactividad (sin click/tecla/scroll/touch/
+  // mousemove), cerramos sesión. A los 9 min mostramos un toast
+  // de aviso para que el usuario pueda "tocar" la pantalla y
+  // resetear el contador sin perder lo que estuviera haciendo.
+  //
+  // El hook sólo se activa cuando hay sesión iniciada (enabled =
+  // !!user). En la pantalla de login no hace nada.
+  const handleIdleWarning = useCallback(() => {
+    toast.info(
+      "Tu sesión se cerrará en 1 minuto por inactividad. Toca la pantalla para mantenerla abierta."
+    );
+  }, [toast]);
+
+  const handleIdleLogout = useCallback(() => {
+    doLogout();
+    toast.info("Sesión cerrada por inactividad. Vuelve a iniciar sesión.");
+  }, [doLogout, toast]);
+
+  useIdleLogout({
+    timeoutMs: IDLE_TIMEOUT_MS,
+    warningMs: IDLE_WARNING_MS,
+    onTimeout: handleIdleLogout,
+    onWarning: handleIdleWarning,
+    enabled:   !!user,
+  });
 
   useEffect(() => {
     // Al arrancar: si hay token en localStorage, intentamos recuperar el usuario.
