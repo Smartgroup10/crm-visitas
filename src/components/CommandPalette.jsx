@@ -28,7 +28,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 // el objeto final con `action` enlazada a los handlers reales (que
 // no tenemos aquí — los inyectamos via props).
 const QUICK_ACTION_DEFS = [
-  { id: "new-task",   label: "Crear nueva tarea",   icon: "+",  hotkey: "N",  needsManage: true,
+  { id: "new-task",   label: "Crear nueva tarea",   icon: "+",  hotkey: "N",  needsCreate: true,
     runner: (props) => props.onNewTask?.() },
   { id: "go-inicio",  label: "Ir a · Inicio",                     section: "inicio" },
   { id: "go-mitrabajo",label:"Ir a · Mi trabajo",                 section: "mitrabajo" },
@@ -43,7 +43,7 @@ const QUICK_ACTION_DEFS = [
 
 function buildQuickActions(props) {
   return QUICK_ACTION_DEFS
-    .filter((a) => !a.needsManage || props.canManage)
+    .filter((a) => !a.needsCreate || props.canCreateTasks)
     .map((a) => ({
       ...a,
       run: () => {
@@ -79,7 +79,7 @@ export default function CommandPalette({
   tasks = [],
   clients = [],
   technicians = [],
-  canManage,
+  canCreateTasks,
   onNewTask,
   onNavigate,
   onOpenTask,
@@ -131,7 +131,7 @@ export default function CommandPalette({
     const q = query.trim().toLowerCase();
 
     const allActions = buildQuickActions({
-      canManage, onNewTask, onNavigate, onToggleTheme, onOpenPrefs, onOpenTemplates,
+      canCreateTasks, onNewTask, onNavigate, onToggleTheme, onOpenPrefs, onOpenTemplates,
     });
     const actionMatches = q
       ? allActions.filter((a) => matches(a.label, q))
@@ -225,7 +225,7 @@ export default function CommandPalette({
     }
 
     return out;
-  }, [query, tasks, clients, technicians, canManage, onNewTask, onNavigate, onOpenTask, onOpenClient, onToggleTheme, onOpenPrefs, onOpenTemplates]);
+  }, [query, tasks, clients, technicians, canCreateTasks, onNewTask, onNavigate, onOpenTask, onOpenClient, onToggleTheme, onOpenPrefs, onOpenTemplates]);
 
   // Aplanamos los items para indexar el resaltado vertical.
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups]);

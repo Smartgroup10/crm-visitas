@@ -92,23 +92,21 @@ export default function TaskModal({
   const [errors, setErrors] = useState({});
   const [showNewClient, setShowNewClient] = useState(false);
   const [busy, setBusy] = useState(false);
-  const { canManage, canEditTask, canEditTaskField, isTecnico } = usePermissions();
+  const { canManage, canCreateTasks, canEditTask } = usePermissions();
 
-  // Tres niveles de permiso sobre el draft:
-  //   - readOnly        → ningún campo es editable (el usuario sólo mira)
-  //   - techPartialEdit → técnico asignado: edita sólo el subset seguro
-  //   - canManage       → admin/supervisor: edita cualquier campo
-  // Cuando el draft es nuevo (sin id), canManage manda — sólo
-  // admin/supervisor pueden crear tareas.
-  const isNewTask = !draft?.id;
-  const techPartialEdit =
-    !canManage && !isNewTask && isTecnico && canEditTask(draft);
-  const readOnly = !canManage && !techPartialEdit;
-  const canEditField = (name) => {
-    if (canManage) return true;
-    if (techPartialEdit) return canEditTaskField(draft, name);
-    return false;
-  };
+  // Permisos del draft:
+  //   - canEdit  → puede tocar campos (cualquier rol con permiso)
+  //   - canManage → admin/supervisor: además puede borrar
+  // Sin distinción de rol para los campos: técnicos pueden editar
+  // todos los fields igual que admin/supervisor. La única diferencia
+  // visual con los roles inferiores es que NO ven el botón Eliminar.
+  const canEdit = draft?.id ? canEditTask(draft) : canCreateTasks;
+  const readOnly = !canEdit;
+  // canEditField se mantiene como función con argumento para no tocar
+  // las llamadas existentes en el form (`canEditField("title")`, etc.).
+  // Hoy sin filtro de campos — si en el futuro queremos restringir
+  // alguno, aquí es donde se introduce la lógica.
+  const canEditField = () => canEdit;
 
   // Detección de solapamiento: ¿hay otras tareas que comparten algún
   // técnico y caen en la misma franja horaria? El cálculo es barato
@@ -245,9 +243,7 @@ export default function TaskModal({
               <h2>{isEditing ? (readOnly ? "Detalle de la tarea" : "Editar tarea") : "Nueva tarea"}</h2>
               <p>
                 {readOnly
-                  ? "Vista de solo lectura. Para cambios, contacta con un supervisor o administrador."
-                  : techPartialEdit
-                  ? "Esta tarea está asignada a ti. Puedes actualizar estado, notas, materiales, tiempo y adjuntos."
+                  ? "Vista de solo lectura. Para cambios, contacta con un administrador."
                   : "Rellena los datos de la intervención."}
               </p>
             </div>
@@ -673,10 +669,10 @@ export default function TaskModal({
                     <span className="btn-spinner-inline" aria-hidden="true" />
                     Guardando…
                   </>
-                ) : techPartialEdit ? (
+                ) : isEditing ? (
                   "Guardar cambios"
                 ) : (
-                  "Guardar tarea"
+                  "Crear tarea"
                 )}
               </button>
             )}

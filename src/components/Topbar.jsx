@@ -40,7 +40,7 @@ const SECTION_OPTIONS = [
 ];
 
 export default function Topbar({ stats, technicians, openNewTask, onOpenPalette }) {
-  const { canManage } = usePermissions();
+  const { canCreateTasks } = usePermissions();
   const { theme, toggleTheme } = useTheme();
 
   // La paleta de comandos puede pedir cambiar el tema vía evento
@@ -281,7 +281,7 @@ export default function Topbar({ stats, technicians, openNewTask, onOpenPalette 
             <button className="btn-secondary quick-btn" onClick={resetFilters}>
               Limpiar
             </button>
-            {canManage && (
+            {canCreateTasks && (
               <button className="btn-primary quick-btn" onClick={openNewTask}>
                 + Nueva tarea
               </button>

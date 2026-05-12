@@ -49,7 +49,7 @@ function formatDateBar(d) {
 }
 
 export default function InicioView({ tasks, clients, technicians, onEditTask, openNewTask }) {
-  const { canManage } = usePermissions();
+  const { canCreateTasks } = usePermissions();
   const today = todayISO();
   const tomorrow = addDays(today, 1);
   const in7 = addDays(today, 7);
@@ -271,7 +271,7 @@ export default function InicioView({ tasks, clients, technicians, onEditTask, op
               title="Agenda despejada"
               description="No hay tareas para hoy ni mañana."
               action={
-                canManage && openNewTask
+                canCreateTasks && openNewTask
                   ? { label: "+ Nueva tarea", variant: "primary", onClick: openNewTask }
                   : undefined
               }
@@ -335,7 +335,7 @@ export default function InicioView({ tasks, clients, technicians, onEditTask, op
               title="Semana vacía"
               description="No hay tareas planificadas en los próximos 7 días."
               action={
-                canManage && openNewTask
+                canCreateTasks && openNewTask
                   ? { label: "+ Planificar tarea", variant: "primary", onClick: openNewTask }
                   : undefined
               }

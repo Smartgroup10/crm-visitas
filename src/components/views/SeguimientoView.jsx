@@ -40,7 +40,7 @@ function TaskTooltip({ task, clients, technicians }) {
 
 function TaskPill({
   task,
-  canManage,
+  canCreateTasks,
   setDraggedTaskId,
   handleDropOnDate,
   onEditTask,
@@ -57,7 +57,7 @@ function TaskPill({
   // se encarga; este hook NO interfiere porque sólo escucha eventos
   // touch*, no mouse*.
   const touchRef = useTouchDrag({
-    enabled: canManage,
+    enabled: canCreateTasks,
     onStart: () => {
       setIsDragging(true);
       setDraggedTaskId(task.id);
@@ -79,12 +79,12 @@ function TaskPill({
       ref={touchRef}
       className={`task-pill ${getStatusClass(task.status)} ${getPriorityClass(task.priority)} ${isDragging ? "is-dragging" : ""}`}
       data-type={task.type}
-      draggable={canManage}
-      onDragStart={canManage ? () => {
+      draggable={canCreateTasks}
+      onDragStart={canCreateTasks ? () => {
         setIsDragging(true);
         setDraggedTaskId(task.id);
       } : undefined}
-      onDragEnd={canManage ? () => {
+      onDragEnd={canCreateTasks ? () => {
         setIsDragging(false);
       } : undefined}
       onClick={(e) => {
@@ -130,7 +130,11 @@ export default function SeguimientoView({
     search, personFilter, statusFilter, priorityFilter, categoryFilter,
     resetFilters,
   } = useUI();
-  const { canManage } = usePermissions();
+  // canCreateTasks = puede crear/editar/mover tareas (admin/supervisor/
+  //                    técnico). Gatea creación, drag&drop, bulk-bar.
+  // canManage      = admin/supervisor — sólo para acciones destructivas
+  //                    (bulk delete). El borrar tareas se queda restringido.
+  const { canCreateTasks, canManage } = usePermissions();
 
   // ¿Hay filtros activos? Si los hay, el empty state ofrece "Limpiar filtros".
   // Si no, ofrece "Crear nueva tarea" (cuando el usuario puede gestionar).
@@ -218,7 +222,7 @@ export default function SeguimientoView({
                 tasksByDate={tasksByDate}
                 selectedDate={selectedDate}
                 setSelectedDate={setSelectedDate}
-                canManage={canManage}
+                canCreateTasks={canCreateTasks}
                 setDraggedTaskId={setDraggedTaskId}
                 handleDropOnDate={handleDropOnDate}
                 onEditTask={onEditTask}
@@ -233,7 +237,7 @@ export default function SeguimientoView({
                 tasksByDate={tasksByDate}
                 selectedDate={selectedDate}
                 setSelectedDate={setSelectedDate}
-                canManage={canManage}
+                canCreateTasks={canCreateTasks}
                 setDraggedTaskId={setDraggedTaskId}
                 handleDropOnDate={handleDropOnDate}
                 onEditTask={onEditTask}
@@ -248,7 +252,7 @@ export default function SeguimientoView({
                 tasksByDate={tasksByDate}
                 onEditTask={onEditTask}
                 clients={clients}
-                canManage={canManage}
+                canCreateTasks={canCreateTasks}
                 openNewTask={openNewTask}
                 technicians={technicians}
               />
@@ -260,7 +264,8 @@ export default function SeguimientoView({
             clients={clients}
             technicians={technicians}
             onEditTask={onEditTask}
-            canManage={canManage}
+            canCreateTasks={canCreateTasks}
+            canDeleteTasks={canManage}
             hasActiveFilters={hasActiveFilters}
             resetFilters={resetFilters}
             openNewTask={openNewTask}
@@ -285,7 +290,7 @@ export default function SeguimientoView({
                 title="Día sin tareas"
                 description="Pulsa sobre otro día del calendario o crea una nueva tarea."
                 action={
-                  canManage && openNewTask
+                  canCreateTasks && openNewTask
                     ? { label: "+ Nueva tarea", variant: "primary", onClick: openNewTask }
                     : undefined
                 }
@@ -330,7 +335,7 @@ function MonthView({
   tasksByDate,
   selectedDate,
   setSelectedDate,
-  canManage,
+  canCreateTasks,
   setDraggedTaskId,
   handleDropOnDate,
   onEditTask,
@@ -361,14 +366,14 @@ function MonthView({
               key={iso}
               className={`calendar-cell ${!isCurrentMonth ? "outside" : ""} ${isSelected ? "selected" : ""}`}
               onClick={() => setSelectedDate(iso)}
-              onDragOver={canManage ? (e) => {
+              onDragOver={canCreateTasks ? (e) => {
                 e.preventDefault();
                 e.currentTarget.classList.add("drop-target-active");
               } : undefined}
-              onDragLeave={canManage ? (e) => {
+              onDragLeave={canCreateTasks ? (e) => {
                 e.currentTarget.classList.remove("drop-target-active");
               } : undefined}
-              onDrop={canManage ? (e) => {
+              onDrop={canCreateTasks ? (e) => {
                 e.currentTarget.classList.remove("drop-target-active");
                 handleDropOnDate(iso);
               } : undefined}
@@ -385,7 +390,7 @@ function MonthView({
                   <TaskPill
                     key={task.id}
                     task={task}
-                    canManage={canManage}
+                    canCreateTasks={canCreateTasks}
                     setDraggedTaskId={setDraggedTaskId}
                     handleDropOnDate={handleDropOnDate}
                     onEditTask={onEditTask}
@@ -411,7 +416,7 @@ function WeekView({
   tasksByDate,
   selectedDate,
   setSelectedDate,
-  canManage,
+  canCreateTasks,
   setDraggedTaskId,
   handleDropOnDate,
   onEditTask,
@@ -430,14 +435,14 @@ function WeekView({
           <div
             key={iso}
             className={`week-column ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}`}
-            onDragOver={canManage ? (e) => {
+            onDragOver={canCreateTasks ? (e) => {
               e.preventDefault();
               e.currentTarget.classList.add("drop-target-active");
             } : undefined}
-            onDragLeave={canManage ? (e) => {
+            onDragLeave={canCreateTasks ? (e) => {
               e.currentTarget.classList.remove("drop-target-active");
             } : undefined}
-            onDrop={canManage ? (e) => {
+            onDrop={canCreateTasks ? (e) => {
               e.currentTarget.classList.remove("drop-target-active");
               handleDropOnDate(iso);
             } : undefined}
@@ -462,7 +467,7 @@ function WeekView({
                   <TaskPill
                     key={task.id}
                     task={task}
-                    canManage={canManage}
+                    canCreateTasks={canCreateTasks}
                     setDraggedTaskId={setDraggedTaskId}
                     handleDropOnDate={handleDropOnDate}
                     onEditTask={onEditTask}
@@ -480,7 +485,7 @@ function WeekView({
 }
 
 // ─── Vista DÍA ───────────────────────────────────────────────
-function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, canManage, openNewTask }) {
+function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, canCreateTasks, openNewTask }) {
   const dayTasks = useMemo(
     () =>
       (tasksByDate[selectedDate] || [])
@@ -504,7 +509,7 @@ function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, 
           title="Día libre"
           description="No hay intervenciones programadas para este día."
           action={
-            canManage && openNewTask
+            canCreateTasks && openNewTask
               ? { label: "+ Crear tarea", variant: "primary", onClick: openNewTask }
               : undefined
           }
@@ -590,7 +595,7 @@ function DayView({ selectedDate, tasksByDate, onEditTask, clients, technicians, 
 // para evitar acciones sobre filas que el usuario no está viendo.
 function TableView({
   filteredTasks, clients, technicians, onEditTask,
-  canManage, hasActiveFilters, resetFilters, openNewTask,
+  canCreateTasks, canDeleteTasks, hasActiveFilters, resetFilters, openNewTask,
   bulkUpdateTasks, bulkDeleteTasks,
 }) {
   // Las filas se ordenan por fecha (asc) y memoizamos: sin esto, cada
@@ -681,7 +686,7 @@ function TableView({
   // limpiarlos. Si no hay tareas en absoluto, ofrecer crear una.
   const emptyAction = hasActiveFilters
     ? { label: "Limpiar filtros", variant: "primary", onClick: resetFilters }
-    : (canManage && openNewTask
+    : (canCreateTasks && openNewTask
         ? { label: "+ Crear primera tarea", variant: "primary", onClick: openNewTask }
         : undefined);
 
@@ -690,12 +695,14 @@ function TableView({
       {/* Bulk-bar fuera del table-wrapper a propósito: si la tabla
           desborda horizontalmente (>= 960px), el bar se mantiene fijo
           en la franja visible en lugar de scrollear con la tabla. */}
-      {selectedCount > 0 && canManage && (
+      {selectedCount > 0 && canCreateTasks && (
         <BulkActionBar
           count={selectedCount}
           busy={busy}
           onApply={applyPartial}
-          onDelete={applyDelete}
+          // Sólo admin/supervisor pueden borrar. Técnicos ven el bar
+          // para hacer bulk updates pero NO el botón Eliminar.
+          onDelete={canDeleteTasks ? applyDelete : null}
           onClear={clearSelection}
         />
       )}
@@ -716,7 +723,7 @@ function TableView({
       <table className="tasks-table tasks-table--selectable">
         <thead>
           <tr>
-            {canManage && (
+            {canCreateTasks && (
               <th className="th-select">
                 <RowCheckbox
                   checked={allSelected}
@@ -755,7 +762,7 @@ function TableView({
                 className={isSelected ? "is-selected" : ""}
                 onClick={() => onEditTask(task)}
               >
-                {canManage && (
+                {canCreateTasks && (
                   <td
                     className="td-select"
                     onClick={(e) => {
@@ -923,22 +930,24 @@ function BulkActionBar({ count, busy, onApply, onDelete, onClear }) {
           )}
         </div>
 
-        <button
-          type="button"
-          className="bulk-bar-btn bulk-bar-btn-danger"
-          onClick={onDelete}
-          disabled={busy}
-          aria-label={`Eliminar ${count} ${count === 1 ? "tarea" : "tareas"}`}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 6h18" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-            <line x1="10" y1="11" x2="10" y2="17" />
-            <line x1="14" y1="11" x2="14" y2="17" />
-          </svg>
-          Eliminar
-        </button>
+        {onDelete && (
+          <button
+            type="button"
+            className="bulk-bar-btn bulk-bar-btn-danger"
+            onClick={onDelete}
+            disabled={busy}
+            aria-label={`Eliminar ${count} ${count === 1 ? "tarea" : "tareas"}`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 6h18" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+            Eliminar
+          </button>
+        )}
       </div>
 
       <button

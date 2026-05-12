@@ -763,7 +763,7 @@ export default function App() {
         tasks={tasks}
         clients={clients}
         technicians={technicians}
-        canManage={user?.role === "admin" || user?.role === "supervisor"}
+        canCreateTasks={user?.role === "admin" || user?.role === "supervisor" || user?.role === "tecnico"}
         onNewTask={openNewTask}
         onNavigate={(s) => setSection(s)}
         onOpenTask={(id) => {

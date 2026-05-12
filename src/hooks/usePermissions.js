@@ -4,29 +4,17 @@ import { useAuth } from "./useAuth";
  * Helper centralizado de permisos derivados del rol del usuario autenticado.
  *
  * Niveles:
- *  - admin      → todo, incluyendo gestión de usuarios
- *  - supervisor → todo excepto gestión de usuarios
- *  - tecnico    → lectura general; sobre las tareas que tiene asignadas
- *                 puede actualizar estado, notas, materiales, tiempo y
- *                 adjuntos (no puede reasignar, cambiar fecha/hora,
- *                 prioridad, cliente ni borrar)
+ *  - admin      → todo, incluyendo gestión de usuarios y borrado de tareas
+ *  - supervisor → todo excepto gestión de usuarios. Puede borrar tareas.
+ *  - tecnico    → puede crear y editar tareas (cualquier campo, cualquier
+ *                 tarea — puede asignarse a sí mismo o a otros). NO puede
+ *                 borrar tareas (acción destructiva reservada a admin/
+ *                 supervisor) ni gestionar usuarios.
  *
  * La autorización definitiva se aplica en el backend (requireRole +
- * canEditTask). Estos flags sirven para ocultar/desactivar UI y evitar
- * peticiones que acabarían en un 403.
+ * canEditOrCreateTask). Estos flags sirven para mostrar/ocultar UI y
+ * evitar peticiones que acabarían en un 403.
  */
-
-// Campos que un técnico puede editar en una tarea suya (espejo del set
-// TECH_EDITABLE_FIELDS del backend, pero usando los nombres camelCase
-// del frontend — el taskMapper traduce a snake_case al guardar).
-export const TECH_EDITABLE_FIELDS = new Set([
-  "status",
-  "notes",
-  "materials",
-  "estimatedTime",
-  "attachments",
-]);
-
 export function usePermissions() {
   const { user } = useAuth();
   const role = user?.role || null;
@@ -35,41 +23,40 @@ export function usePermissions() {
   const isSupervisor = role === "supervisor";
   const isTecnico    = role === "tecnico";
 
-  // admins y supervisores pueden crear / editar / borrar tareas, clientes y técnicos.
+  // admins y supervisores pueden BORRAR tareas, clientes y usuarios.
+  // Sigue siendo la línea entre "modificar" (todos pueden) y "destruir".
   const canManage = isAdmin || isSupervisor;
 
   // solo admin puede gestionar usuarios.
   const canManageUsers = isAdmin;
 
+  // Crear/editar tareas: cualquier usuario autenticado con un rol
+  // válido (admin/supervisor/técnico). Un técnico que descubre algo
+  // importante en campo puede dar de alta la tarea él mismo y
+  // asignarla a quien corresponda — sin tener que pedir al
+  // supervisor que lo cree por él.
+  const canCreateTasks = isAdmin || isSupervisor || isTecnico;
+
   /**
-   * ¿Puede el usuario actual editar (parcialmente) esta tarea?
-   *   - admin / supervisor: siempre que la tarea exista
-   *   - tecnico: solo si está en su lista de asignados
-   *   - sin sesión: nunca
-   *
-   * Para "edición completa" (todos los campos) sigue mandando `canManage`.
-   * Este flag indica si la tarea es interactiva para el usuario actual
-   * (mostrar botón "Marcar como finalizada", habilitar campos seguros). */
+   * ¿Puede el usuario actual editar esta tarea?
+   * Sí cuando tiene rol válido (admin/supervisor/técnico). El backend
+   * acepta el PATCH sin restricciones de asignación, así que el UI
+   * deja editar también. Si en el futuro queremos restringir
+   * "técnicos sólo sus tareas", aquí es donde se filtra. */
   function canEditTask(task) {
-    if (!task) return false;
-    if (canManage) return true;
-    if (isTecnico && user?.id) {
-      const ids = Array.isArray(task.technicianIds) ? task.technicianIds : [];
-      return ids.includes(user.id);
-    }
-    return false;
+    if (!task) return canCreateTasks;        // borrador nuevo
+    return canCreateTasks;
   }
 
   /**
-   * Para una tarea concreta, ¿puede el usuario editar el campo `name`?
-   * - admin / supervisor: cualquier campo (mientras canEditTask = true)
-   * - tecnico: sólo los de TECH_EDITABLE_FIELDS, y sólo si asignado
-   * El TaskModal usa esto para deshabilitar campos visualmente cuando
-   * el técnico abre una tarea suya. */
+   * ¿Puede editar este campo concreto?
+   * Ya no hay filtro por campo — todos los roles con permiso de
+   * edición pueden tocar cualquier campo. Función conservada para
+   * compatibilidad con TaskModal y posibles restricciones futuras
+   * (p.ej. "técnico no puede cambiar prioridad"). */
+  // eslint-disable-next-line no-unused-vars
   function canEditTaskField(task, name) {
-    if (!canEditTask(task)) return false;
-    if (canManage) return true;
-    return TECH_EDITABLE_FIELDS.has(name);
+    return canEditTask(task);
   }
 
   return {
@@ -79,6 +66,7 @@ export function usePermissions() {
     isTecnico,
     canManage,
     canManageUsers,
+    canCreateTasks,
     canEditTask,
     canEditTaskField,
   };

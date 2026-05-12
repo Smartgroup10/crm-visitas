@@ -9,81 +9,21 @@ import { recordTaskChange, getTaskActivity } from "../taskActivity.js";
 
 export const tasksRouter = Router();
 
-// Admins y supervisores pueden crear / borrar tareas. Los técnicos solo
-// pueden leer la lista (GET) y modificar parcialmente las tareas que
-// tengan asignadas — ver canEditTask abajo.
+// Acciones destructivas (borrar tareas) siguen reservadas a admin y
+// supervisor. La operación es irreversible y conviene tener un
+// segundo nivel de aprobación implícito.
 const canManage = requireRole("admin", "supervisor");
 
-// Campos que un técnico puede actualizar en una tarea suya. Limitado a
-// lo que necesita registrar el trabajo en campo: estado (marcar como
-// finalizada), notas, materiales usados, tiempo real invertido y
-// adjuntos (fotos, partes firmados). NO puede reasignar técnicos,
-// cambiar fechas, prioridad, cliente ni título — eso es del supervisor.
-const TECH_EDITABLE_FIELDS = new Set([
-  "status",
-  "notes",
-  "materials",
-  "estimated_time",
-  "attachments",
-]);
+// Crear y editar tareas las puede hacer cualquier usuario con rol
+// (admin, supervisor o técnico). Un técnico que descubre algo
+// importante en campo puede dar de alta la tarea y asignarla a quien
+// corresponda — incluido a sí mismo o a otro compañero. El backend
+// no aplica restricciones de campos por rol: si vas a poder editar,
+// puedes editar cualquier campo del modelo de tarea.
+const canEditOrCreateTask = requireRole("admin", "supervisor", "tecnico");
 
 // Campos JSONB que hay que serializar antes de pasarlos al driver pg.
 const JSONB_FIELDS = new Set(["attachments", "type_fields"]);
-
-/**
- * Middleware de PATCH: admin/supervisor sin restricciones; técnico
- * solo si está asignado a la tarea — y limitado a los campos seguros
- * de TECH_EDITABLE_FIELDS. Cualquier otra clave en req.body se
- * descarta antes de llegar al validator + handler.
- *
- * Usar SIEMPRE después de authMiddleware. Recarga el rol desde BD
- * (mismo patrón que requireRole) para detectar promociones/demociones
- * sin esperar a que caduque el JWT.
- */
-async function canEditTask(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: "Sin sesión" });
-
-  try {
-    const { rows: userRows } = await query(
-      "select role from users where id = $1",
-      [req.user.id]
-    );
-    const role = userRows[0]?.role;
-    if (!role) return res.status(401).json({ error: "Usuario no existe" });
-    req.user.role = role;
-
-    if (role === "admin" || role === "supervisor") return next();
-
-    if (role === "tecnico") {
-      const { rows: taskRows } = await query(
-        "select technician_ids from tasks where id = $1",
-        [req.params.id]
-      );
-      const task = taskRows[0];
-      if (!task) return res.status(404).json({ error: "Tarea no encontrada" });
-      const assigned = (task.technician_ids || []).includes(req.user.id);
-      if (!assigned) {
-        return res.status(403).json({ error: "Esta tarea no está asignada a ti" });
-      }
-      // Filtrar req.body a los campos seguros para técnicos. El frontend
-      // envía siempre el draft completo via PATCH; aquí nos quedamos
-      // solo con lo que el técnico tiene derecho a tocar. Si después
-      // del filtro no queda nada, el validator devolverá "Nada que
-      // actualizar" — comportamiento correcto.
-      const filtered = {};
-      for (const [k, v] of Object.entries(req.body || {})) {
-        if (TECH_EDITABLE_FIELDS.has(k)) filtered[k] = v;
-      }
-      req.body = filtered;
-      return next();
-    }
-
-    res.status(403).json({ error: "Permiso insuficiente" });
-  } catch (err) {
-    logger.error({ err }, "[auth/canEditTask]");
-    res.status(500).json({ error: "Error verificando permisos" });
-  }
-}
 
 function prepareValue(key, value) {
   if (JSONB_FIELDS.has(key)) {
@@ -105,7 +45,7 @@ tasksRouter.get("/", async (_req, res) => {
 });
 
 // ─── POST /api/tasks ─────────────────────────────────────
-tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) => {
+tasksRouter.post("/", canEditOrCreateTask, validate(schemas.taskCreate), async (req, res) => {
   try {
     const t = req.body || {};
     const { rows } = await query(
@@ -151,7 +91,7 @@ tasksRouter.post("/", canManage, validate(schemas.taskCreate), async (req, res) 
 });
 
 // ─── PUT /api/tasks/:id ──────────────────────────────────
-tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res) => {
+tasksRouter.put("/:id", canEditOrCreateTask, validate(schemas.taskUpdate), async (req, res) => {
   try {
     const t = req.body || {};
     // Leemos el estado previo para poder hacer diff de asignación / fecha.
@@ -203,14 +143,13 @@ tasksRouter.put("/:id", canManage, validate(schemas.taskUpdate), async (req, res
 
 // ─── PATCH /api/tasks/:id ────────────────────────────────
 // Actualización parcial. Usado por:
-//   - Drag & drop de fecha en calendario (cualquier role con permiso)
+//   - Drag & drop de fecha en calendario
 //   - Cambios masivos del bulk action bar
-//   - Edición de técnicos en sus propias tareas (status, notas,
-//     materiales, tiempo, adjuntos — ver canEditTask)
+//   - Edición desde el TaskModal (técnicos incluidos)
 //
-// canEditTask filtra req.body para técnicos antes de que lleguen al
-// validator: solo pasan campos seguros (TECH_EDITABLE_FIELDS).
-tasksRouter.patch("/:id", canEditTask, validate(schemas.taskPatch), async (req, res) => {
+// Cualquier usuario con rol válido (admin/supervisor/técnico) puede
+// hacer PATCH a cualquier tarea. Sin filtro de campos.
+tasksRouter.patch("/:id", canEditOrCreateTask, validate(schemas.taskPatch), async (req, res) => {
   try {
     const fields = Object.entries(req.body);
 

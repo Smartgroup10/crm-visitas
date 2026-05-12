@@ -9,7 +9,7 @@ import EmptyState from "../EmptyState";
 import RemindersPanel from "../RemindersPanel";
 
 export default function MiTrabajoView({ tasks, clients, technicians, onEditTask, openNewTask }) {
-  const { canManage } = usePermissions();
+  const { canCreateTasks } = usePermissions();
   const today = todayISO();
 
   // Bloqueadas primero, luego por fecha asc. El predicado base lo aporta
@@ -108,7 +108,7 @@ export default function MiTrabajoView({ tasks, clients, technicians, onEditTask,
               title="Sin intervenciones hoy"
               description="La agenda de hoy está vacía."
               action={
-                canManage && openNewTask
+                canCreateTasks && openNewTask
                   ? { label: "+ Crear tarea", variant: "primary", onClick: openNewTask }
                   : undefined
               }
