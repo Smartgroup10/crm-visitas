@@ -48,6 +48,14 @@ export const TASK_TYPES = {
       { name: "fechaObjetivoPropuesta", label: "Fecha objetivo propuesta", type: "date", required: false },
     ],
   },
+  // Tipo "Captura" — categoría sin campos específicos. La tarea
+  // se gestiona con los campos comunes (título, cliente, fecha,
+  // notas, etc.). Útil para visitas cuyo objetivo es recopilar
+  // información en sitio sin un workflow estructurado detrás.
+  "captura": {
+    label: "Captura",
+    specificFields: [],
+  },
 };
 
 export const TASK_TYPE_KEYS = Object.keys(TASK_TYPES);

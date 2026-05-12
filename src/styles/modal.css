@@ -124,6 +124,11 @@
   border-color: rgba(163, 88, 208, 0.22);
   color: #6b21a8;
 }
+.task-type-tag.task-type-captura {
+  background: rgba(14, 165, 164, 0.08);
+  border-color: rgba(14, 165, 164, 0.22);
+  color: #115e59;
+}
 .task-type-tag.task-type-visita {
   background: var(--surface-sunken);
   border-color: var(--line-warm);
